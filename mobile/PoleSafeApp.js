@@ -1,0 +1,213 @@
+// PoleSafe Mobile App — React Native Entry Point
+// From Home to School. And Beyond. 🚸🚗
+
+import React, { useState, useEffect } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+// Screens
+import LoginScreen from './screens/LoginScreen';
+import ParentDashboard from './screens/ParentDashboard';
+import ParentBooking from './screens/ParentBooking';
+import ParentTrack from './screens/ParentTrack';
+import ParentSickDay from './screens/ParentSickDay';
+import ParentEarlyPickup from './screens/ParentEarlyPickup';
+import ParentCredits from './screens/ParentCredits';
+import DriverDashboard from './screens/DriverDashboard';
+import DriverRoute from './screens/DriverRoute';
+import DriverEarnings from './screens/DriverEarnings';
+import SchoolDashboard from './screens/SchoolDashboard';
+import SchoolBroadcast from './screens/SchoolBroadcast';
+import SchoolGateCheck from './screens/SchoolGateCheck';
+import SchoolDetention from './screens/SchoolDetention';
+import RideHailing from './screens/RideHailing';
+
+const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
+
+// ============================================================
+// Parent Tab Navigator
+// ============================================================
+function ParentTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: '#2E7D32' },
+        headerTintColor: '#fff',
+        tabBarActiveTintColor: '#2E7D32',
+        tabBarStyle: { paddingBottom: 5, height: 60 },
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={ParentDashboard}
+        options={{ tabBarLabel: '🏠 Home', title: 'PoleSafe 🚸' }}
+      />
+      <Tab.Screen
+        name="RideHailing"
+        component={RideHailing}
+        options={{ tabBarLabel: '🚗 Ride', title: 'PoleSafe Ride' }}
+      />
+      <Tab.Screen
+        name="Booking"
+        component={ParentBooking}
+        options={{ tabBarLabel: '📅 Book', title: 'Book a Ride' }}
+      />
+      <Tab.Screen
+        name="Credits"
+        component={ParentCredits}
+        options={{ tabBarLabel: '💰 Credits', title: 'My Credits' }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// ============================================================
+// Driver Tab Navigator
+// ============================================================
+function DriverTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: '#1565C0' },
+        headerTintColor: '#fff',
+        tabBarActiveTintColor: '#1565C0',
+      }}
+    >
+      <Tab.Screen
+        name="DriverHome"
+        component={DriverDashboard}
+        options={{ tabBarLabel: '📊 Home', title: 'PoleSafe 🚗' }}
+      />
+      <Tab.Screen
+        name="Route"
+        component={DriverRoute}
+        options={{ tabBarLabel: '🗺️ Route', title: 'Today\'s Route' }}
+      />
+      <Tab.Screen
+        name="Earnings"
+        component={DriverEarnings}
+        options={{ tabBarLabel: '💰 Earnings', title: 'My Earnings' }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// ============================================================
+// School Tab Navigator
+// ============================================================
+function SchoolTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: '#E65100' },
+        headerTintColor: '#fff',
+        tabBarActiveTintColor: '#E65100',
+      }}
+    >
+      <Tab.Screen
+        name="SchoolHome"
+        component={SchoolDashboard}
+        options={{ tabBarLabel: '🏫 Dashboard', title: 'PoleSafe School' }}
+      />
+      <Tab.Screen
+        name="Broadcast"
+        component={SchoolBroadcast}
+        options={{ tabBarLabel: '📢 Broadcast', title: 'Announcements' }}
+      />
+      <Tab.Screen
+        name="GateCheck"
+        component={SchoolGateCheck}
+        options={{ tabBarLabel: '🚪 Gate', title: 'Gate Check-In' }}
+      />
+      <Tab.Screen
+        name="Detention"
+        component={SchoolDetention}
+        options={{ tabBarLabel: '⏰ Late', title: 'Late Pickup' }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// ============================================================
+// Root App
+// ============================================================
+export default function PoleSafeApp() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [userToken, setUserToken] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    // Check for stored token on app launch
+    const bootstrap = async () => {
+      try {
+        const token = await AsyncStorage.getItem('polesafe_token');
+        const role = await AsyncStorage.getItem('polesafe_role');
+        if (token) {
+          setUserToken(token);
+          setUserRole(role);
+        }
+      } catch (e) {
+        console.log('Error loading token:', e);
+      }
+      setIsLoading(false);
+    };
+    bootstrap();
+  }, []);
+
+  if (isLoading) {
+    return <SplashScreen />;
+  }
+
+  return (
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {userToken == null ? (
+            // Auth stack
+            <Stack.Screen name="Login" component={LoginScreen} />
+          ) : (
+            // Main app stack based on role
+            userRole === 'parent' ? (
+              <Stack.Screen name="Parent" component={ParentTabs} />
+            ) : userRole === 'driver' ? (
+              <Stack.Screen name="Driver" component={DriverTabs} />
+            ) : (
+              <Stack.Screen name="School" component={SchoolTabs} />
+            )
+          )}
+          {/* Shared screens that can be accessed from any role */}
+          <Stack.Screen name="TrackRide" component={ParentTrack} />
+          <Stack.Screen name="SickDay" component={ParentSickDay} />
+          <Stack.Screen name="EarlyPickup" component={ParentEarlyPickup} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
+  );
+}
+
+// Simple splash/loading screen
+function SplashScreen() {
+  const { View, Text, ActivityIndicator, StyleSheet } = require('react-native');
+  return (
+    <View style={splash.container}>
+      <Text style={splash.logo}>🚸 PoleSafe</Text>
+      <Text style={splash.slogan}>From Home to School. And Beyond.</Text>
+      <ActivityIndicator size="large" color="#2E7D32" />
+    </View>
+  );
+}
+
+const splash = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  logo: { fontSize: 36, fontWeight: 'bold', color: '#2E7D32' },
+  slogan: { fontSize: 14, color: '#666', marginTop: 8, marginBottom: 20 },
+});

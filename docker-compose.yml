@@ -1,0 +1,66 @@
+# PoleSafe — Docker Development & Demo Setup
+# Run the full app with fake money for testing
+
+version: '3.8'
+
+services:
+  # ============================================================
+  # MongoDB — Database
+  # ============================================================
+  mongodb:
+    image: mongo:7
+    container_name: polesafe-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: polesafe
+      # No auth for dev — secured in production
+
+  # ============================================================
+  # PoleSafe Backend API
+  # ============================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: polesafe-api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/polesafe
+      - POLESAFE_DEMO=true
+      - JWT_SECRET=polesafe-demo-secret-2026
+      - PORT=3000
+      # SMS in demo mode — logs to console
+      - SMS_PROVIDER=console
+      - WHATSAPP_PROVIDER=console
+      - EMAIL_PROVIDER=console
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # ============================================================
+  # MongoDB Express — Web UI to see data (optional)
+  # ============================================================
+  mongo-express:
+    image: mongo-express:1
+    container_name: polesafe-mongo-ui
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongodb
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=polesafe123
+      - ME_CONFIG_OPTIONS_EDITORTHEME=ambiance
+
+volumes:
+  mongo_data:
