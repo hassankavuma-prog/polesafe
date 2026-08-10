@@ -237,4 +237,105 @@ router.post('/sms-login', async (req, res) => {
   }
 });
 
+// POST /api/auth/change-pin — Change PIN (authenticated)
+router.post('/change-pin', authMiddleware, async (req, res) => {
+  try {
+    const { newPin } = req.body;
+    if (!newPin || newPin.length < 4) {
+      return res.status(400).json({ error: 'PIN must be at least 4 characters' });
+    }
+    
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    user.pin = newPin;
+    await user.save();
+    
+    res.json({ message: 'PIN changed successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// POST /api/auth/forgot-pin — Send SMS reset code
+// ============================================================
+router.post('/forgot-pin', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone || !phone.match(/^\+?256\d{9}$/)) {
+      return res.status(400).json({ error: 'Valid Ugandan phone number required (+256...)' });
+    }
+
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(404).json({ error: 'No account with this phone number' });
+    }
+
+    // Generate 6-digit reset code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    user.pinResetCode = resetCode;
+    user.pinResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min expiry
+    await user.save();
+
+    // Send reset code via SMS
+    await smsService.send({
+      to: phone,
+      message: `PoleSafe PIN reset code: ${resetCode}. Valid for 10 minutes. If you didn't request this, ignore. -PoleSafe`,
+    });
+
+    res.json({ message: 'Reset code sent via SMS', phone });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// POST /api/auth/reset-pin — Verify reset code + set new PIN
+// ============================================================
+router.post('/reset-pin', async (req, res) => {
+  try {
+    const { phone, code, newPin } = req.body;
+
+    if (!phone || !code || !newPin) {
+      return res.status(400).json({ error: 'Phone, code, and new PIN are required' });
+    }
+    if (newPin.length < 4) {
+      return res.status(400).json({ error: 'PIN must be at least 4 characters' });
+    }
+
+    const user = await User.findOne({
+      phone,
+      pinResetCode: code,
+      pinResetExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired reset code. Request a new one.' });
+    }
+
+    // Set new PIN and clear reset fields
+    user.pin = newPin;
+    user.pinResetCode = undefined;
+    user.pinResetExpires = undefined;
+    await user.save();
+
+    // Generate token so user is logged in after reset
+    const token = generateToken(user);
+
+    res.json({
+      message: 'PIN reset successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        phone: user.phone,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

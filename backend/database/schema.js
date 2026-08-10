@@ -21,6 +21,8 @@ const userSchema = new mongoose.Schema({
   },
   polesafeAdminRole: { type: String, enum: ['owner', 'support'] },  // Only for polesafe_admin role
   pin: { type: String },              // Simple PIN for SMS login
+  pinResetCode: { type: String },        // SMS reset code for forgot PIN
+  pinResetExpires: { type: Date },       // Reset code expiry
   hasSmartphone: { type: Boolean, default: true },
   preferredLanguage: { type: String, enum: ['en', 'luganda', 'swahili'], default: 'en' },
 

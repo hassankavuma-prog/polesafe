@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const { Transaction, User, WithdrawalRequest } = require('../database/schema');
+const notificationService = require('../services/notificationService');
 const config = require('../config');
 const { authMiddleware } = require('../middleware/auth');
 

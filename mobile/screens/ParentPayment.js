@@ -23,7 +23,24 @@ export default function ParentPayment({ navigation, route }) {
 
   useEffect(() => {
     loadPayments();
+    loadSavedPaymentMethod();
   }, []);
+
+  const loadSavedPaymentMethod = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('polesafe_payment');
+      if (saved) {
+        const p = JSON.parse(saved);
+        setNetwork(p.network || 'MTN');
+        setPhone(p.phone || '');
+      }
+    } catch {}
+  };
+
+  const savePaymentMethod = async () => {
+    try {
+      await AsyncStorage.setItem('polesafe_payment', JSON.stringify({ network, phone }));
+    } catch {}
 
   const loadPayments = async () => {
     try {
