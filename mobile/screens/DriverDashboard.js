@@ -99,7 +99,7 @@ export default function DriverDashboard({ navigation }) {
       <Text style={styles.sectionTitle}>🗓️ Today's Schedule</Text>
 
       {route?.morningStops?.length > 0 && (
-        <View style={styles.stopGroup}>
+        <GlassCard style={styles.stopGroup}>
           <Text style={styles.stopGroupTitle}>🌅 Morning Drop-offs</Text>
           {route.morningStops.map((stop, i) => (
             <View key={stop._id} style={styles.stopRow}>
@@ -113,11 +113,11 @@ export default function DriverDashboard({ navigation }) {
               <View style={[styles.statusDot, { backgroundColor: getStatusColor(stop.status) }]} />
             </View>
           ))}
-        </View>
+        </GlassCard>
       )}
 
       {route?.afternoonStops?.length > 0 && (
-        <View style={styles.stopGroup}>
+        <GlassCard style={styles.stopGroup}>
           <Text style={styles.stopGroupTitle}>🌇 Afternoon Pickups</Text>
           {route.afternoonStops.map((stop, i) => (
             <View key={stop._id} style={styles.stopRow}>
@@ -131,12 +131,12 @@ export default function DriverDashboard({ navigation }) {
               <View style={[styles.statusDot, { backgroundColor: getStatusColor(stop.status) }]} />
             </View>
           ))}
-        </View>
+        </GlassCard>
       )}
 
       {/* Gap Time Info */}
       {route?.gaps?.length > 0 && (
-        <View style={styles.gapCard}>
+        <GlassCard style={styles.gapCard}>
           <Text style={styles.gapTitle}>⏱️ Ride Mode Windows</Text>
           {route.gaps.map((gap, i) => (
             <Text key={i} style={styles.gapText}>
@@ -144,18 +144,14 @@ export default function DriverDashboard({ navigation }) {
               {gap.minutes >= 30 ? ' 🚗 Can take rides' : ''}
             </Text>
           ))}
-        </View>
+        </GlassCard>
       )}
 
       {/* View Full Route */}
-      <TouchableOpacity style={styles.routeBtn} onPress={() => navigation.navigate('Route')}>
-        <Text style={styles.routeBtnText}>🗺️ View Full Route</Text>
-      </TouchableOpacity>
+      <PrimaryButton title="🗺️ View Full Route" onPress={() => navigation.navigate('Route')} variant="primary" />
 
       {/* View Earnings */}
-      <TouchableOpacity style={styles.earningsBtn} onPress={() => navigation.navigate('Earnings')}>
-        <Text style={styles.earningsBtnText}>💰 View Earnings</Text>
-      </TouchableOpacity>
+      <PrimaryButton title="💰 View Earnings" onPress={() => navigation.navigate('Earnings')} variant="secondary" />
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -177,7 +173,7 @@ function getStatusColor(status) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
-  availableCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 16, elevation: 2 },
+  availableCard: { padding: 16, marginBottom: 16 }, // layout only — GlassCard handles styling
   toggleBtn: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 10, justifyContent: 'center' },
   on: { backgroundColor: COLORS.greenBg },
   off: { backgroundColor: COLORS.redBg },
@@ -185,11 +181,11 @@ const styles = StyleSheet.create({
   toggleText: { fontSize: 16, fontWeight: '600' },
   toggleHint: { fontSize: 12, color: COLORS.textMuted, textAlign: 'center', marginTop: 8 },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  statBox: { flex: 1, backgroundColor: COLORS.surface, padding: 16, borderRadius: 12, alignItems: 'center', elevation: 1 },
+  statBox: { flex: 1, padding: 16, alignItems: 'center' }, // layout only — GlassCard handles styling
   statNumber: { fontSize: 28, fontWeight: '700', color: COLORS.blue },
   statLabel: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: COLORS.textPrimary },
-  stopGroup: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
+  stopGroup: { padding: 16, marginBottom: 12 }, // layout only — GlassCard handles styling
   stopGroupTitle: { fontSize: 15, fontWeight: '600', marginBottom: 10, color: COLORS.blue },
   stopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   stopNum: { fontSize: 14, fontWeight: '600', color: COLORS.textMuted, width: 24 },
@@ -197,13 +193,9 @@ const styles = StyleSheet.create({
   stopName: { fontSize: 15, fontWeight: '500' },
   stopTime: { fontSize: 12, color: COLORS.textSecondary },
   statusDot: { width: 12, height: 12, borderRadius: 6 },
-  gapCard: { backgroundColor: COLORS.blueBg, borderRadius: 12, padding: 16, marginBottom: 12 },
+  gapCard: { padding: 16, marginBottom: 12 }, // layout only — GlassCard handles styling
   gapTitle: { fontSize: 15, fontWeight: '600', marginBottom: 8, color: COLORS.blue },
   gapText: { fontSize: 13, color: COLORS.textPrimary, marginBottom: 4 },
-  routeBtn: { backgroundColor: COLORS.blue, padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 8 },
-  routeBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  earningsBtn: { backgroundColor: COLORS.surface, padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: COLORS.blue },
-  earningsBtnText: { color: COLORS.blue, fontSize: 16, fontWeight: '600' },
   center: { justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 12, fontSize: 15, color: COLORS.textSecondary },
   emptyIcon: { fontSize: 48, marginBottom: 12 },

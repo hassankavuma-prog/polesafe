@@ -124,79 +124,95 @@ export default function SchoolDashboard({ navigation }) {
       {/* Quick Actions */}
       <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-      <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Broadcast')}>
-        <Text style={styles.actionIcon}>📢</Text>
-        <View style={styles.actionContent}>
-          <Text style={styles.actionTitle}>Send Broadcast</Text>
-          <Text style={styles.actionSub}>Half day, closure, emergency — one tap notifies everyone</Text>
-        </View>
-        <Text style={styles.arrow}>→</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('GateCheck')}>
-        <Text style={styles.actionIcon}>🚪</Text>
-        <View style={styles.actionContent}>
-          <Text style={styles.actionTitle}>Gate Check-In</Text>
-          <Text style={styles.actionSub}>Confirm arriving kids at the gate</Text>
-        </View>
-        <Text style={styles.arrow}>→</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Detention')}>
-        <Text style={styles.actionIcon}>⏰</Text>
-        <View style={styles.actionContent}>
-          <Text style={styles.actionTitle}>Detention / Late Pickup</Text>
-          <Text style={styles.actionSub}>Update pickup time — driver + parent notified</Text>
-        </View>
-        <Text style={styles.arrow}>→</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('TeacherPickupVerify')}>
-        <Text style={styles.actionIcon}>👩‍🏫</Text>
-        <View style={styles.actionContent}>
-          <Text style={styles.actionTitle}>Pickup Verification</Text>
-          <Text style={styles.actionSub}>Verify drivers before releasing kids</Text>
-        </View>
-        <Text style={styles.arrow}>→</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('PendingChildren')}>
-        <Text style={styles.actionIcon}>👋</Text>
-        <View style={styles.actionContent}>
-          <Text style={styles.actionTitle}>Pending Children</Text>
-          <Text style={styles.actionSub}>Approve new kids registered by parents</Text>
-        </View>
-        {pendingCount > 0 && (
-          <View style={styles.pendingBadge}>
-            <Text style={styles.pendingBadgeText}>{pendingCount}</Text>
+      <TouchableOpacity onPress={() => navigation.navigate('Broadcast')} activeOpacity={0.8}>
+        <GlassCard style={styles.actionCard}>
+          <Text style={styles.actionIcon}>📢</Text>
+          <View style={styles.actionContent}>
+            <Text style={styles.actionTitle}>Send Broadcast</Text>
+            <Text style={styles.actionSub}>Half day, closure, emergency — one tap notifies everyone</Text>
           </View>
-        )}
-        <Text style={styles.arrow}>→</Text>
+          <Text style={styles.arrow}>→</Text>
+        </GlassCard>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AttendanceReport')}>
-        <Text style={styles.actionIcon}>📊</Text>
-        <View style={styles.actionContent}>
-          <Text style={styles.actionTitle}>Attendance Report</Text>
-          <Text style={styles.actionSub}>Full attendance for all kids (PoleSafe + non-PoleSafe)</Text>
-        </View>
-        <Text style={styles.arrow}>→</Text>
+      <TouchableOpacity onPress={() => navigation.navigate('GateCheck')} activeOpacity={0.8}>
+        <GlassCard style={styles.actionCard}>
+          <Text style={styles.actionIcon}>🚪</Text>
+          <View style={styles.actionContent}>
+            <Text style={styles.actionTitle}>Gate Check-In</Text>
+            <Text style={styles.actionSub}>Confirm arriving kids at the gate</Text>
+          </View>
+          <Text style={styles.arrow}>→</Text>
+        </GlassCard>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.actionCard} onPress={handleSendAttendance}>
-        <Text style={styles.actionIcon}>📋</Text>
-        <View style={styles.actionContent}>
-          <Text style={styles.actionTitle}>Send Attendance SMS</Text>
-          <Text style={styles.actionSub}>End-of-day attendance report to all parents via SMS</Text>
-        </View>
-        {sendingSms && <ActivityIndicator color={COLORS.orange} size="small" />}
-        <Text style={styles.arrow}>→</Text>
+      <TouchableOpacity onPress={() => navigation.navigate('Detention')} activeOpacity={0.8}>
+        <GlassCard style={styles.actionCard}>
+          <Text style={styles.actionIcon}>⏰</Text>
+          <View style={styles.actionContent}>
+            <Text style={styles.actionTitle}>Detention / Late Pickup</Text>
+            <Text style={styles.actionSub}>Update pickup time — driver + parent notified</Text>
+          </View>
+          <Text style={styles.arrow}>→</Text>
+        </GlassCard>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate('TeacherPickupVerify')} activeOpacity={0.8}>
+        <GlassCard style={styles.actionCard}>
+          <Text style={styles.actionIcon}>👩‍🏫</Text>
+          <View style={styles.actionContent}>
+            <Text style={styles.actionTitle}>Pickup Verification</Text>
+            <Text style={styles.actionSub}>Verify drivers before releasing kids</Text>
+          </View>
+          <Text style={styles.arrow}>→</Text>
+        </GlassCard>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate('PendingChildren')} activeOpacity={0.8}>
+        <GlassCard style={styles.actionCard}>
+          <Text style={styles.actionIcon}>👋</Text>
+          <View style={styles.actionContent}>
+            <Text style={styles.actionTitle}>Pending Children</Text>
+            <Text style={styles.actionSub}>Approve new kids registered by parents</Text>
+          </View>
+          {pendingCount > 0 && (
+            <View style={styles.pendingBadge}>
+              <Text style={styles.pendingBadgeText}>{pendingCount}</Text>
+            </View>
+          )}
+          <Text style={styles.arrow}>→</Text>
+        </GlassCard>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate('AttendanceReport')} activeOpacity={0.8}>
+        <GlassCard style={styles.actionCard}>
+          <Text style={styles.actionIcon}>📊</Text>
+          <View style={styles.actionContent}>
+            <Text style={styles.actionTitle}>Attendance Report</Text>
+            <Text style={styles.actionSub}>Full attendance for all kids (PoleSafe + non-PoleSafe)</Text>
+          </View>
+          <Text style={styles.arrow}>→</Text>
+        </GlassCard>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={handleSendAttendance} activeOpacity={0.8}>
+        <GlassCard style={styles.actionCard}>
+          <Text style={styles.actionIcon}>📋</Text>
+          <View style={styles.actionContent}>
+            <Text style={styles.actionTitle}>Send Attendance SMS</Text>
+            <Text style={styles.actionSub}>End-of-day attendance report to all parents via SMS</Text>
+          </View>
+          {sendingSms && <ActivityIndicator color={COLORS.orange} size="small" />}
+          <Text style={styles.arrow}>→</Text>
+        </GlassCard>
       </TouchableOpacity>
 
       {/* Sick Kid Alert */}
-      <TouchableOpacity style={styles.sickCard}>
-        <Text style={styles.sickTitle}>🩺 Report Sick Kid</Text>
-        <Text style={styles.sickSub}>Tap when a kid is unwell — parent will be notified with options</Text>
+      <TouchableOpacity activeOpacity={0.8}>
+        <GlassCard style={styles.sickCard}>
+          <Text style={styles.sickTitle}>🩺 Report Sick Kid</Text>
+          <Text style={styles.sickSub}>Tap when a kid is unwell — parent will be notified with options</Text>
+        </GlassCard>
       </TouchableOpacity>
 
       {/* Recent Broadcasts */}
@@ -204,7 +220,7 @@ export default function SchoolDashboard({ navigation }) {
         <>
           <Text style={styles.sectionTitle}>Recent Announcements</Text>
           {dashboard.recentBroadcasts.map((b, i) => (
-            <View key={b._id || i} style={styles.broadcastRow}>
+            <GlassCard key={b._id || i} style={styles.broadcastRow}>
               <Text style={styles.broadcastIcon}>
                 {b.type === 'half_day' ? '🚩' : b.type === 'school_closed' ? '❄️' : b.type === 'emergency' ? '🚨' : '📢'}
               </Text>
@@ -214,7 +230,7 @@ export default function SchoolDashboard({ navigation }) {
                   {new Date(b.createdAt).toLocaleString('en-UG')} • {b.parentCount} parents
                 </Text>
               </View>
-            </View>
+            </GlassCard>
           ))}
         </>
       )}
@@ -233,16 +249,16 @@ const styles = StyleSheet.create({
   attendNum: { fontSize: 32, fontWeight: '700' },
   attendLabel: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: COLORS.textPrimary },
-  actionCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 8, elevation: 1 },
+  actionCard: { padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 8 }, // layout only — GlassCard handles styling
   actionIcon: { fontSize: 28, marginRight: 14 },
   actionContent: { flex: 1 },
   actionTitle: { fontSize: 15, fontWeight: '600' },
   actionSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   arrow: { fontSize: 18, color: '#ccc' },
-  sickCard: { backgroundColor: COLORS.orangeBg, borderRadius: 12, padding: 16, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: COLORS.orange },
+  sickCard: { padding: 16, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: COLORS.orange }, // layout only — GlassCard handles styling
   sickTitle: { fontSize: 15, fontWeight: '600', color: COLORS.orange },
   sickSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
-  broadcastRow: { flexDirection: 'row', backgroundColor: COLORS.surface, padding: 12, borderRadius: 8, marginBottom: 8 },
+  broadcastRow: { flexDirection: 'row', padding: 12, marginBottom: 8 }, // layout only — GlassCard handles styling
   broadcastIcon: { fontSize: 20, marginRight: 10 },
   broadcastInfo: { flex: 1 },
   broadcastMsg: { fontSize: 13, color: COLORS.textPrimary },
