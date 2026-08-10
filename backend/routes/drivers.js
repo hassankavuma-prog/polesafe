@@ -595,4 +595,72 @@ router.post('/availability', async (req, res) => {
   }
 });
 
+// ============================================================
+// POST /api/drivers/rides/:rideId/reveal-safeword — Driver reveals safe word at pickup
+// Only works when driver has arrived at the pickup location
+// ============================================================
+router.post('/rides/:rideId/reveal-safeword', async (req, res) => {
+  try {
+    const Ride = require('../database/schema').Ride;
+    const ride = await Ride.findById(req.params.rideId);
+
+    if (!ride) return res.status(404).json({ error: 'Ride not found' });
+    if (ride.driverId?.toString() !== req.userId) {
+      return res.status(403).json({ error: 'This ride is not assigned to you' });
+    }
+    if (ride.safeWordVerified) {
+      return res.status(400).json({ error: 'Safe word already verified' });
+    }
+
+    // Get the child's safe word
+    const Child = require('../database/schema').Child;
+    const child = await Child.findById(ride.childId);
+    if (!child || !child.safeWord) {
+      return res.status(400).json({ error: 'No safe word set for this child. Ask the parent to set one.' });
+    }
+
+    // Record when word was revealed
+    ride.safeWord = child.safeWord;
+    ride.safeWordRevealedAt = new Date();
+    await ride.save();
+
+    res.json({
+      message: '🔐 Safe word revealed. Say this to the kid and wait for them to recognize it.',
+      safeWord: child.safeWord,
+      hasPhoto: !!child.safeWordPhoto,
+      kidName: child.name,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// POST /api/drivers/rides/:rideId/verify-safeword — Driver confirms kid recognized the word
+// ============================================================
+router.post('/rides/:rideId/verify-safeword', async (req, res) => {
+  try {
+    const Ride = require('../database/schema').Ride;
+    const ride = await Ride.findById(req.params.rideId);
+
+    if (!ride) return res.status(404).json({ error: 'Ride not found' });
+    if (ride.driverId?.toString() !== req.userId) {
+      return res.status(403).json({ error: 'This ride is not assigned to you' });
+    }
+    if (!ride.safeWordRevealedAt) {
+      return res.status(400).json({ error: 'You must reveal the safe word first' });
+    }
+
+    ride.safeWordVerified = true;
+    await ride.save();
+
+    res.json({
+      message: '✅ Kid verified! Safe word matched.',
+      verified: true,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

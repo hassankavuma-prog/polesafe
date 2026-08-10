@@ -24,6 +24,7 @@ export default function OnboardingScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState('');
   const [userId, setUserId] = useState('');
+  const [childId, setChildId] = useState('');
 
   const register = async () => {
     setLoading(true);
@@ -68,13 +69,13 @@ export default function OnboardingScreen({ navigation }) {
   };
 
   const setPickupWord = async () => {
-    if (!token) return;
+    if (!token || !childId) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/safety/set-pickup-word`, {
+      const res = await fetch(`${API_BASE}/api/parents/kids/${childId}/safeword`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ childId: userId, word }),
+        body: JSON.stringify({ safeWord: word }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -101,7 +102,10 @@ export default function OnboardingScreen({ navigation }) {
       case 2:
         if (!childName) return Alert.alert('Enter your child\'s name');
         try {
-          await addChild();
+          await addChild().then(childData => {
+            if (childData?.child?._id) setChildId(childData.child._id);
+            else if (childData?._id) setChildId(childData._id);
+          });
           setStep(3);
         } catch { /* handled */ }
         break;
@@ -157,12 +161,14 @@ export default function OnboardingScreen({ navigation }) {
       case 3:
         return (
           <>
-            <Text style={styles.stepTitle}>🔐 Pickup Word</Text>
+            <Text style={styles.stepTitle}>🔐 Safe Word</Text>
             <Text style={styles.hint}>
-              Choose a word your child will know. The driver says this word at every pickup.{'\n\n'}
-              If the driver doesn't say the word, your child should NOT get in the vehicle.
+              Pick a word your child knows. At pickup, the kid asks the driver:
+              {'\n'}👉 "What's the word?"
+              {'\n\n'}The driver says your safe word. Your child recognizes it → gets in safely.
+              {'\n\n'}🚨 If the driver doesn't know the word, your child REFUSES to get in.
             </Text>
-            <TextInput style={styles.input} value={word} onChangeText={setWord} placeholder="e.g. Mango, Lion, Blue" placeholderTextColor="#999" maxLength={16} />
+            <TextInput style={styles.input} value={word} onChangeText={setWord} placeholder="e.g. Sunflower, Giraffe, Blue" placeholderTextColor="#999" maxLength={16} />
           </>
         );
 

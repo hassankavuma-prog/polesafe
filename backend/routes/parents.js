@@ -381,4 +381,38 @@ router.post('/credits/redeem', async (req, res) => {
   }
 });
 
+// ============================================================
+// POST /api/parents/kids/:kidId/safeword — Set safe word for a child
+// ============================================================
+router.post('/kids/:kidId/safeword', async (req, res) => {
+  try {
+    const { kidId } = req.params;
+    const { safeWord } = req.body;
+
+    if (!safeWord || safeWord.length < 2) {
+      return res.status(400).json({ error: 'Safe word must be at least 2 characters' });
+    }
+
+    const Child = require('../database/schema').Child;
+    const child = await Child.findOne({ _id: kidId, parentId: req.userId });
+    if (!child) {
+      return res.status(404).json({ error: 'Child not found' });
+    }
+
+    child.safeWord = safeWord.toLowerCase().trim();
+    await child.save();
+
+    res.json({
+      message: `✅ Safe word set to "${safeWord}"`,
+      child: {
+        id: child._id,
+        name: child.name,
+        safeWord: child.safeWord,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

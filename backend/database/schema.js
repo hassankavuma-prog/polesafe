@@ -136,8 +136,9 @@ const childSchema = new mongoose.Schema({
   approvedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
 
-  // Safety: Permanent pickup word (set once, kid remembers)
-  pickupCode: { type: String },  // e.g., "Mango" — permanent word, not daily
+  // Safety: Safe Word (kid asks driver for it — kid challenges, driver answers)
+  safeWord: { type: String },  // e.g., "Sunflower" — word kid recognizes, set once
+  safeWordPhoto: { type: String },  // Optional photo for very young kids (driver shows screen)
 });
 
 // ============================================================
@@ -277,9 +278,10 @@ const rideSchema = new mongoose.Schema({
     speed: { type: Number },
   }],
 
-  // Safety features
-  pickupCode: { type: String },  // Daily pickup code for this ride
-  pickupCodeUsed: { type: Boolean, default: false },  // Driver confirmed code was said
+  // Safety: Safe Word (kid asks, driver says the word)
+  safeWord: { type: String },  // Child's safe word — revealed to driver at pickup
+  safeWordRevealedAt: { type: Date },  // When driver tapped to reveal
+  safeWordVerified: { type: Boolean, default: false },  // Kid confirmed word matches
   classroomPickupStatus: { 
     type: String, 
     enum: ['pending', 'verified_by_teacher', 'completed'], 
