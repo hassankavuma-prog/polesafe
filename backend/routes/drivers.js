@@ -92,6 +92,11 @@ router.post('/ride/:id/status', async (req, res) => {
 
     if (status === 'picked_up') ride.actualPickupTime = new Date();
     if (status === 'dropped_off') ride.actualDropoffTime = new Date();
+
+    // Increment driver's completed rides count when trip is delivered
+    if (status === 'dropped_off') {
+      await User.findByIdAndUpdate(req.userId, { $inc: { completedRidesCount: 1 } });
+    }
     if (status === 'en_route' && coordinates) {
       ride.pickupLocation = { type: 'Point', coordinates };
     }

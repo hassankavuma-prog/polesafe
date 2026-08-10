@@ -249,6 +249,9 @@ const rideSchema = new mongoose.Schema({
     }],
   },
 
+  // Selfie verification flag (set by admin or trigger system)
+  selfieVerificationRequired: { type: Boolean, default: false },
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
