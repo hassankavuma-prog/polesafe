@@ -5,12 +5,16 @@ const express = require('express');
 const router = express.Router();
 const { User } = require('../database/schema');
 const { authMiddleware, generateToken, generatePinToken } = require('../middleware/auth');
+const {
+  validateRegister,
+  validateLogin,
+} = require('../middleware/validation');
 const smsService = require('../services/smsService');
 
 // ============================================================
 // POST /api/auth/register — Create new account
 // ============================================================
-router.post('/register', async (req, res) => {
+router.post('/register', validateRegister, async (req, res) => {
   try {
     const { phone, name, role, hasSmartphone } = req.body;
 
@@ -73,7 +77,7 @@ router.post('/register', async (req, res) => {
 // ============================================================
 // POST /api/auth/login — Login via phone + PIN or password
 // ============================================================
-router.post('/login', async (req, res) => {
+router.post('/login', validateLogin, async (req, res) => {
   try {
     const { phone, pin } = req.body;
     const bcrypt = require('bcryptjs');

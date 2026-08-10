@@ -9,6 +9,12 @@ const { Child, Booking, Ride, Credit, School } = require('../database/schema');
 const creditService = require('../services/creditService');
 const fuelAdjustmentService = require('../services/fuelAdjustment');
 const schoolPremiumService = require('../services/schoolPremium');
+const {
+  validateAddKid,
+  validateBooking,
+  validateSickDay,
+  validateEmergencyPickup,
+} = require('../middleware/validation');
 
 // All parent routes require auth + parent role
 router.use(authMiddleware);
@@ -31,7 +37,7 @@ router.get('/kids', async (req, res) => {
 // ============================================================
 // POST /api/parents/kids — Add a child
 // ============================================================
-router.post('/kids', async (req, res) => {
+router.post('/kids', validateAddKid, async (req, res) => {
   try {
     const { name, class: className, schoolId, age, finishTime, medical } = req.body;
 
@@ -71,7 +77,7 @@ router.post('/kids', async (req, res) => {
 // ============================================================
 // POST /api/parents/book — Create a weekly/monthly/termly booking
 // ============================================================
-router.post('/book', async (req, res) => {
+router.post('/book', validateBooking, async (req, res) => {
   try {
     const {
       childId, driverId, schoolId,
@@ -179,7 +185,7 @@ router.get('/rides/:id', async (req, res) => {
 // ============================================================
 // POST /api/parents/sick-day — Report kid sick and cancel ride
 // ============================================================
-router.post('/sick-day', async (req, res) => {
+router.post('/sick-day', validateSickDay, async (req, res) => {
   try {
     const { childId, days } = req.body;
     // Accept both `daysOff` and `days` for compatibility
@@ -274,7 +280,7 @@ router.post('/sick-day', async (req, res) => {
 // ============================================================
 // POST /api/parents/emergency-pickup — Request emergency driver
 // ============================================================
-router.post('/emergency-pickup', async (req, res) => {
+router.post('/emergency-pickup', validateEmergencyPickup, async (req, res) => {
   try {
     const { childId } = req.body;
     // In production, find nearest available driver and dispatch

@@ -31,7 +31,9 @@ const { globalLimiter, authLimiter, smsLimiter, driverLimiter, parentLimiter, ri
 
 app.use(globalLimiter);
 
-// Stricter limiter for auth routes (prevent brute force)
+// 🛡️ NoSQL injection protection — strip $ operators from all inputs
+const mongoSanitize = require('express-mongo-sanitize');
+app.use(mongoSanitize());
 
 // Even stricter for SMS PIN requests
 

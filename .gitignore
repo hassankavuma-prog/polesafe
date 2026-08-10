@@ -1,37 +1,259 @@
-# Dependencies
-node_modules/
+# ============================================================================
+# PoleSafe — Comprehensive .gitignore
+# Prevents secrets, credentials, build artifacts, and OS/IDE cruft from being
+# pushed to GitHub. Update this file as the project grows.
+# ============================================================================
 
-# Environment variables
+# ============================================================================
+# 🗝️ SECURITY — Environment variables, secrets, credentials
+# ============================================================================
+# NEVER commit actual credentials. Use .env.example for documentation.
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+*.cert
+*.pfx
+*.p12
+secrets/
+credentials/
+service-account*.json
+*-service-account.json
+*.credentials.json
+.aws/
+.gcp/
+.ssh/
+*.secret
+*.cred
 
-# MongoDB database files (local development)
+# ============================================================================
+# 📦 DEPENDENCIES
+# ============================================================================
+node_modules/
+frontend/node_modules/
+mobile/node_modules/
+admin-panel/node_modules/
+.pnp
+.pnp.js
+yarn-error.log
+
+# Python virtual environments (if any backend tools use Python)
+venv/
+.venv/
+env/
+pyenv/
+__pycache__/
+*.pyc
+
+# ============================================================================
+# 🏗️ BUILD OUTPUTS
+# ============================================================================
+dist/
+build/
+*.tsbuildinfo
+.next/
+out/
+.nuxt/
+.cache/
+
+# Expo / React Native
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+expo-env.*
+
+# Android (if native builds)
+*.apk
+*.aab
+android/app/build/
+android/.gradle/
+android/local.properties
+*.hprof
+
+# iOS (if native builds)
+ios/build/
+ios/Pods/
+ios/.xcode.env.local
+*.dSYM.zip
+*.dSYM
+
+# ============================================================================
+# 📁 DATA & LOCAL DATABASES
+# ============================================================================
+# Local MongoDB data (do NOT commit database files!)
 backend/data/
 backend/mongod
+data/
+*.db
+*.sqlite
+*.sqlite3
+mongodb-data/
 
-# IDE
-.vscode/
+# ============================================================================
+# 🖼️ UPLOADS & USER-GENERATED CONTENT
+# ============================================================================
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+uploads/
+media/
+storage/
+*.upload
+*.tmp
+
+# ============================================================================
+# 📋 LOGS
+# ============================================================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pm2/
+logs/
+*.log.*
+
+# ============================================================================
+# 🛠️ IDE / EDITOR
+# ============================================================================
+.vscode/settings.json
+.vscode/launch.json
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-workspace
+*.sublime-project
 
-# OS
+# ============================================================================
+# 💻 OPERATING SYSTEM
+# ============================================================================
 .DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+Thumbs.db:encryptable
+ehthumbs_vista.db
 
-# Logs
-*.log
+# ============================================================================
+# 🧪 TEST COVERAGE
+# ============================================================================
+coverage/
+.nyc_output/
+*.lcov
+*.lcov.info
+jest-stare/
+test-results/
+
+# ============================================================================
+# 📦 PACKAGE LOCK (keep npm, discard yarn/pnpm)
+# ============================================================================
+# Keep package-lock.json for npm (it's deterministic)
+# Discard alternative lockfiles
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# ============================================================================
+# 🐳 DOCKER (if ever used locally)
+# ============================================================================
+.docker/
+docker-compose.override.yml
+
+# ============================================================================
+# 🔍 MISC
+# ============================================================================
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Debug
 npm-debug.log*
 
-# Uploads (user-generated content)
-backend/public/uploads/*
-!backend/public/uploads/.gitkeep
+# Env files
+.env.staging
+.env.dev
+.env.production
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Test coverage
-coverage/
+# IDE configs
+.idea/workspace.xml
+.idea/tasks/
+.idea/shelf/
+.vscode/
 
-# Build artifacts
-dist/
-build/
+# Linting
+.eslintcache
+.stylelintcache
+.prettiercache
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+*.swp
+*.swo
+*~
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
+Icon
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ============================================================================
+# 📄 SENSITIVE CONFIGURATION FILES
+# ============================================================================
+# Configuration files that may contain credentials
+config/production.json
+config/production.yaml
+config/production.yml
+config/local.json
+config/local.yaml
+config/local.yml
+config/staging.json
+
+# Firebase / FCM
+google-services.json
+GoogleService-Info.plist
+
+# Docker environment files
+*.env.docker
+docker-compose.override.yml
+
+# ============================================================================
+# ✅ FILES THAT SHOULD BE TRACKED
+# ============================================================================
+# Uncomment if these files exist and need protection:
+# !backend/.env.example
+# !.env.example
+
+# ============================================================================
+# 📌 NOTES
+# ============================================================================
+# - .env.example is explicitly whitelisted (it's a template with placeholders)
+# - backend/public/uploads/.gitkeep is whitelisted via !pattern above
+# - Never add real .env, credentials, or API keys to version control
+# - When adding new secret patterns, add them above in the SECURITY section

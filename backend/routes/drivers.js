@@ -8,6 +8,11 @@ const { requireRole } = require('../middleware/roles');
 const { Ride, Vehicle, Booking, User, WithdrawalRequest } = require('../database/schema');
 const routeService = require('../services/routeService');
 const schoolPremiumService = require('../services/schoolPremium');
+const {
+  validateVehicle,
+  validateWithdrawal,
+  validateBankDetails,
+} = require('../middleware/validation');
 
 router.use(authMiddleware);
 router.use(requireRole('driver'));
@@ -197,7 +202,7 @@ router.get('/earnings', async (req, res) => {
 // ============================================================
 // POST /api/drivers/vehicle — Register or update vehicle
 // ============================================================
-router.post('/vehicle', async (req, res) => {
+router.post('/vehicle', validateVehicle, async (req, res) => {
   try {
     const { type, registrationNumber, capacity, hasCarSeat, isWheelchairAccessible } = req.body;
 
@@ -311,7 +316,7 @@ router.get('/wallet', async (req, res) => {
 //   1. Scheduled (early: false) → Queued for Friday auto-payout, NO fee
 //   2. Early cash-out (early: true) → Instant, 1,000 UGX inconvenience fee
 // ============================================================
-router.post('/withdraw', async (req, res) => {
+router.post('/withdraw', validateWithdrawal, async (req, res) => {
   try {
     const { amount, early, payoutMethod, mobileMoneyNumber, mobileMoneyNetwork,
             bankName, bankAccountName, bankAccountNumber, bankBranch } = req.body;
@@ -447,7 +452,7 @@ router.post('/wallet/phone', async (req, res) => {
 // ============================================================
 // POST /api/drivers/wallet/bank — Update bank details
 // ============================================================
-router.post('/wallet/bank', async (req, res) => {
+router.post('/wallet/bank', validateBankDetails, async (req, res) => {
   try {
     const { bankName, bankAccountName, bankAccountNumber, bankBranch } = req.body;
     if (!bankName || !bankAccountName || !bankAccountNumber) {
