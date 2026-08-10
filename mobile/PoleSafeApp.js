@@ -198,7 +198,7 @@ export default function PoleSafeApp() {
           {/* School-only screens */}
           <Stack.Screen name="PendingChildren" component={PendingChildren} />
           <Stack.Screen name="AttendanceReport" component={AttendanceReport} />
-          <Stack.Screen name="TeacherPickupVerify" component={TeacherPickupVerify} options={{ headerShown: true, title: 'Pickup Verification', headerStyle: { backgroundColor: '#E65100' }, headerTintColor: '#fff' }} />
+          <Stack.Screen name="TeacherPickupVerify" component={TeacherPickupVerify} options={{ headerShown: true, title: 'Pickup Verification', headerStyle: { backgroundColor: COLORS.orange }, headerTintColor: '#fff' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
