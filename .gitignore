@@ -1,6 +1,37 @@
+# Dependencies
 node_modules/
-data/
+
+# Environment variables
 .env
-*.log
+.env.local
+.env.production
+
+# MongoDB database files (local development)
+backend/data/
+backend/mongod
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
-mongod
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Uploads (user-generated content)
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+
+# Test coverage
+coverage/
+
+# Build artifacts
+dist/
+build/

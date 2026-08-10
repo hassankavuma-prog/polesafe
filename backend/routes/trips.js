@@ -174,6 +174,23 @@ router.get('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
+    // Ownership/role check: verify this user has rights to this trip
+    const isSchoolAdmin = req.user.role === 'school_admin' &&
+      trip.schoolId && req.user.schoolId &&
+      trip.schoolId.toString() === req.user.schoolId.toString();
+    const isAssignedDriver = req.user.role === 'driver' &&
+      (trip.driverId?._id?.toString() === req.user._id?.toString() ||
+       trip.assignedKids?.some(k => k.driverId?.toString() === req.user._id?.toString()));
+    const isParent = req.user.role === 'parent' &&
+      trip.assignedKids?.some(k => k.parentId?.toString() === req.user._id?.toString());
+    const isPoleSafeAdmin = req.user.role === 'polesafe_admin';
+    const hasQuote = req.user.role === 'driver' &&
+      trip.quotes?.some(q => q.driverId?.toString() === req.user._id?.toString());
+
+    if (!isSchoolAdmin && !isAssignedDriver && !isParent && !isPoleSafeAdmin && !hasQuote) {
+      return res.status(403).json({ error: 'Access denied. You do not have access to this trip.' });
+    }
+
     // Role-based data filtering
     const { role } = req.user;
 
@@ -1278,7 +1295,12 @@ router.post('/:id/record-payment', authMiddleware, async (req, res) => {
       if (kidParentId !== _id.toString()) {
         return res.status(403).json({ error: 'This is not your child' });
       }
-    } else if (role !== 'school_admin' && role !== 'polesafe_admin') {
+    } else if (role === 'school_admin') {
+      // Verify admin owns this school
+      if (!req.user.schoolId || trip.schoolId.toString() !== req.user.schoolId.toString()) {
+        return res.status(403).json({ error: 'You do not manage this school' });
+      }
+    } else if (role !== 'polesafe_admin') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
@@ -1324,6 +1346,17 @@ router.get('/:id/payment-summary', authMiddleware, async (req, res) => {
 
     if (!trip) {
       return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    // Ownership check: verify user has rights to view payment summary
+    const canView = (
+      (req.user.role === 'school_admin' && req.user.schoolId && trip.schoolId.toString() === req.user.schoolId.toString()) ||
+      (req.user.role === 'parent' && trip.assignedKids?.some(k => k.parentId?.toString() === req.user._id?.toString())) ||
+      (req.user.role === 'driver' && trip.driverId?.toString() === req.user._id?.toString()) ||
+      (req.user.role === 'polesafe_admin')
+    );
+    if (!canView) {
+      return res.status(403).json({ error: 'Access denied. You do not have access to this trip.' });
     }
 
     const paidKids = trip.assignedKids.filter(k => k.paymentStatus === 'paid');

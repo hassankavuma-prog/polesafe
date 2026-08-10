@@ -7,6 +7,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const { Transaction, User, WithdrawalRequest } = require('../database/schema');
 const config = require('../config');
+const { authMiddleware } = require('../middleware/auth');
 
 // ============================================================
 // POST /api/payments/webhook — Flutterwave transaction callback
@@ -102,12 +103,24 @@ router.post('/webhook', async (req, res) => {
 // GET /api/payments/verify/:reference — Check payment status
 // Used by mobile app after a charge attempt
 // ============================================================
-router.get('/verify/:reference', async (req, res) => {
+router.get('/verify/:reference', authMiddleware, async (req, res) => {
   try {
     const transaction = await Transaction.findOne({ reference: req.params.reference });
     if (!transaction) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
+
+    // Ownership check: must own the transaction
+    const ownsTx = (
+      transaction.parentId?.toString() === req.user._id?.toString() ||
+      transaction.driverId?.toString() === req.user._id?.toString() ||
+      transaction.userId?.toString() === req.user._id?.toString() ||
+      req.user.role === 'polesafe_admin'
+    );
+    if (!ownsTx) {
+      return res.status(403).json({ error: 'Access denied. This is not your transaction.' });
+    }
+
     res.json({
       status: transaction.status,
       amount: transaction.amount,
