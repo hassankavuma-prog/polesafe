@@ -27,34 +27,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ============================================================
 // 🚦 Rate limiting — protect against abuse
 // ============================================================
-const rateLimit = require('express-rate-limit');
+const { globalLimiter, authLimiter, smsLimiter, driverLimiter, parentLimiter, rideLimiter, paymentLimiter } = require('./middleware/rateLimit');
 
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000,                 // 1000 requests per 15 min per IP
-  message: { error: 'Too many requests. Slow down.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 app.use(globalLimiter);
 
 // Stricter limiter for auth routes (prevent brute force)
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,                   // 20 login attempts per 15 min
-  message: { error: 'Too many login attempts. Try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 // Even stricter for SMS PIN requests
-const smsLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,  // 1 hour
-  max: 5,                    // 5 SMS PIN requests per hour
-  message: { error: 'Too many SMS requests. Please wait.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 // ============================================================
 // 📝 Request logging
@@ -73,11 +52,14 @@ app.use((req, res, next) => {
 // ============================================================
 app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/auth/sms', smsLimiter);  // Extra SMS-rate-limited route
-app.use('/api/parents', require('./routes/parents'));
-app.use('/api/drivers', require('./routes/drivers'));
+app.use('/api/parents', parentLimiter, require('./routes/parents'));
+app.use('/api/drivers', driverLimiter, require('./routes/drivers'));
 app.use('/api/schools', require('./routes/schools'));
 app.use('/api/rides', require('./routes/rides'));
 app.use('/api/payments', require('./routes/payments'));
+
+// Flutterwave webhook (no auth — Flutterwave signs its own requests)
+app.use('/api/payments', require('./routes/paymentsWebhook'));
 app.use('/api/broadcasts', require('./routes/broadcasts'));
 app.use('/api/credits', require('./routes/credits'));
 app.use('/api/trips', require('./routes/trips'));
@@ -108,12 +90,9 @@ app.get('/api/health', (req, res) => {
 // ============================================================
 // 🚨 Global error handler
 // ============================================================
-app.use((err, req, res, next) => {
-  console.error('❌ Unhandled error:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'Something broke. We\'re on it.',
-    code: err.code || 'INTERNAL_ERROR',
-  });
+const { notFound, errorHandler } = require('./middleware/errorHandler');
+app.use(notFound);
+app.use(errorHandler);
 });
 
 // ============================================================
@@ -130,6 +109,11 @@ mongoose.connect(config.MONGODB_URI).then(() => {
   new TrackingService(server);
   console.log('📍 WebSocket tracking service initialized');
 
+  // Start background scheduler (auto-payouts, reminders, cleanup)
+  const schedulerService = require('./services/schedulerService');
+  schedulerService.start();
+  console.log('⏰ Background scheduler running');
+
   server.listen(config.PORT, () => {
     console.log(`🚸 PoleSafe API running on port ${config.PORT}`);
     console.log(`📢 Slogan: From Home to School. And Beyond.`);
@@ -139,5 +123,8 @@ mongoose.connect(config.MONGODB_URI).then(() => {
   console.error('❌ MongoDB connection failed:', err);
   process.exit(1);
 });
+
+// Export scheduler for admin triggers
+app.locals.schedulerService = require('./services/schedulerService');
 
 module.exports = app;

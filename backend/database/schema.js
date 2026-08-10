@@ -295,6 +295,13 @@ const rideSchema = new mongoose.Schema({
   // Selfie verification flag (set by admin or trigger system)
   selfieVerificationRequired: { type: Boolean, default: false },
 
+  // Notification delivery tracking (set by scheduler)
+  notificationsSent: {
+    t60: { type: Boolean, default: false },
+    t30: { type: Boolean, default: false },
+    reassignment: { type: Boolean, default: false },
+  },
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

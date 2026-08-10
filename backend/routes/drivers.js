@@ -468,4 +468,126 @@ router.post('/wallet/bank', async (req, res) => {
   }
 });
 
+// ============================================================
+// 🎖️ DRIVER RELIABILITY ENDPOINTS
+// ============================================================
+
+// GET /api/drivers/strikes — Get driver's current strikes per booking
+router.get('/strikes', async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('driverReliability name phone').lean();
+    res.json({
+      reliability: user.driverReliability || {},
+      strikes: (user.driverReliability?.bookingStrikes || []).filter(s => s.strikes > 0),
+      totalMisses: user.driverReliability?.totalMisses || 0,
+      totalExcusedMisses: user.driverReliability?.totalExcusedMisses || 0,
+      currentStreak: user.driverReliability?.currentGlobalStreak || 0,
+      rating: user.driverReliability?.rating || 4.5,
+      sickDaysUsed: user.driverReliability?.sickDaysUsed || 0,
+      sickDaysRemaining: 2 - (user.driverReliability?.sickDaysUsed || 0),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/drivers/score — Driver Score calculation
+router.get('/score', async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('driverReliability completedRidesCount').lean();
+    const dr = user.driverReliability || {};
+    const rides = user.completedRidesCount || 0;
+    const rating = dr.rating || 4.5;
+    const streak = dr.currentGlobalStreak || 0;
+    const misses = dr.totalMisses || 0;
+
+    // Driver Score formula: rating * 20 + streak * 2 - misses * 5 + completedRidesScore
+    const completedRidesScore = Math.min(rides, 50); // Max 50 points from completed rides
+    const score = Math.round((rating * 20) + (streak * 2) - (misses * 5) + completedRidesScore);
+
+    res.json({
+      score: Math.max(score, 0),
+      breakdown: {
+        ratingScore: rating * 20,
+        streakBonus: streak * 2,
+        missesPenalty: misses * 5,
+        completedRidesScore,
+      },
+      isNewDriver: rides < 10,
+      completedRidesCount: rides,
+      rating,
+      streak,
+      totalMisses: misses,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/drivers/sick-day — Notify sick day (2 per term, excused if ≥2h before)
+router.post('/sick-day', async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+    if (!bookingId) {
+      return res.status(400).json({ error: 'bookingId is required' });
+    }
+
+    const user = await User.findById(req.userId);
+    const used = user.driverReliability?.sickDaysUsed || 0;
+
+    if (used >= 2) {
+      return res.status(400).json({ error: 'No sick days remaining. You have used all 2 sick days this term.' });
+    }
+
+    // Record sick day
+    await User.findByIdAndUpdate(req.userId, {
+      $inc: { 'driverReliability.sickDaysUsed': 1, 'driverReliability.totalExcusedMisses': 1 },
+      $set: { 'driverReliability.lastSickDayAt': new Date() },
+    });
+
+    // Find the ride and mark as reassigned
+    const Ride = mongoose.model('Ride');
+    await Ride.updateMany(
+      { bookingId, driverId: req.userId, status: 'scheduled' },
+      { isReassigned: true, status: 'missed', missType: 'excused' }
+    );
+
+    res.json({ message: '✅ Sick day recorded. Ride reassigned.', sickDaysUsed: used + 1, sickDaysRemaining: 1 - used });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/drivers/availability — Toggle availability status
+router.get('/availability', async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findOne({ driverId: req.userId }).select('isAvailable lastOnlineAt').lean();
+    res.json({
+      isAvailable: vehicle?.isAvailable || false,
+      lastOnlineAt: vehicle?.lastOnlineAt || null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/drivers/availability — Set availability
+router.post('/availability', async (req, res) => {
+  try {
+    const { isAvailable } = req.body;
+    if (typeof isAvailable !== 'boolean') {
+      return res.status(400).json({ error: 'isAvailable must be a boolean' });
+    }
+
+    await Vehicle.findOneAndUpdate(
+      { driverId: req.userId },
+      { isAvailable, lastOnlineAt: isAvailable ? new Date() : null }
+    );
+
+    res.json({ isAvailable, message: isAvailable ? '🟢 You are now online for rides' : '🔴 You are offline' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
