@@ -27,7 +27,15 @@ const userSchema = new mongoose.Schema({
   // Earnings wallet
   earningsBalance: { type: Number, default: 0 },       // Available for withdrawal
   lifetimeEarnings: { type: Number, default: 0 },       // All-time total earned
-  mobileMoneyNumber: { type: String },                  // Default withdrawal number
+  mobileMoneyNumber: { type: String },                  // Default mobile money number
+
+  // Payout settings (Uber-style)
+  payoutMethod: { type: String, enum: ['mobile_money', 'bank'], default: 'mobile_money' },
+  bankAccountName: { type: String },
+  bankName: { type: String },
+  bankAccountNumber: { type: String },
+  bankBranch: { type: String },
+  lastPayoutDate: { type: Date },          // Last Friday auto-payout date
 
   // Notification preferences
   preferredChannel: {
@@ -622,24 +630,54 @@ const fuelPriceSchema = new mongoose.Schema({
 });
 
 // ============================================================
-// WITHDRAWAL REQUEST — Driver earnings withdrawal
+// WITHDRAWAL REQUEST — Driver earnings withdrawal (Uber-style)
 // ============================================================
 const withdrawalRequestSchema = new mongoose.Schema({
   driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   amount: { type: Number, required: true },
-  mobileMoneyNumber: { type: String, required: true },
+  
+  // Withdrawal type (Uber-style)
+  withdrawalType: {
+    type: String,
+    enum: ['scheduled', 'early'],   // scheduled = Friday auto-payout, early = instant cash-out
+    default: 'scheduled',
+  },
+  isEarlyWithdrawal: { type: Boolean, default: false }, // True = 1,000 UGX fee applied
+
+  // Payout method
+  payoutMethod: {
+    type: String,
+    enum: ['mobile_money', 'bank'],
+    default: 'mobile_money',
+  },
+
+  // Mobile Money details
+  mobileMoneyNumber: { type: String },
   mobileMoneyNetwork: { type: String, enum: ['mtn', 'airtel', 'other'], default: 'mtn' },
+
+  // Bank details
+  bankName: { type: String },
+  bankAccountName: { type: String },
+  bankAccountNumber: { type: String },
+  bankBranch: { type: String },
+
+  // Fee: 0 for scheduled (Friday auto-payout), 1,000 UGX for early cash-out
+  fee: { type: Number, default: 0 },
+  netAmount: { type: Number },
+
+  // Status
   status: {
     type: String,
-    enum: ['pending', 'processing', 'completed', 'failed', 'cancelled'],
-    default: 'pending',
+    enum: ['scheduled', 'pending', 'processing', 'completed', 'failed', 'cancelled'],
+    default: 'scheduled',
   },
   transactionId: { type: String }, // Flutterwave or MTN MoMo ref
   adminNote: { type: String },
+  
+  // Schedule dates
+  scheduledPayoutDate: { type: Date }, // The Friday this is scheduled for
   requestedAt: { type: Date, default: Date.now },
   processedAt: { type: Date },
-  fee: { type: Number, default: 0 }, // Withdrawal fee
-  netAmount: { type: Number },       // Amount after fee
 });
 
 withdrawalRequestSchema.index({ driverId: 1, status: 1 });

@@ -1,6 +1,5 @@
-// PoleSafe Mobile — Driver Earnings Screen
-// Earnings dashboard with today, weekly, monthly totals and breakdown
-// Features: hide/show toggle (eye icon), withdrawal system, wallet balance
+// PoleSafe Mobile — Driver Earnings Screen (Uber-style)
+// Features: hide/show toggle, Friday auto-payout info, early cash-out (1k fee), bank + mobile money
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -11,7 +10,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
-import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+import { COLORS, getTheme } from '../theme';
 const BLUE = COLORS.blue;
 
 export default function DriverEarnings({ navigation }) {
@@ -19,21 +18,31 @@ export default function DriverEarnings({ navigation }) {
   const [earnings, setEarnings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Hide/Show toggle (like Uber eye icon)
   const [hideAmounts, setHideAmounts] = useState(false);
 
-  // Withdrawal modal
+  // Withdrawal state
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [withdrawPhone, setWithdrawPhone] = useState('');
-  const [withdrawNetwork, setWithdrawNetwork] = useState('mtn');
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [wallet, setWallet] = useState(null);
 
-  useEffect(() => {
-    loadEarnings();
-  }, []);
+  // Payout method tab (mobile_money / bank)
+  const [payoutTab, setPayoutTab] = useState('mobile_money');
+
+  // Mobile money fields
+  const [mmPhone, setMmPhone] = useState('');
+  const [mmNetwork, setMmNetwork] = useState('mtn');
+
+  // Bank fields
+  const [bankName, setBankName] = useState('');
+  const [bankAccountName, setBankAccountName] = useState('');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [bankBranch, setBankBranch] = useState('');
+
+  // Withdrawal type: 'scheduled' (free, Friday) or 'early' (1k fee)
+  const [withdrawalType, setWithdrawalType] = useState('scheduled');
+
+  useEffect(() => { loadEarnings(); }, []);
 
   const loadEarnings = async () => {
     try {
@@ -46,22 +55,16 @@ export default function DriverEarnings({ navigation }) {
         setEarnings(data);
         setWallet(data.wallet || null);
       } else {
-        // Set demo data if API unavailable
         setEarnings({
-          summary: {
-            totalTrips: 98, schoolTrips: 75, rideHailingTrips: 23,
-            schoolEarnings: 850000, rideHailingEarnings: 400000,
-            totalEarnings: 1250000,
-          },
+          summary: { totalTrips: 98, schoolTrips: 75, rideHailingTrips: 23, schoolEarnings: 850000, rideHailingEarnings: 400000, totalEarnings: 1250000 },
           today: { total: 45000, trips: 4, schoolEarnings: 35000, rideEarnings: 10000 },
           weekly: { total: 285000, trips: 22 },
           monthly: { total: 1250000, trips: 98 },
           wallet: {
-            availableBalance: 320000,
-            pendingWithdrawals: 150000,
-            totalBalance: 470000,
-            lifetimeEarnings: 4120000,
-            hasMobileMoney: true,
+            availableBalance: 320000, pendingEarlyWithdrawals: 0, scheduledForFriday: 150000,
+            totalBalance: 470000, lifetimeEarnings: 4120000,
+            nextPayoutLabel: 'Friday, Aug 14', daysUntilPayout: 4,
+            payoutMethod: 'mobile_money', hasMobileMoney: true, hasBankDetails: false,
           },
           history: [
             { date: new Date().toISOString(), trips: 4, earnings: 45000, type: 'school' },
@@ -71,7 +74,12 @@ export default function DriverEarnings({ navigation }) {
             { date: new Date(Date.now() - 345600000).toISOString(), trips: 4, earnings: 42000, type: 'school' },
           ],
         });
-        setWallet({ availableBalance: 320000, pendingWithdrawals: 150000, totalBalance: 470000, lifetimeEarnings: 4120000, hasMobileMoney: true });
+        setWallet({
+          availableBalance: 320000, pendingEarlyWithdrawals: 0, scheduledForFriday: 150000,
+          totalBalance: 470000, lifetimeEarnings: 4120000,
+          nextPayoutLabel: 'Friday, Aug 14', daysUntilPayout: 4,
+          payoutMethod: 'mobile_money', hasMobileMoney: true, hasBankDetails: false,
+        });
       }
     } catch (err) {
       console.log('Error loading earnings:', err);
@@ -80,25 +88,12 @@ export default function DriverEarnings({ navigation }) {
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadEarnings();
-    setRefreshing(false);
-  };
+  const onRefresh = async () => { setRefreshing(true); await loadEarnings(); setRefreshing(false); };
+  const formatCurrency = (amount) => Number(amount || 0).toLocaleString('en-UG');
+  const displayAmount = (amount) => hideAmounts ? '•••• UGX' : `${formatCurrency(amount)} UGX`;
 
-  const formatCurrency = (amount) => {
-    return Number(amount || 0).toLocaleString('en-UG');
-  };
-
-  // Hide amounts with asterisks
-  const displayAmount = (amount) => {
-    if (hideAmounts) return '•••• UGX';
-    return `${formatCurrency(amount)} UGX`;
-  };
-
-  // ===== WITHDRAWAL FLOW =====
+  // Open withdrawal modal — fetch latest wallet
   const openWithdraw = async () => {
-    // Fetch latest wallet info
     try {
       const token = await AsyncStorage.getItem('polesafe_token');
       const headers = { Authorization: `Bearer ${token}` };
@@ -106,61 +101,72 @@ export default function DriverEarnings({ navigation }) {
       if (res.ok) {
         const data = await res.json();
         setWallet(data);
-        setWithdrawPhone(data.mobileMoneyNumber || '');
+        setMmPhone(data.mobileMoneyNumber || '');
+        setPayoutTab(data.payoutMethod || 'mobile_money');
+        if (data.bankDetails) {
+          setBankName(data.bankDetails.bankName || '');
+          setBankAccountName(data.bankDetails.accountName || '');
+          setBankAccountNumber(data.bankDetails.accountNumber || '');
+          setBankBranch(data.bankDetails.branch || '');
+        }
       }
     } catch (_) {}
     setWithdrawAmount('');
+    setWithdrawalType('scheduled');
     setShowWithdraw(true);
   };
 
+  // Submit withdrawal
   const submitWithdrawal = async () => {
     const amount = parseInt(withdrawAmount.replace(/,/g, ''), 10);
-    if (!amount || amount < 1000) {
-      Alert.alert('Invalid Amount', 'Minimum withdrawal is 1,000 UGX');
-      return;
-    }
-    if (!withdrawPhone || withdrawPhone.length < 10) {
-      Alert.alert('Invalid Number', 'Please enter a valid mobile money number');
-      return;
+    if (!amount || amount < 1000) { Alert.alert('Invalid Amount', 'Minimum is 1,000 UGX'); return; }
+
+    const isEarly = withdrawalType === 'early';
+    const maxAmount = wallet?.availableBalance || 0;
+    if (amount > maxAmount) { Alert.alert('Insufficient Balance', `Available: ${formatCurrency(maxAmount)} UGX`); return; }
+
+    // Validate payout method
+    if (payoutTab === 'mobile_money') {
+      if (!mmPhone || mmPhone.length < 10) { Alert.alert('Missing Number', 'Enter your mobile money number'); return; }
+    } else {
+      if (!bankName || !bankAccountName || !bankAccountNumber) { Alert.alert('Missing Bank Details', 'Fill all bank fields'); return; }
     }
 
     setWithdrawLoading(true);
     try {
       const token = await AsyncStorage.getItem('polesafe_token');
       const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-      const res = await fetch(`${API_BASE}/api/drivers/withdraw`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          amount,
-          mobileMoneyNumber: withdrawPhone,
-          mobileMoneyNetwork: withdrawNetwork,
-        }),
-      });
+      const body = {
+        amount,
+        early: isEarly,
+        payoutMethod: payoutTab,
+      };
+      if (payoutTab === 'mobile_money') { body.mobileMoneyNumber = mmPhone; body.mobileMoneyNetwork = mmNetwork; }
+      else { body.bankName = bankName; body.bankAccountName = bankAccountName; body.bankAccountNumber = bankAccountNumber; body.bankBranch = bankBranch; }
 
+      const res = await fetch(`${API_BASE}/api/drivers/withdraw`, { method: 'POST', headers, body: JSON.stringify(body) });
       const data = await res.json();
       if (res.ok) {
         Alert.alert(
-          '✅ Withdrawal Requested',
-          `${formatCurrency(amount)} UGX to ${withdrawPhone}\nFee: ${formatCurrency(data.withdrawal?.fee || 0)} UGX\nNet: ${formatCurrency(data.withdrawal?.netAmount || 0)} UGX`
+          isEarly ? '✅ Cash Out Requested' : '✅ Scheduled for Friday',
+          isEarly
+            ? `${formatCurrency(amount)} UGX → ${mmPhone}\nFee: 1,000 UGX inconvenience fee\nNet: ${formatCurrency(amount - 1000)} UGX`
+            : `${formatCurrency(amount)} UGX scheduled for ${wallet?.nextPayoutLabel || 'Friday'}\nNo fee.`
         );
         setShowWithdraw(false);
-        loadEarnings(); // Refresh
+        loadEarnings();
       } else {
-        Alert.alert('Error', data.error || 'Withdrawal failed');
+        Alert.alert('Error', data.error || 'Request failed');
       }
-    } catch (err) {
-      Alert.alert('Error', 'Could not process withdrawal');
-    } finally {
-      setWithdrawLoading(false);
-    }
+    } catch (_) { Alert.alert('Error', 'Could not process request'); }
+    finally { setWithdrawLoading(false); }
   };
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.canvas }]}>
+      <View style={[styles.center, { backgroundColor: theme.canvas }]}>
         <ActivityIndicator size="large" color={BLUE} />
-        <Text style={styles.loadingText}>Loading earnings...</Text>
+        <Text style={{ marginTop: 12, color: COLORS.textSecondary, fontSize: 14 }}>Loading earnings...</Text>
       </View>
     );
   }
@@ -170,270 +176,263 @@ export default function DriverEarnings({ navigation }) {
   const monthly = earnings?.monthly || {};
   const history = earnings?.history || [];
   const summary = earnings?.summary || {};
-  const walletInfo = wallet || earnings?.wallet || {};
-  const periodEarnings = summary.totalEarnings || 0;
+  const w = wallet || earnings?.wallet || {};
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.canvas }}>
-      <ScrollView
-        style={styles.container}
+      <ScrollView style={{ flex: 1, padding: 16 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Wallet Balance Card (like Uber's wallet bar) */}
-        {walletInfo.availableBalance !== undefined && (
-          <TouchableOpacity style={styles.walletCard} onPress={openWithdraw} activeOpacity={0.8}>
-            <View style={styles.walletLeft}>
-              <Text style={styles.walletLabel}>💼 Available Balance</Text>
-              <Text style={styles.walletAmount}>{displayAmount(walletInfo.availableBalance)}</Text>
-              {walletInfo.pendingWithdrawals > 0 && (
-                <Text style={styles.walletPending}>
-                  {displayAmount(walletInfo.pendingWithdrawals)} pending withdrawal
-                </Text>
+        {/* ===== NEXT PAYOUT (like Uber's "Next payout" bar) ===== */}
+        {w.nextPayoutLabel && (
+          <View style={stw.nextPayout}>
+            <View style={{ flex: 1 }}>
+              <Text style={stw.nextPayoutLabel}>NEXT AUTO-PAYOUT</Text>
+              <Text style={stw.nextPayoutDate}>{w.nextPayoutLabel}</Text>
+              {w.scheduledForFriday > 0 && (
+                <Text style={stw.nextPayoutAmount}>{displayAmount(w.scheduledForFriday)} scheduled</Text>
               )}
             </View>
-            <View style={styles.walletRight}>
-              <Text style={styles.walletAction}>Withdraw {'>'}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* Today's Earnings + Eye Toggle */}
-        <View style={styles.todayCard}>
-          <View style={styles.todayHeader}>
-            <Text style={styles.todayLabel}>💰 Today's Earnings</Text>
-            <TouchableOpacity
-              onPress={() => setHideAmounts(!hideAmounts)}
-              style={styles.eyeBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.eyeIcon}>{hideAmounts ? '👁️‍🗨️' : '👁️'}</Text>
+            <TouchableOpacity style={stw.payoutBadge} onPress={openWithdraw}>
+              <Text style={stw.payoutBadgeText}>Cash Out</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.todayAmount}>{displayAmount(today.total || 0)}</Text>
-          <Text style={styles.todayTrips}>{today.trips || 0} trips today</Text>
+        )}
+
+        {/* ===== BALANCE CARD ===== */}
+        <TouchableOpacity style={stw.balanceCard} onPress={openWithdraw} activeOpacity={0.8}>
+          <View style={{ flex: 1 }}>
+            <Text style={stw.balanceLabel}>Available Balance</Text>
+            <Text style={stw.balanceAmount}>{displayAmount(w.availableBalance || 0)}</Text>
+            {w.pendingEarlyWithdrawals > 0 && (
+              <Text style={stw.balancePending}>{displayAmount(w.pendingEarlyWithdrawals)} cashing out</Text>
+            )}
+          </View>
+          <View style={stw.balanceArrow}>
+            <Text style={{ fontSize: 14, color: '#fff' }}>
+              {w.payoutMethod === 'bank' ? '🏦' : '📱'} {'>'}</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* ===== TODAY w/ EYE ===== */}
+        <View style={stw.todayCard}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={stw.todayLabel}>💰 Today's Earnings</Text>
+            <TouchableOpacity onPress={() => setHideAmounts(!hideAmounts)} hitSlop={12}>
+              <Text style={{ fontSize: 22 }}>{hideAmounts ? '👁️‍🗨️' : '👁️'}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={stw.todayAmount}>{displayAmount(today.total || 0)}</Text>
+          <Text style={stw.todayTrips}>{today.trips || 0} trips today</Text>
         </View>
 
-        {/* Weekly / Monthly Summary */}
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { backgroundColor: COLORS.blueBg }]}>
-            <Text style={styles.summaryIcon}>📅</Text>
-            <Text style={styles.summaryLabel}>Weekly</Text>
-            <Text style={[styles.summaryAmount, { color: BLUE }]}>
-              {displayAmount(weekly.total || 0)}
-            </Text>
-            <Text style={styles.summaryTrips}>{weekly.trips || 0} trips</Text>
+        {/* ===== WEEKLY / MONTHLY ===== */}
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+          <View style={[stw.summaryCard, { backgroundColor: COLORS.blueBg }]}>
+            <Text style={{ fontSize: 24, marginBottom: 4 }}>📅</Text>
+            <Text style={stw.summaryLabel}>Weekly</Text>
+            <Text style={[stw.summaryAmount, { color: BLUE }]}>{displayAmount(weekly.total || 0)}</Text>
+            <Text style={stw.summaryTrips}>{weekly.trips || 0} trips</Text>
           </View>
-          <View style={[styles.summaryCard, { backgroundColor: COLORS.greenBg }]}>
-            <Text style={styles.summaryIcon}>📆</Text>
-            <Text style={styles.summaryLabel}>Monthly</Text>
-            <Text style={[styles.summaryAmount, { color: COLORS.green }]}>
-              {displayAmount(monthly.total || 0)}
-            </Text>
-            <Text style={styles.summaryTrips}>{monthly.trips || 0} trips</Text>
+          <View style={[stw.summaryCard, { backgroundColor: COLORS.greenBg }]}>
+            <Text style={{ fontSize: 24, marginBottom: 4 }}>📆</Text>
+            <Text style={stw.summaryLabel}>Monthly</Text>
+            <Text style={[stw.summaryAmount, { color: COLORS.green }]}>{displayAmount(monthly.total || 0)}</Text>
+            <Text style={stw.summaryTrips}>{monthly.trips || 0} trips</Text>
           </View>
         </View>
 
-        {/* Lifetime Earnings */}
-        {walletInfo.lifetimeEarnings > 0 && (
-          <View style={styles.lifetimeCard}>
-            <Text style={styles.lifetimeLabel}>🏆 All-Time Earnings</Text>
-            <Text style={styles.lifetimeAmount}>{displayAmount(walletInfo.lifetimeEarnings)}</Text>
-            <Text style={styles.lifetimeTrips}>{summary.totalTrips || 0} total trips completed</Text>
+        {/* ===== LIFETIME ===== */}
+        {w.lifetimeEarnings > 0 && (
+          <View style={stw.lifetimeCard}>
+            <Text style={{ fontSize: 13, color: '#f59e0b', fontWeight: '600' }}>🏆 All-Time Earnings</Text>
+            <Text style={{ fontSize: 28, fontWeight: '800', color: '#fff', marginTop: 4 }}>{displayAmount(w.lifetimeEarnings)}</Text>
+            <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{summary.totalTrips || 0} total trips</Text>
           </View>
         )}
 
-        {/* Earnings Breakdown */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Today's Breakdown</Text>
-          <View style={styles.breakdownRow}>
-            <View style={[styles.breakdownBar, { flex: today.schoolEarnings || 1 }]}>
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownIcon}>🏫</Text>
-                <Text style={styles.breakdownLabel}>School Routes</Text>
-                <Text style={styles.breakdownAmount}>
-                  {displayAmount(today.schoolEarnings || 0)}
-                </Text>
-              </View>
+        {/* ===== BREAKDOWN ===== */}
+        <View style={stw.section}>
+          <Text style={stw.sectionTitle}>📊 Today's Breakdown</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
+            <View style={{ flex: today.schoolEarnings || 1, paddingVertical: 8, alignItems: 'center' }}>
+              <Text style={{ fontSize: 24, marginBottom: 4 }}>🏫</Text>
+              <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 4 }}>School Routes</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.textPrimary }}>{displayAmount(today.schoolEarnings || 0)}</Text>
             </View>
-            <View style={styles.breakdownDivider} />
-            <View style={[styles.breakdownBar, { flex: today.rideEarnings || 1 }]}>
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownIcon}>🚗</Text>
-                <Text style={styles.breakdownLabel}>PoleSafe Ride</Text>
-                <Text style={styles.breakdownAmount}>
-                  {displayAmount(today.rideEarnings || 0)}
-                </Text>
-              </View>
+            <View style={{ width: 1, backgroundColor: '#eee', marginHorizontal: 12 }} />
+            <View style={{ flex: today.rideEarnings || 1, paddingVertical: 8, alignItems: 'center' }}>
+              <Text style={{ fontSize: 24, marginBottom: 4 }}>🚗</Text>
+              <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 4 }}>PoleSafe Ride</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.textPrimary }}>{displayAmount(today.rideEarnings || 0)}</Text>
             </View>
           </View>
         </View>
 
-        {/* Performance */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎯 Performance</Text>
-          <View style={styles.perfRow}>
-            <View style={styles.perfBox}>
-              <Text style={styles.perfEmoji}>⭐</Text>
-              <Text style={styles.perfLabel}>Rating</Text>
-              <Text style={styles.perfValue}>{earnings?.rating || '4.8'}</Text>
-            </View>
-            <View style={styles.perfBox}>
-              <Text style={styles.perfEmoji}>✅</Text>
-              <Text style={styles.perfLabel}>Completion</Text>
-              <Text style={styles.perfValue}>{earnings?.completionRate || '98'}%</Text>
-            </View>
-            <View style={styles.perfBox}>
-              <Text style={styles.perfEmoji}>🎖️</Text>
-              <Text style={styles.perfLabel}>Bonus</Text>
-              <Text style={[styles.perfValue, { color: COLORS.green }]}>
-                {displayAmount(earnings?.bonus || 0)}
-              </Text>
-            </View>
+        {/* ===== PERFORMANCE ===== */}
+        <View style={stw.section}>
+          <Text style={stw.sectionTitle}>🎯 Performance</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+            {[
+              { emoji: '⭐', label: 'Rating', value: earnings?.rating || '4.8' },
+              { emoji: '✅', label: 'Completion', value: `${earnings?.completionRate || '98'}%` },
+              { emoji: '🎖️', label: 'Bonus', value: displayAmount(earnings?.bonus || 0), green: true },
+            ].map((p, i) => (
+              <View key={i} style={{ alignItems: 'center' }}>
+                <Text style={{ fontSize: 24, marginBottom: 4 }}>{p.emoji}</Text>
+                <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 2 }}>{p.label}</Text>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: p.green ? COLORS.green : BLUE }}>{p.value}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
-        {/* Trip History */}
-        <Text style={styles.sectionTitle}>📋 Trip History</Text>
-
+        {/* ===== HISTORY ===== */}
+        <Text style={stw.sectionTitle}>📋 Trip History</Text>
         {history.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>No trip history yet</Text>
-          </View>
+          <View style={stw.emptyCard}><Text style={{ fontSize: 14, color: COLORS.textMuted }}>No trip history yet</Text></View>
         ) : (
-          <View style={styles.historyCard}>
-            {history.map((trip, idx) => {
-              const dateStr = trip.date
-                ? new Date(trip.date).toLocaleDateString('en-UG', {
-                    weekday: 'short', day: 'numeric', month: 'short',
-                  })
-                : '—';
-              return (
-                <View key={trip._id || idx} style={styles.historyRow}>
-                  <View style={styles.historyLeft}>
-                    <Text style={styles.historyDate}>{dateStr}</Text>
-                    <View style={styles.historyType}>
-                      <Text style={styles.historyTypeText}>
-                        {trip.type === 'ride' ? '🚗 Ride' : '🏫 School'}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.historyMiddle}>
-                    <Text style={styles.historyTrips}>{trip.trips} trip{trip.trips > 1 ? 's' : ''}</Text>
-                  </View>
-                  <Text style={styles.historyEarnings}>
-                    {displayAmount(trip.earnings)}
+          <View style={stw.historyCard}>
+            {history.map((trip, i) => (
+              <View key={trip._id || i} style={stw.historyRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '500', color: COLORS.textPrimary }}>
+                    {trip.date ? new Date(trip.date).toLocaleDateString('en-UG', { weekday: 'short', day: 'numeric', month: 'short' }) : '—'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>
+                    {trip.type === 'ride' ? '🚗 Ride' : '🏫 School'}
                   </Text>
                 </View>
-              );
-            })}
+                <View style={{ marginHorizontal: 12 }}>
+                  <Text style={{ fontSize: 13, color: COLORS.textSecondary }}>{trip.trips} trip{trip.trips > 1 ? 's' : ''}</Text>
+                </View>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: COLORS.textPrimary }}>{displayAmount(trip.earnings)}</Text>
+              </View>
+            ))}
           </View>
         )}
 
-        {/* Withdraw Button */}
-        <TouchableOpacity style={styles.withdrawBtn} onPress={openWithdraw}>
-          <Text style={styles.withdrawBtnText}>💳 Withdraw to Mobile Money</Text>
+        {/* ===== CASH OUT BUTTON ===== */}
+        <TouchableOpacity style={stw.cashOutBtn} onPress={openWithdraw}>
+          <Text style={stw.cashOutText}>💳 Cash Out</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* ===== WITHDRAWAL MODAL ===== */}
+      {/* ===== WITHDRAWAL MODAL (UBER-STYLE) ===== */}
       <Modal visible={showWithdraw} animationType="slide" transparent>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={stw.overlay}>
+          <View style={stw.modalContent}>
             {/* Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>💳 Withdraw Earnings</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff' }}>💳 Cash Out</Text>
               <TouchableOpacity onPress={() => setShowWithdraw(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Text style={{ fontSize: 22, color: '#94a3b8', padding: 4 }}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Available Balance */}
-            <Text style={styles.modalBalance}>
-              Available: <Text style={{ fontWeight: '700', color: BLUE }}>
-                {formatCurrency(walletInfo?.availableBalance || 0)} UGX
-              </Text>
+            <Text style={{ fontSize: 15, color: '#94a3b8', marginBottom: 16 }}>
+              Available: <Text style={{ fontWeight: '700', color: BLUE }}>{formatCurrency(w.availableBalance || 0)} UGX</Text>
             </Text>
 
-            {/* Amount Input */}
-            <Text style={styles.inputLabel}>Amount (UGX)</Text>
+            {/* Withdrawal type selector */}
+            <View style={stw.typeRow}>
+              <TouchableOpacity
+                style={[stw.typeBtn, withdrawalType === 'scheduled' && stw.typeBtnActive]}
+                onPress={() => setWithdrawalType('scheduled')}
+              >
+                <Text style={stw.typeBtnLabel}>📅</Text>
+                <Text style={[stw.typeBtnTitle, withdrawalType === 'scheduled' && { color: '#fff' }]}>Wait for Friday</Text>
+                <Text style={[stw.typeBtnFee, withdrawalType === 'scheduled' && { color: '#6ee7b7' }]}>Free</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[stw.typeBtn, withdrawalType === 'early' && stw.typeBtnActive]}
+                onPress={() => setWithdrawalType('early')}
+              >
+                <Text style={stw.typeBtnLabel}>⚡</Text>
+                <Text style={[stw.typeBtnTitle, withdrawalType === 'early' && { color: '#fff' }]}>Cash Out Now</Text>
+                <Text style={[stw.typeBtnFee, withdrawalType === 'early' && { color: '#fbbf24' }]}>1,000 UGX fee</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Amount input */}
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#cbd5e1', marginBottom: 6, marginTop: 8 }}>Amount (UGX)</Text>
             <TextInput
-              style={styles.input}
+              style={stw.input}
               placeholder="e.g. 50000"
               placeholderTextColor="#64748b"
               keyboardType="numeric"
               value={withdrawAmount}
               onChangeText={setWithdrawAmount}
             />
-
-            {/* Quick Amounts */}
-            <View style={styles.quickRow}>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, marginBottom: 16 }}>
               {[10000, 25000, 50000, 100000].map((amt) => (
-                <TouchableOpacity
-                  key={amt}
-                  style={[styles.quickBtn, parseInt(withdrawAmount) === amt && styles.quickBtnActive]}
+                <TouchableOpacity key={amt} style={[stw.quickBtn, parseInt(withdrawAmount) === amt && stw.quickBtnActive]}
                   onPress={() => setWithdrawAmount(String(amt))}
                 >
-                  <Text style={[styles.quickBtnText, parseInt(withdrawAmount) === amt && styles.quickBtnTextActive]}>
-                    {formatCurrency(amt)}
-                  </Text>
+                  <Text style={[stw.quickBtnText, parseInt(withdrawAmount) === amt && { color: BLUE }]}>{formatCurrency(amt)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            {/* Mobile Money Number */}
-            <Text style={styles.inputLabel}>Mobile Money Number</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. 0772123456"
-              placeholderTextColor="#64748b"
-              keyboardType="phone-pad"
-              value={withdrawPhone}
-              onChangeText={setWithdrawPhone}
-            />
-
-            {/* Network Selector */}
-            <View style={styles.networkRow}>
-              <TouchableOpacity
-                style={[styles.networkBtn, withdrawNetwork === 'mtn' && styles.networkBtnActive]}
-                onPress={() => setWithdrawNetwork('mtn')}
-              >
-                <Text style={[styles.networkBtnText, withdrawNetwork === 'mtn' && styles.networkBtnTextActive]}>
-                  MTN
-                </Text>
+            {/* Payout method tabs */}
+            <View style={stw.payoutTabRow}>
+              <TouchableOpacity style={[stw.payoutTab, payoutTab === 'mobile_money' && stw.payoutTabActive]}
+                onPress={() => setPayoutTab('mobile_money')}>
+                <Text style={[stw.payoutTabText, payoutTab === 'mobile_money' && { color: '#fff' }]}>📱 Mobile Money</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.networkBtn, withdrawNetwork === 'airtel' && styles.networkBtnActive]}
-                onPress={() => setWithdrawNetwork('airtel')}
-              >
-                <Text style={[styles.networkBtnText, withdrawNetwork === 'airtel' && styles.networkBtnTextActive]}>
-                  Airtel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.networkBtn, withdrawNetwork === 'other' && styles.networkBtnActive]}
-                onPress={() => setWithdrawNetwork('other')}
-              >
-                <Text style={[styles.networkBtnText, withdrawNetwork === 'other' && styles.networkBtnTextActive]}>
-                  Other
-                </Text>
+              <TouchableOpacity style={[stw.payoutTab, payoutTab === 'bank' && stw.payoutTabActive]}
+                onPress={() => setPayoutTab('bank')}>
+                <Text style={[stw.payoutTabText, payoutTab === 'bank' && { color: '#fff' }]}>🏦 Bank</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Fee Info */}
-            <Text style={styles.feeNote}>Fee: 1% (max 5,000 UGX) • Net will be slightly less</Text>
+            {/* Mobile Money fields */}
+            {payoutTab === 'mobile_money' && (
+              <>
+                <Text style={stw.inputLabel}>Mobile Money Number</Text>
+                <TextInput style={stw.input} placeholder="e.g. 0772123456" placeholderTextColor="#64748b"
+                  keyboardType="phone-pad" value={mmPhone} onChangeText={setMmPhone} />
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, marginBottom: 8 }}>
+                  {['mtn', 'airtel', 'other'].map(net => (
+                    <TouchableOpacity key={net} style={[stw.netBtn, mmNetwork === net && stw.netBtnActive]}
+                      onPress={() => setMmNetwork(net)}>
+                      <Text style={[stw.netBtnText, mmNetwork === net && { color: '#22c55e' }]}>{net.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {/* Bank fields */}
+            {payoutTab === 'bank' && (
+              <>
+                <Text style={stw.inputLabel}>Bank Name</Text>
+                <TextInput style={stw.input} placeholder="e.g. Stanbic" placeholderTextColor="#64748b" value={bankName} onChangeText={setBankName} />
+                <Text style={stw.inputLabel}>Account Name</Text>
+                <TextInput style={stw.input} placeholder="Full account name" placeholderTextColor="#64748b" value={bankAccountName} onChangeText={setBankAccountName} />
+                <Text style={stw.inputLabel}>Account Number</Text>
+                <TextInput style={stw.input} placeholder="Account number" placeholderTextColor="#64748b" keyboardType="numeric" value={bankAccountNumber} onChangeText={setBankAccountNumber} />
+                <Text style={stw.inputLabel}>Branch (optional)</Text>
+                <TextInput style={stw.input} placeholder="e.g. Kampala Road" placeholderTextColor="#64748b" value={bankBranch} onChangeText={setBankBranch} />
+              </>
+            )}
+
+            {/* Fee info */}
+            <Text style={{ fontSize: 11, color: '#64748b', textAlign: 'center', marginVertical: 12 }}>
+              {withdrawalType === 'early'
+                ? '⚡ 1,000 UGX inconvenience fee applies for early cash-out'
+                : '📅 Free — auto-paid every Friday'}
+            </Text>
 
             {/* Submit */}
-            <TouchableOpacity
-              style={[styles.submitBtn, withdrawLoading && { opacity: 0.6 }]}
-              onPress={submitWithdrawal}
-              disabled={withdrawLoading}
-            >
-              {withdrawLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.submitBtnText}>Confirm Withdrawal</Text>
+            <TouchableOpacity style={[stw.submitBtn, withdrawLoading && { opacity: 0.6 }]}
+              onPress={submitWithdrawal} disabled={withdrawLoading}>
+              {withdrawLoading ? <ActivityIndicator color="#fff" /> : (
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+                  {withdrawalType === 'early' ? '⚡ Cash Out Now' : '📅 Schedule for Friday'}
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -443,147 +442,87 @@ export default function DriverEarnings({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, color: COLORS.textSecondary, fontSize: 14 },
+const COL = COLORS;
 
-  // Wallet Bar
-  walletCard: {
-    backgroundColor: COLORS.surface, borderRadius: 14, padding: 16,
-    marginBottom: 14, elevation: 2,
+const stw = StyleSheet.create({
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  // Next payout bar
+  nextPayout: {
     flexDirection: 'row', alignItems: 'center',
-    borderLeftWidth: 4, borderLeftColor: '#22c55e',
+    backgroundColor: '#1e293b', borderRadius: 12, padding: 14,
+    marginBottom: 10, borderWidth: 1, borderColor: '#334155',
   },
-  walletLeft: { flex: 1 },
-  walletLabel: { fontSize: 12, color: COLORS.textMuted, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
-  walletAmount: { fontSize: 22, fontWeight: '800', color: '#22c55e', marginTop: 2 },
-  walletPending: { fontSize: 11, color: '#f59e0b', marginTop: 2 },
-  walletRight: { paddingLeft: 12 },
-  walletAction: { fontSize: 14, fontWeight: '600', color: BLUE },
+  nextPayoutLabel: { fontSize: 10, color: '#64748b', fontWeight: '600', letterSpacing: 1 },
+  nextPayoutDate: { fontSize: 16, fontWeight: '700', color: '#fff', marginTop: 2 },
+  nextPayoutAmount: { fontSize: 12, color: '#f59e0b', marginTop: 2 },
+  payoutBadge: { backgroundColor: BLUE, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16 },
+  payoutBadgeText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+  // Balance
+  balanceCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#065f46', borderRadius: 14, padding: 16,
+    marginBottom: 14, borderLeftWidth: 4, borderLeftColor: '#22c55e',
+  },
+  balanceLabel: { fontSize: 11, color: '#6ee7b7', fontWeight: '600', letterSpacing: 0.5 },
+  balanceAmount: { fontSize: 24, fontWeight: '800', color: '#fff', marginTop: 2 },
+  balancePending: { fontSize: 11, color: '#fbbf24', marginTop: 2 },
+  balanceArrow: { paddingLeft: 12 },
 
   // Today
-  todayCard: {
-    backgroundColor: BLUE, borderRadius: 16, padding: 24,
-    marginBottom: 14, elevation: 4,
-  },
-  todayHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-  },
+  todayCard: { backgroundColor: BLUE, borderRadius: 16, padding: 24, marginBottom: 14, elevation: 4 },
   todayLabel: { fontSize: 13, color: '#BBDEFB', fontWeight: '500', textTransform: 'uppercase', letterSpacing: 1 },
-  eyeBtn: { padding: 4 },
-  eyeIcon: { fontSize: 20 },
   todayAmount: { fontSize: 40, fontWeight: '800', color: '#fff', marginTop: 6 },
   todayTrips: { fontSize: 14, color: '#BBDEFB', marginTop: 4 },
 
   // Summary
-  summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   summaryCard: { flex: 1, padding: 16, borderRadius: 12, alignItems: 'center' },
-  summaryIcon: { fontSize: 24, marginBottom: 4 },
-  summaryLabel: { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary },
+  summaryLabel: { fontSize: 13, fontWeight: '500', color: COL.textSecondary },
   summaryAmount: { fontSize: 20, fontWeight: '700', marginTop: 4 },
-  summaryTrips: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  summaryTrips: { fontSize: 11, color: COL.textMuted, marginTop: 2 },
 
   // Lifetime
-  lifetimeCard: {
-    backgroundColor: '#1e293b', borderRadius: 12, padding: 16,
-    marginBottom: 14, alignItems: 'center',
-    borderWidth: 1, borderColor: '#f59e0b',
-  },
-  lifetimeLabel: { fontSize: 13, color: '#f59e0b', fontWeight: '600' },
-  lifetimeAmount: { fontSize: 28, fontWeight: '800', color: '#fff', marginTop: 4 },
-  lifetimeTrips: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+  lifetimeCard: { backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 14, alignItems: 'center', borderWidth: 1, borderColor: '#f59e0b' },
 
   // Section
-  section: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12 },
+  section: { backgroundColor: COL.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: COL.textPrimary, marginBottom: 12 },
 
-  // Breakdown
-  breakdownRow: { flexDirection: 'row', alignItems: 'stretch' },
-  breakdownBar: { paddingVertical: 8 },
-  breakdownDivider: { width: 1, backgroundColor: '#eee', marginHorizontal: 12 },
-  breakdownItem: { alignItems: 'center' },
-  breakdownIcon: { fontSize: 24, marginBottom: 4 },
-  breakdownLabel: { fontSize: 12, color: COLORS.textMuted, marginBottom: 4 },
-  breakdownAmount: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+  historyCard: { backgroundColor: COL.surface, borderRadius: 12, marginBottom: 14, elevation: 1 },
+  historyRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  emptyCard: { backgroundColor: COL.surface, borderRadius: 12, padding: 24, alignItems: 'center', marginBottom: 14, elevation: 1 },
 
-  // Performance
-  perfRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  perfBox: { alignItems: 'center' },
-  perfEmoji: { fontSize: 24, marginBottom: 4 },
-  perfLabel: { fontSize: 12, color: COLORS.textMuted, marginBottom: 2 },
-  perfValue: { fontSize: 18, fontWeight: '700', color: BLUE },
-
-  // History
-  historyCard: { backgroundColor: COLORS.surface, borderRadius: 12, marginBottom: 14, elevation: 1 },
-  historyRow: {
-    flexDirection: 'row', alignItems: 'center', padding: 14,
-    borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
-  },
-  historyLeft: { flex: 1 },
-  historyDate: { fontSize: 13, fontWeight: '500', color: COLORS.textPrimary },
-  historyType: { marginTop: 2 },
-  historyTypeText: { fontSize: 11, color: COLORS.textMuted },
-  historyMiddle: { marginHorizontal: 12 },
-  historyTrips: { fontSize: 13, color: COLORS.textSecondary },
-  historyEarnings: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-
-  // Empty
-  emptyCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 24, alignItems: 'center', marginBottom: 14, elevation: 1 },
-  emptyText: { fontSize: 14, color: COLORS.textMuted },
-
-  // Withdraw Button
-  withdrawBtn: { backgroundColor: COLORS.surface, padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 2, borderColor: BLUE },
-  withdrawBtnText: { color: BLUE, fontSize: 16, fontWeight: '600' },
+  // Cash Out button
+  cashOutBtn: { backgroundColor: BLUE, padding: 18, borderRadius: 14, alignItems: 'center' },
+  cashOutText: { color: '#fff', fontSize: 18, fontWeight: '700' },
 
   // Modal
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#1e293b', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 24, paddingBottom: 40,
-  },
-  modalHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  modalClose: { fontSize: 22, color: '#94a3b8', padding: 4 },
-  modalBalance: { fontSize: 15, color: '#94a3b8', marginBottom: 20 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
+
+  typeRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  typeBtn: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#0f172a', alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
+  typeBtnActive: { borderColor: BLUE, backgroundColor: `${BLUE}22` },
+  typeBtnLabel: { fontSize: 24, marginBottom: 4 },
+  typeBtnTitle: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
+  typeBtnFee: { fontSize: 11, fontWeight: '600', color: '#64748b', marginTop: 2 },
 
   inputLabel: { fontSize: 13, fontWeight: '600', color: '#cbd5e1', marginBottom: 6, marginTop: 4 },
-  input: {
-    backgroundColor: '#0f172a', borderRadius: 10, padding: 14,
-    fontSize: 18, fontWeight: '600', color: '#fff',
-    borderWidth: 1, borderColor: '#334155',
-  },
+  input: { backgroundColor: '#0f172a', borderRadius: 10, padding: 14, fontSize: 18, fontWeight: '600', color: '#fff', borderWidth: 1, borderColor: '#334155' },
 
-  quickRow: { flexDirection: 'row', gap: 8, marginTop: 10, marginBottom: 16 },
-  quickBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 8,
-    backgroundColor: '#0f172a', alignItems: 'center',
-    borderWidth: 1, borderColor: '#334155',
-  },
+  quickBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, backgroundColor: '#0f172a', alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
   quickBtnActive: { borderColor: BLUE, backgroundColor: `${BLUE}22` },
   quickBtnText: { fontSize: 12, fontWeight: '600', color: '#94a3b8' },
-  quickBtnTextActive: { color: BLUE },
 
-  networkRow: { flexDirection: 'row', gap: 8, marginTop: 10, marginBottom: 8 },
-  networkBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 8,
-    backgroundColor: '#0f172a', alignItems: 'center',
-    borderWidth: 1, borderColor: '#334155',
-  },
-  networkBtnActive: { borderColor: '#22c55e', backgroundColor: '#22c55e22' },
-  networkBtnText: { fontSize: 13, fontWeight: '600', color: '#94a3b8' },
-  networkBtnTextActive: { color: '#22c55e' },
+  netBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, backgroundColor: '#0f172a', alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
+  netBtnActive: { borderColor: '#22c55e', backgroundColor: '#22c55e22' },
+  netBtnText: { fontSize: 13, fontWeight: '600', color: '#94a3b8' },
 
-  feeNote: { fontSize: 11, color: '#64748b', textAlign: 'center', marginVertical: 12 },
+  payoutTabRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  payoutTab: { flex: 1, paddingVertical: 10, borderRadius: 8, backgroundColor: '#0f172a', alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
+  payoutTabActive: { borderColor: BLUE, backgroundColor: `${BLUE}22` },
+  payoutTabText: { fontSize: 13, fontWeight: '600', color: '#94a3b8' },
 
-  submitBtn: {
-    backgroundColor: BLUE, padding: 16, borderRadius: 12, alignItems: 'center',
-  },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  submitBtn: { backgroundColor: BLUE, padding: 16, borderRadius: 12, alignItems: 'center' },
 });
