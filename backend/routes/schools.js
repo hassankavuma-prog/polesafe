@@ -703,4 +703,55 @@ router.get('/:id/attendance-report', requireSchoolAccess, async (req, res) => {
   }
 });
 
+// ============================================================
+// GET /api/schools/export/csv — Download attendance report as CSV
+// ============================================================
+router.get('/export/csv', async (req, res) => {
+  try {
+    const { date, schoolId } = req.query;
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    // Find school based on admin's school
+    let school;
+    if (req.userRole === 'polesafe_admin' && schoolId) {
+      school = await School.findById(schoolId);
+    } else {
+      school = await School.findById(req.user.schoolId);
+    }
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    // Get all kids registered for this school
+    const kids = await Child.find({ schoolId: school._id })
+      .populate('parentId', 'name phone')
+      .lean();
+
+    // Get today's rides for these kids
+    const rides = await Ride.find({
+      childId: { $in: kids.map(k => k._id) },
+      scheduledPickupTime: { $gte: startOfDay, $lte: endOfDay },
+    }).lean();
+
+    // Build CSV rows
+    let csv = 'Child Name,Class,Parent Name,Parent Phone,Status,Pickup Time,Dropoff Time\n';
+    for (const kid of kids) {
+      const ride = rides.find(r => r.childId?.toString() === kid._id.toString());
+      const status = ride ? (ride.status === 'dropped_off' ? 'Present' :
+        ride.status === 'cancelled' ? 'Absent' : 'En Route') : 'No Data';
+      const pickupTime = ride?.actualPickupTime ? new Date(ride.actualPickupTime).toLocaleTimeString('en-UG') : '-';
+      const dropoffTime = ride?.actualDropoffTime ? new Date(ride.actualDropoffTime).toLocaleTimeString('en-UG') : '-';
+      csv += `"${kid.name}","${kid.class || '-'}","${kid.parentId?.name || '-'}","${kid.parentId?.phone || '-'}",${status},"${pickupTime}","${dropoffTime}"\n`;
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="attendance-${school.name}-${targetDate.toISOString().split('T')[0]}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

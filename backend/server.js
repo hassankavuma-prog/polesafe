@@ -7,7 +7,46 @@ const cors = require('cors');
 const helmet = require('helmet');
 const http = require('http');
 const path = require('path');
+const multer = require('multer');
 const config = require('./config');
+
+// ============================================================
+// 🔒 Startup environment validation
+// ============================================================
+const REQUIRED_ENV_VARS = [
+  'MONGODB_URI',
+  'JWT_SECRET',
+];
+
+const OPTIONAL_BUT_WARN = [
+  'FLUTTERWAVE_PUBLIC_KEY',
+  'FLUTTERWAVE_SECRET_KEY',
+  'FLUTTERWAVE_ENCRYPTION_KEY',
+  'AFRICASTALKING_API_KEY',
+  'AFRICASTALKING_USERNAME',
+  'OPENROUTER_API_KEY',
+  'FCM_SERVER_KEY',
+  'FCM_PROJECT_ID',
+  'FCM_PRIVATE_KEY',
+  'FCM_CLIENT_EMAIL',
+  'TWILIO_ACCOUNT_SID',
+  'TWILIO_AUTH_TOKEN',
+  'TWILIO_MASKED_NUMBER',
+];
+
+const missing = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
+if (missing.length > 0) {
+  console.error('❌ FATAL: Missing required environment variables:');
+  missing.forEach(v => console.error(`   - ${v}`));
+  console.error('💡 Set these in your .env file or environment before starting.');
+  process.exit(1);
+}
+
+const missingOptional = OPTIONAL_BUT_WARN.filter(v => !process.env[v]);
+if (missingOptional.length > 0) {
+  console.warn('⚠️  Warning: Optional environment variables not set:');
+  missingOptional.forEach(v => console.warn(`   - ${v} (feature will be disabled)`));
+}
 
 const app = express();
 
@@ -97,13 +136,70 @@ app.get('/api/health', (req, res) => {
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 app.use(notFound);
 app.use(errorHandler);
+
+// ============================================================
+// 🖼️ File upload configuration
+// ============================================================
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'public', 'uploads');
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  },
 });
+
+const fileFilter = (req, file, cb) => {
+  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('File type not allowed. Only JPEG, PNG, WebP, and PDF are permitted.'), false);
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+});
+
+app.locals.upload = upload;
+app.locals.uploadSingle = (fieldName) => upload.single(fieldName);
+app.locals.uploadArray = (fieldName, maxCount) => upload.array(fieldName, maxCount);
+
+// Ensure upload directory exists
+const fs = require('fs');
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // ============================================================
 // 🚀 Start
 // ============================================================
-mongoose.connect(config.MONGODB_URI).then(() => {
+mongoose.connect(config.MONGODB_URI).then(async () => {
   console.log('✅ Connected to MongoDB');
+
+  // Ensure database indexes for performance
+  try {
+    const db = mongoose.connection.db;
+    const collections = await db.listCollections().toArray();
+    for (const col of collections) {
+      const model = mongoose.models[col.name] || 
+        Object.values(mongoose.models).find(m => m.collection.name === col.name);
+      if (model) {
+        await model.createIndexes();
+        console.log(`  📊 Indexes ensured: ${col.name}`);
+      }
+    }
+    console.log('✅ Database indexes verified');
+  } catch (idxErr) {
+    console.warn('⚠️  Index creation skipped:', idxErr.message);
+  }
 
   // Create HTTP server (needed for WebSocket)
   const server = http.createServer(app);
@@ -127,6 +223,24 @@ mongoose.connect(config.MONGODB_URI).then(() => {
   console.error('❌ MongoDB connection failed:', err);
   process.exit(1);
 });
+
+// ============================================================
+// 🛑 Graceful shutdown — clean up DB connections on exit
+// ============================================================
+async function gracefulShutdown(signal) {
+  console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
+  try {
+    await mongoose.connection.close();
+    console.log('✅ MongoDB connection closed');
+    process.exit(0);
+  } catch (err) {
+    console.error('❌ Error during shutdown:', err);
+    process.exit(1);
+  }
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Export scheduler for admin triggers
 app.locals.schedulerService = require('./services/schedulerService');

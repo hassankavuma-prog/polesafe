@@ -309,6 +309,9 @@ const rideSchema = new mongoose.Schema({
   seatBeltVerified: { type: Boolean, default: false },  // School mode: driver confirmed buckled
   seatBeltVerifiedAt: { type: Date },  // When driver confirmed
 
+  // Audit trail for sensitive ride actions
+  auditLog: [{ action: String, userId: String, userRole: String, details: {}, timestamp: { type: Date, default: Date.now } }],
+
   // Notification delivery tracking (set by scheduler)
   notificationsSent: {
     t60: { type: Boolean, default: false },
@@ -760,6 +763,24 @@ const driverNotificationSchema = new mongoose.Schema({
 driverNotificationSchema.index({ driverId: 1, type: 1, sentAt: -1 });
 driverNotificationSchema.index({ bookingId: 1, type: 1 });
 
+// ============================================================
+// AUDIT LOG — System-wide activity tracking
+// ============================================================
+const auditLogSchema = new mongoose.Schema({
+  action: { type: String, required: true, index: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  userRole: { type: String, index: true },
+  userName: { type: String },
+  resourceType: { type: String, index: true },  // 'ride', 'payment', 'user', 'withdrawal', 'booking', 'trip'
+  resourceId: { type: String, index: true },
+  details: { type: mongoose.Schema.Types.Mixed },
+  ipAddress: { type: String },
+  metadata: { type: mongoose.Schema.Types.Mixed },
+}, { timestamps: true });
+auditLogSchema.index({ createdAt: -1 });
+auditLogSchema.index({ userId: 1, createdAt: -1 });
+auditLogSchema.index({ resourceType: 1, resourceId: 1 });
+
 // Export models
 module.exports = {
   User: mongoose.model('User', userSchema),
@@ -777,4 +798,7 @@ module.exports = {
   WithdrawalRequest: mongoose.model('WithdrawalRequest', withdrawalRequestSchema),
   DriverNotification: mongoose.model('DriverNotification', driverNotificationSchema),
   Attendance: mongoose.model('Attendance', attendanceSchema),
+
+  // Audit Trail — system-wide activity log
+  AuditLog: mongoose.model('AuditLog', auditLogSchema),
 };
