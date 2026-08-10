@@ -433,11 +433,46 @@ const schoolTripSchema = new mongoose.Schema({
     parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     parentPhone: { type: String },
     assignedAt: { type: Date, default: Date.now },
+
+    // Per-kid payment tracking
+    paymentStatus: { type: String, enum: ['unpaid', 'paid', 'waived'], default: 'unpaid' },
+    paidAt: { type: Date },
+    transactionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Transaction' },
   }],
   seatsFilled: { type: Number, default: 0 },
 
   // Bus label (admin names it: "Bus #3")
   busLabel: { type: String },
+
+  // 💰 Pricing — trips are charged per head
+  pricingModel: {
+    type: String,
+    enum: ['per_head', 'flat_rate', 'free'],
+    default: 'per_head',
+  },
+  pricePerHead: { type: Number, default: 0 },  // Cost per kid in UGX
+  flatRate: { type: Number, default: 0 },       // Flat bus cost in UGX (for flat_rate model)
+  totalTripCost: { type: Number, default: 0 },  // Auto-calculated
+
+  // Payment collection method
+  paymentMethod: {
+    type: String,
+    enum: ['parent_pay', 'school_pays'],
+    default: 'parent_pay',  // Parents pay individually, or school pays lump sum
+  },
+
+  // Driver payout
+  driverPayout: { type: Number, default: 0 },
+  poleSafeCommission: { type: Number, default: 0 },
+  commissionRate: { type: Number, default: 0.05 },  // 5% default
+
+  // Payment status
+  paymentStatus: {
+    type: String,
+    enum: ['unpaid', 'partially_paid', 'paid'],
+    default: 'unpaid',
+  },
+  paidAt: { type: Date },
 
   // Status flow
   status: {

@@ -23,6 +23,7 @@ router.post('/', authMiddleware, requireRole('school_admin'), async (req, res) =
       tripName, description, destination,
       departureDate, returnDate, departureTime, returnTime,
       vehicleId, busLabel,
+      pricePerHead, pricingModel, flatRate, paymentMethod, commissionRate,
     } = req.body;
 
     if (!tripName || !destination || !departureDate) {
@@ -45,6 +46,24 @@ router.post('/', authMiddleware, requireRole('school_admin'), async (req, res) =
       driverId = vehicle.driverId;
     }
 
+    // Calculate pricing
+    const model = pricingModel || (vehicleSource === 'fleet' ? 'free' : 'per_head');
+    const perHead = pricePerHead || 0;
+    const flat = flatRate || 0;
+    const commRate = commissionRate || 0.05;
+
+    let total = 0;
+    let payout = 0;
+    let commission = 0;
+
+    if (model === 'per_head') {
+      // Total = pricePerHead × seats (calculated fully when kids assigned)
+      total = 0; // Will recalculate on assign
+    } else if (model === 'flat_rate') {
+      total = flat;
+    }
+    // free = 0
+
     const trip = new SchoolTrip({
       schoolId,
       createdBy: req.user._id,
@@ -60,6 +79,14 @@ router.post('/', authMiddleware, requireRole('school_admin'), async (req, res) =
       vehicleSource,
       maxSeats,
       busLabel,
+      // Pricing
+      pricingModel: model,
+      pricePerHead: perHead,
+      flatRate: flat,
+      totalTripCost: total,
+      paymentMethod: paymentMethod || 'parent_pay',
+      commissionRate: commRate,
+      // Status
       status: vehicleId ? 'open' : 'draft',
     });
 
@@ -375,6 +402,14 @@ router.post('/:id/assign', authMiddleware, requireRole('school_admin'), async (r
     // Add to trip
     trip.assignedKids.push(...newKids);
     trip.seatsFilled = trip.assignedKids.length;
+
+    // Auto-calculate total cost for per_head pricing
+    if (trip.pricingModel === 'per_head') {
+      trip.totalTripCost = trip.pricePerHead * trip.seatsFilled;
+      trip.driverPayout = Math.round(trip.totalTripCost * (1 - trip.commissionRate));
+      trip.poleSafeCommission = trip.totalTripCost - trip.driverPayout;
+    }
+
     await trip.save();
 
     res.json({
@@ -382,6 +417,9 @@ router.post('/:id/assign', authMiddleware, requireRole('school_admin'), async (r
       seatsFilled: trip.seatsFilled,
       maxSeats: trip.maxSeats,
       assignedKids: trip.assignedKids.length,
+      totalTripCost: trip.totalTripCost,
+      pricePerHead: trip.pricePerHead,
+      driverPayout: trip.driverPayout,
     });
   } catch (err) {
     console.error('❌ Assign kids error:', err);
@@ -887,6 +925,129 @@ router.get('/external-drivers', authMiddleware, requireRole('school_admin'), asy
   } catch (err) {
     console.error('❌ List external drivers error:', err);
     res.status(500).json({ error: 'Failed to list external drivers' });
+  }
+});
+
+// ============================================================
+// 💰 PAYMENT TRACKING
+// ============================================================
+
+/**
+ * POST /api/trips/:id/record-payment — Record payment for a kid
+ * School admin or parent marks a kid as paid
+ */
+router.post('/:id/record-payment', authMiddleware, async (req, res) => {
+  try {
+    const { childId, transactionId } = req.body;
+    if (!childId) {
+      return res.status(400).json({ error: 'childId is required' });
+    }
+
+    const trip = await SchoolTrip.findById(req.params.id);
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    if (trip.pricingModel === 'free') {
+      return res.status(400).json({ error: 'This trip is free (school fleet). No payment needed.' });
+    }
+
+    // Find the kid in assignedKids
+    const kidIndex = trip.assignedKids.findIndex(
+      k => k.childId.toString() === childId
+    );
+
+    if (kidIndex === -1) {
+      return res.status(404).json({ error: 'Child not found on this trip' });
+    }
+
+    // Check permissions
+    const { role, _id } = req.user;
+    if (role === 'parent') {
+      const kidParentId = trip.assignedKids[kidIndex].parentId?.toString();
+      if (kidParentId !== _id.toString()) {
+        return res.status(403).json({ error: 'This is not your child' });
+      }
+    } else if (role !== 'school_admin' && role !== 'polesafe_admin') {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // Record payment
+    trip.assignedKids[kidIndex].paymentStatus = 'paid';
+    trip.assignedKids[kidIndex].paidAt = new Date();
+    if (transactionId) {
+      trip.assignedKids[kidIndex].transactionId = transactionId;
+    }
+
+    // Check if all kids are now paid
+    const unpaid = trip.assignedKids.filter(k => k.paymentStatus !== 'paid');
+    if (unpaid.length === 0) {
+      trip.paymentStatus = 'paid';
+      trip.paidAt = new Date();
+    } else {
+      trip.paymentStatus = 'partially_paid';
+    }
+
+    await trip.save();
+
+    res.json({
+      message: 'Payment recorded',
+      kidPaid: childId,
+      paymentStatus: trip.paymentStatus,
+      paidCount: trip.assignedKids.filter(k => k.paymentStatus === 'paid').length,
+      totalKids: trip.assignedKids.length,
+      totalTripCost: trip.totalTripCost,
+    });
+  } catch (err) {
+    console.error('❌ Record payment error:', err);
+    res.status(500).json({ error: 'Failed to record payment' });
+  }
+});
+
+/**
+ * GET /api/trips/:id/payment-summary — Get payment status summary
+ */
+router.get('/:id/payment-summary', authMiddleware, async (req, res) => {
+  try {
+    const trip = await SchoolTrip.findById(req.params.id)
+      .select('pricingModel pricePerHead flatRate totalTripCost paymentStatus paidAt commissionRate driverPayout poleSafeCommission assignedKids');
+
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    const paidKids = trip.assignedKids.filter(k => k.paymentStatus === 'paid');
+    const unpaidKids = trip.assignedKids.filter(k => k.paymentStatus === 'unpaid');
+    const waivedKids = trip.assignedKids.filter(k => k.paymentStatus === 'waived');
+
+    res.json({
+      pricingModel: trip.pricingModel,
+      pricePerHead: trip.pricePerHead || trip.flatRate || 0,
+      totalTripCost: trip.totalTripCost,
+      paymentStatus: trip.paymentStatus,
+      paidAt: trip.paidAt,
+
+      // Breakdown by pricing model
+      ...(trip.pricingModel === 'per_head' && {
+        pricePerHead: trip.pricePerHead,
+        totalKids: trip.assignedKids.length,
+        seatsFilled: trip.seatsFilled,
+        calculatedTotal: trip.pricePerHead * trip.assignedKids.length,
+      }),
+
+      // Payment counts
+      paidCount: paidKids.length,
+      unpaidCount: unpaidKids.length,
+      waivedCount: waivedKids.length,
+
+      // Payout details
+      driverPayout: trip.driverPayout,
+      poleSafeCommission: trip.poleSafeCommission,
+      commissionRate: trip.commissionRate,
+    });
+  } catch (err) {
+    console.error('❌ Payment summary error:', err);
+    res.status(500).json({ error: 'Failed to get payment summary' });
   }
 });
 
