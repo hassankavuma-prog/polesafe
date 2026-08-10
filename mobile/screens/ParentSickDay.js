@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, ActivityIndicator,
+  Alert, ActivityIndicator, TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -24,6 +24,8 @@ export default function ParentSickDay({ navigation, route }) {
   const [sickDays, setSickDays] = useState(1);
   const [sickDaysUsed, setSickDaysUsed] = useState(0);
   const [sickDaysTotal] = useState(3); // Term limit
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     loadKidData();
@@ -71,11 +73,20 @@ export default function ParentSickDay({ navigation, route }) {
   };
 
   const handleSubmit = async () => {
+    setError('');
+
+    if (!reason.trim()) {
+      setError('Please describe the reason for the sick day');
+      return;
+    }
+
+    if (sickDays > MAX_SICK_DAYS) {
+      setError(`Maximum ${MAX_SICK_DAYS} consecutive sick days allowed`);
+      return;
+    }
+
     if (sickDaysUsed + sickDays > sickDaysTotal) {
-      Alert.alert(
-        'Sick Days Exceeded',
-        `You've used ${sickDaysUsed} of ${sickDaysTotal} sick days this term. ${sickDays} more would exceed your limit.`
-      );
+      setError(`You've used ${sickDaysUsed} of ${sickDaysTotal} sick days. ${sickDays} more would exceed your limit.`);
       return;
     }
 
@@ -226,6 +237,28 @@ export default function ParentSickDay({ navigation, route }) {
         </View>
       </View>
 
+      {/* Reason */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📝 Reason (required)</Text>
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          placeholder="e.g., Fever, headache, doctor's appointment..."
+          placeholderTextColor="#aaa"
+          value={reason}
+          onChangeText={(text) => { setReason(text); setError(''); }}
+          multiline
+          numberOfLines={3}
+          editable={!submitting}
+        />
+      </View>
+
+      {/* Error */}
+      {error ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>⚠️ {error}</Text>
+        </View>
+      ) : null}
+
       {/* Summary */}
       <View style={styles.summaryCard}>
         <Text style={styles.summaryTitle}>Summary</Text>
@@ -320,4 +353,8 @@ const styles = StyleSheet.create({
   submitBtn: { backgroundColor: '#2E7D32', padding: 18, borderRadius: 12, alignItems: 'center' },
   btnDisabled: { opacity: 0.6 },
   submitBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  input: { backgroundColor: '#f9f9f9', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#333' },
+  textArea: { minHeight: 80, textAlignVertical: 'top' },
+  errorBox: { backgroundColor: '#FFEBEE', borderRadius: 10, padding: 12, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: '#C62828' },
+  errorText: { fontSize: 13, color: '#C62828', fontWeight: '500' },
 });
