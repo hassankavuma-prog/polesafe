@@ -4,17 +4,19 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Alert, TextInput,
+  RefreshControl, Alert, TextInput, ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'https://api.polesafe.ug';
+import API_BASE from '../config';
+const API_URL = API_BASE;
 
 export default function ParentDashboard({ navigation }) {
   const [kids, setKids] = useState([]);
   const [rides, setRides] = useState([]);
   const [creditBalance, setCreditBalance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState('school'); // 'school' | 'ride'
   const [customCodes, setCustomCodes] = useState({}); // Store custom code inputs per child
 
@@ -41,7 +43,7 @@ export default function ParentDashboard({ navigation }) {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { setLoading(true); loadData().finally(() => setLoading(false)); }, []);
   const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
 
   // Today's rides
@@ -51,6 +53,30 @@ export default function ParentDashboard({ navigation }) {
     const rideDay = new Date(r.scheduledPickupTime).toLocaleDateString('en-UG', { weekday: 'short' });
     return rideDay === today;
   });
+
+  if (loading && !refreshing) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+        <Text style={styles.loadingText}>Loading your dashboard...</Text>
+      </View>
+    );
+  }
+
+  if (!loading && kids.length === 0 && rides.length === 0) {
+    return (
+      <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <View style={[styles.container, styles.center, { paddingTop: 60 }]}>
+          <Text style={styles.emptyIcon}>🚸</Text>
+          <Text style={styles.emptyTitle}>Welcome to PoleSafe!</Text>
+          <Text style={styles.emptyText}>Add your child to get started with school transport.</Text>
+          <TouchableOpacity style={styles.addBtn} onPress={() => navigation.navigate('AddChild')}>
+            <Text style={styles.addBtnText}>+ Add Child</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
@@ -298,4 +324,11 @@ const styles = StyleSheet.create({
   codeInput: { flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14 },
   setCodeBtn: { backgroundColor: '#4CAF50', paddingHorizontal: 20, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   btnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  center: { justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 15, color: '#666' },
+  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#333', marginBottom: 8 },
+  emptyText: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20, lineHeight: 20 },
+  addBtn: { backgroundColor: '#2E7D32', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12 },
+  addBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
