@@ -2,7 +2,7 @@
 // Shows today's route, toggle for ride mode, earnings summary
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
@@ -12,6 +12,7 @@ export default function DriverDashboard({ navigation }) {
   const [route, setRoute] = useState(null);
   const [isAvailable, setIsAvailable] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadRoute = async () => {
     try {
@@ -26,8 +27,29 @@ export default function DriverDashboard({ navigation }) {
     }
   };
 
-  useEffect(() => { loadRoute(); }, []);
+  useEffect(() => { setLoading(true); loadRoute().finally(() => setLoading(false)); }, []);
   const onRefresh = async () => { setRefreshing(true); await loadRoute(); setRefreshing(false); };
+
+  if (loading && !refreshing) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+        <Text style={styles.loadingText}>Loading your route...</Text>
+      </View>
+    );
+  }
+
+  if (!loading && !route) {
+    return (
+      <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <View style={[styles.center, { paddingTop: 80 }]}>
+          <Text style={styles.emptyIcon}>🚗</Text>
+          <Text style={styles.emptyTitle}>No Route Today</Text>
+          <Text style={styles.emptyText}>You have no rides scheduled for today. Check back later or toggle availability for PoleSafe Ride requests.</Text>
+        </View>
+      </ScrollView>
+    );
+  }
 
   const totalRides = route?.morningStops?.length || 0;
   const afternoonRides = route?.afternoonStops?.length || 0;
@@ -178,4 +200,9 @@ const styles = StyleSheet.create({
   routeBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   earningsBtn: { backgroundColor: '#fff', padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#1565C0' },
   earningsBtnText: { color: '#1565C0', fontSize: 16, fontWeight: '600' },
+  center: { justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 15, color: '#666' },
+  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#333', marginBottom: 8 },
+  emptyText: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20, lineHeight: 20, paddingHorizontal: 20 },
 });
