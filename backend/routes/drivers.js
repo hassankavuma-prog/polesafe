@@ -152,6 +152,12 @@ router.get('/earnings', async (req, res) => {
     const schoolEarnings = schoolRides.reduce((sum, r) => sum + (r.driverPayout || 0), 0);
     const rideEarnings = rideHailingRides.reduce((sum, r) => sum + (r.driverPayout || 0), 0);
 
+    // Get wallet info
+    const user = await User.findById(req.userId).select('earningsBalance lifetimeEarnings mobileMoneyNumber');
+    const pendingWithdrawals = await WithdrawalRequest.find({ driverId: req.userId, status: { $in: ['pending', 'processing'] } })
+      .select('amount').lean();
+    const pendingAmount = pendingWithdrawals.reduce((sum, w) => sum + w.amount, 0);
+
     res.json({
       period: { from: startDate, to: endDate },
       summary: {
@@ -161,6 +167,13 @@ router.get('/earnings', async (req, res) => {
         schoolEarnings,
         rideHailingEarnings: rideEarnings,
         totalEarnings: schoolEarnings + rideEarnings,
+      },
+      wallet: {
+        availableBalance: (user?.earningsBalance || 0) - pendingAmount,
+        pendingWithdrawals: pendingAmount,
+        totalBalance: user?.earningsBalance || 0,
+        lifetimeEarnings: user?.lifetimeEarnings || 0,
+        hasMobileMoney: !!user?.mobileMoneyNumber,
       },
       breakdown: {
         school: schoolRides.map(r => ({
@@ -226,6 +239,118 @@ router.get('/availability', async (req, res) => {
   try {
     const vehicle = await Vehicle.findOne({ driverId: req.userId });
     res.json({ isAvailable: vehicle?.isAvailable || false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// GET /api/drivers/wallet — Get wallet balance
+// ============================================================
+router.get('/wallet', async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('earningsBalance lifetimeEarnings mobileMoneyNumber name phone');
+    const pendingWithdrawals = await WithdrawalRequest.find({ driverId: req.userId, status: { $in: ['pending', 'processing'] } })
+      .select('amount status requestedAt').lean();
+    
+    const pendingAmount = pendingWithdrawals.reduce((sum, w) => sum + w.amount, 0);
+
+    res.json({
+      availableBalance: (user.earningsBalance || 0) - pendingAmount,
+      pendingWithdrawals: pendingAmount,
+      lifetimeEarnings: user.lifetimeEarnings || 0,
+      totalBalance: user.earningsBalance || 0,
+      mobileMoneyNumber: user.mobileMoneyNumber || '',
+      driverName: user.name,
+      driverPhone: user.phone,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// POST /api/drivers/withdraw — Request withdrawal
+// ============================================================
+router.post('/withdraw', async (req, res) => {
+  try {
+    const { amount, mobileMoneyNumber, mobileMoneyNetwork } = req.body;
+
+    if (!amount || amount < 1000) {
+      return res.status(400).json({ error: 'Minimum withdrawal is 1,000 UGX' });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'Driver not found' });
+
+    // Check pending withdrawals
+    const pendingTotal = await WithdrawalRequest.aggregate([
+      { $match: { driverId: user._id, status: { $in: ['pending', 'processing'] } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]);
+    const pendingAmount = pendingTotal.length > 0 ? pendingTotal[0].total : 0;
+    const available = (user.earningsBalance || 0) - pendingAmount;
+
+    if (amount > available) {
+      return res.status(400).json({
+        error: `Insufficient balance. Available: ${available.toLocaleString('en-UG')} UGX`,
+        availableBalance: available,
+      });
+    }
+
+    // Calculate fee (1% for mobile money, max 5,000 UGX)
+    const fee = Math.min(amount * 0.01, 5000);
+    const netAmount = amount - fee;
+
+    const withdrawal = await WithdrawalRequest.create({
+      driverId: user._id,
+      amount,
+      mobileMoneyNumber: mobileMoneyNumber || user.mobileMoneyNumber,
+      mobileMoneyNetwork: mobileMoneyNetwork || 'mtn',
+      status: 'pending',
+      fee,
+      netAmount,
+      requestedAt: new Date(),
+    });
+
+    // Deduct from balance immediately
+    user.earningsBalance -= amount;
+    await user.save();
+
+    res.status(201).json({
+      withdrawal,
+      message: `✅ Withdrawal of ${amount.toLocaleString('en-UG')} UGX requested. Net: ${netAmount.toLocaleString('en-UG')} UGX after ${fee.toLocaleString('en-UG')} UGX fee.`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// GET /api/drivers/withdrawals — List withdrawal history
+// ============================================================
+router.get('/withdrawals', async (req, res) => {
+  try {
+    const withdrawals = await WithdrawalRequest.find({ driverId: req.userId })
+      .sort({ requestedAt: -1 })
+      .limit(50)
+      .lean();
+    res.json({ withdrawals });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// POST /api/drivers/wallet/phone — Update mobile money number
+// ============================================================
+router.post('/wallet/phone', async (req, res) => {
+  try {
+    const { mobileMoneyNumber } = req.body;
+    if (!mobileMoneyNumber) return res.status(400).json({ error: 'Mobile money number required' });
+    
+    await User.findByIdAndUpdate(req.userId, { mobileMoneyNumber });
+    res.json({ message: '✅ Mobile money number updated', mobileMoneyNumber });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

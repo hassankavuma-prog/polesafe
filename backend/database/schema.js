@@ -1,5 +1,5 @@
 // PoleSafe — Database Schema Definition (MongoDB/Mongoose)
-// Covers: User, Child, School, Ride, Booking, Transaction, Credit, Broadcast
+// Covers: User, Child, School, Ride, Booking, Transaction, Credit, Broadcast, Withdrawal
 
 const mongoose = require('mongoose');
 
@@ -23,6 +23,11 @@ const userSchema = new mongoose.Schema({
   pin: { type: String },              // Simple PIN for SMS login
   hasSmartphone: { type: Boolean, default: true },
   preferredLanguage: { type: String, enum: ['en', 'luganda', 'swahili'], default: 'en' },
+
+  // Earnings wallet
+  earningsBalance: { type: Number, default: 0 },       // Available for withdrawal
+  lifetimeEarnings: { type: Number, default: 0 },       // All-time total earned
+  mobileMoneyNumber: { type: String },                  // Default withdrawal number
 
   // Notification preferences
   preferredChannel: {
@@ -616,6 +621,30 @@ const fuelPriceSchema = new mongoose.Schema({
   recordedAt: { type: Date, default: Date.now },
 });
 
+// ============================================================
+// WITHDRAWAL REQUEST — Driver earnings withdrawal
+// ============================================================
+const withdrawalRequestSchema = new mongoose.Schema({
+  driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  amount: { type: Number, required: true },
+  mobileMoneyNumber: { type: String, required: true },
+  mobileMoneyNetwork: { type: String, enum: ['mtn', 'airtel', 'other'], default: 'mtn' },
+  status: {
+    type: String,
+    enum: ['pending', 'processing', 'completed', 'failed', 'cancelled'],
+    default: 'pending',
+  },
+  transactionId: { type: String }, // Flutterwave or MTN MoMo ref
+  adminNote: { type: String },
+  requestedAt: { type: Date, default: Date.now },
+  processedAt: { type: Date },
+  fee: { type: Number, default: 0 }, // Withdrawal fee
+  netAmount: { type: Number },       // Amount after fee
+});
+
+withdrawalRequestSchema.index({ driverId: 1, status: 1 });
+withdrawalRequestSchema.index({ status: 1, requestedAt: 1 });
+
 // Export models
 module.exports = {
   User: mongoose.model('User', userSchema),
@@ -630,5 +659,6 @@ module.exports = {
   SchoolTrip: mongoose.model('SchoolTrip', schoolTripSchema),
   QuoteRequest: mongoose.model('QuoteRequest', quoteRequestSchema),
   FuelPrice: mongoose.model('FuelPrice', fuelPriceSchema),
+  WithdrawalRequest: mongoose.model('WithdrawalRequest', withdrawalRequestSchema),
   Attendance: mongoose.model('Attendance', attendanceSchema),
 };
