@@ -1,13 +1,14 @@
 // PoleSafe Mobile — Parent Track Screen
-// Real-time ride tracking with driver info, status timeline, and ETA
+// Real-time ride tracking with WebSocket, driver info, status timeline, and ETA
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Alert, ActivityIndicator, RefreshControl, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import StatusBadge from '../components/StatusBadge';
+import TrackingClient from '../services/TrackingClient';
 
 import API_BASE from '../config';
 import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
@@ -28,9 +29,12 @@ export default function ParentTrack({ navigation, route }) {
   const rideId = route?.params?.rideId;
   const [ride, setRide] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
+  const [driverETA, setDriverETA] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [connected, setConnected] = useState(false);
+  const trackerRef = useRef(null);
 
   const fetchRideData = useCallback(async () => {
     if (!rideId) return;
@@ -71,14 +75,65 @@ export default function ParentTrack({ navigation, route }) {
     init();
   }, [fetchRideData]);
 
-  // Poll every 10 seconds for driver location and ride updates
+  // Connect to WebSocket for real-time tracking
+  useEffect(() => {
+    if (!rideId || loading) return;
+
+    const startTracking = async () => {
+      try {
+        const token = await AsyncStorage.getItem('polesafe_token');
+        if (!token) return;
+
+        const tracker = new TrackingClient(token);
+        trackerRef.current = tracker;
+
+        tracker.connect(rideId, {
+          onLocation: (loc) => {
+            setDriverLocation(loc);
+            setConnected(true);
+          },
+          onStatus: (status) => {
+            if (status.status) {
+              setRide(prev => prev ? { ...prev, status: status.status } : prev);
+            }
+          },
+          onETA: (eta) => {
+            setDriverETA(eta);
+          },
+        });
+
+        // Keepalive ping every 30s
+        const pingInterval = setInterval(() => {
+          tracker.ping();
+        }, 30000);
+
+        return () => {
+          clearInterval(pingInterval);
+        };
+      } catch (err) {
+        console.warn('[Track] WebSocket failed, using REST fallback:', err.message);
+      }
+    };
+
+    startTracking();
+
+    return () => {
+      if (trackerRef.current) {
+        trackerRef.current.disconnect();
+        trackerRef.current = null;
+      }
+      setConnected(false);
+    };
+  }, [rideId, loading]);
+
+  // REST polling as fallback (every 15s instead of 10s when WebSocket is active)
   useEffect(() => {
     if (!rideId) return;
     const interval = setInterval(async () => {
       await Promise.all([fetchRideData(), fetchDriverLocation()]);
-    }, 10000);
+    }, connected ? 30000 : 10000);
     return () => clearInterval(interval);
-  }, [rideId, fetchRideData, fetchDriverLocation]);
+  }, [rideId, fetchRideData, fetchDriverLocation, connected]);
 
   const onRefresh = async () => {
     setRefreshing(true);

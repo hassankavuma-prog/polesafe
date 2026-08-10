@@ -1,348 +1,169 @@
 // PoleSafe Mobile — Parent Booking Screen
-// Weekly booking calendar with day, time, kid, vehicle, and school selectors
+// Clean, simple booking flow for parents
 
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
+  Alert, ActivityIndicator, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import API_BASE from '../config';
-import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-const VEHICLE_TYPES = [
-  { id: 'car', label: '🚗 Car', desc: 'Private car' },
-  { id: 'boda', label: '🏍️ Boda', desc: 'Motorcycle taxi' },
-];
+import { COLORS } from '../theme';
 
-export default function ParentBooking({ navigation }) {
-  const theme = getTheme();
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+const DAYS = ['Mon','Tue','Wed','Thu','Fri'];
+const TIMES = ['6:30 AM','7:00 AM','7:30 AM','8:00 AM','3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM'];
+
+export default function ParentBooking({ navigation, route }) {
+  const prefill = route?.params?.prefill || {};
   const [kids, setKids] = useState([]);
-  const [schools, setSchools] = useState([]);
-
-  // Form state
-  const [selectedDays, setSelectedDays] = useState([]);
-  const [pickupTime, setPickupTime] = useState('07:00');
-  const [dropoffTime, setDropoffTime] = useState('16:00');
   const [selectedKid, setSelectedKid] = useState(null);
-  const [vehicleType, setVehicleType] = useState('car');
-  const [selectedSchool, setSelectedSchool] = useState(null);
+  const [mode, setMode] = useState('school');
+  const [days, setDays] = useState([]);
+  const [time, setTime] = useState(prefill.time || '7:00 AM');
+  const [pickup, setPickup] = useState(prefill.pickupLocation || '');
+  const [dropoff, setDropoff] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    loadFormData();
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem('polesafe_token');
+        const res = await fetch(`${API_BASE}/api/parents/kids`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setKids(data.kids || []);
+
+        // Pre-select kid if Hamna suggested one
+        if (prefill.childName) {
+          const match = (data.kids || []).find(k =>
+            k.name.toLowerCase().includes(prefill.childName.toLowerCase())
+          );
+          if (match) setSelectedKid(match._id);
+        }
+      } catch (err) {
+        console.error('Failed to load kids:', err);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  const loadFormData = async () => {
-    setLoading(true);
-    try {
-      const token = await AsyncStorage.getItem('polesafe_token');
-      const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-      const [kidsRes, schoolsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/parents/kids`, { headers }),
-        fetch(`${API_BASE}/api/schools`, { headers }),
-      ]);
-
-      const kidsData = await kidsRes.json();
-      const schoolsData = await schoolsRes.json();
-
-      setKids(kidsData.kids || []);
-      setSchools(schoolsData.schools || []);
-    } catch (err) {
-      Alert.alert('Error', 'Failed to load booking options');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const toggleDay = (day) => {
-    setSelectedDays((prev) =>
-      prev.includes(day)
-        ? prev.filter((d) => d !== day)
-        : [...prev, day]
-    );
+    setDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
   };
 
-  const isFormValid = () => {
-    if (selectedDays.length === 0) return false;
-    if (!selectedKid) return false;
-    if (!selectedSchool) return false;
-    return true;
-  };
-
-  const handleBook = async () => {
-    if (!isFormValid()) {
-      Alert.alert('Incomplete', 'Please select days, a kid, and a school.');
-      return;
-    }
+  const submit = async () => {
+    if (!selectedKid) return Alert.alert('Select a child');
+    if (mode === 'school' && days.length === 0) return Alert.alert('Select at least one day');
+    if (!time) return Alert.alert('Select a time');
 
     setSubmitting(true);
     try {
       const token = await AsyncStorage.getItem('polesafe_token');
+      const body = {
+        childId: selectedKid,
+        type: mode === 'school' ? (time.includes('AM') ? 'school_morning' : 'school_afternoon') : 'pole_safe_ride',
+        days: mode === 'school' ? days : [],
+        scheduledPickupTime: time,
+        pickupLocation: pickup || 'Home',
+        dropoffLocation: dropoff || undefined,
+      };
+
       const res = await fetch(`${API_BASE}/api/parents/book`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          childId: selectedKid,
-          daysOfWeek: selectedDays,
-          pickupTime: `${pickupTime}:00`,
-          dropoffTime: `${dropoffTime}:00`,
-          vehicleType,
-          schoolId: selectedSchool,
-        }),
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Booking failed');
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
 
-      Alert.alert(
-        'Booking Confirmed! 🎉',
-        `Ride booked for ${selectedDays.join(', ')} at ${pickupTime}.`,
-        [
-          { text: 'View Rides', onPress: () => navigation.navigate('Home') },
-          { text: 'OK' },
-        ]
-      );
-
-      // Reset form
-      setSelectedDays([]);
-      setSelectedKid(null);
-      setSelectedSchool(null);
+      Alert.alert('✅ Booked!', data.message || 'Ride booked successfully');
+      navigation.goBack();
     } catch (err) {
-      Alert.alert('Error', err.message || 'Booking failed. Please try again.');
+      Alert.alert('Error', err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Time helpers
-  const hours = Array.from({ length: 12 }, (_, i) => String(i + 6).padStart(2, '0'));
-
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={styles.loadingText}>Loading booking options...</Text>
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#4361ee" />
       </View>
     );
   }
 
   return (
-    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} keyboardShouldPersistTaps="handled">
-      {/* Day Picker */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📅 Select Days</Text>
-        <Text style={styles.sectionSub}>Choose which days this ride repeats</Text>
-        <View style={styles.dayGrid}>
-          {WEEKDAYS.map((day) => {
-            const isSelected = selectedDays.includes(day);
-            return (
-              <TouchableOpacity
-                key={day}
-                style={[styles.dayBtn, isSelected && styles.dayBtnSelected]}
-                onPress={() => toggleDay(day)}
-              >
-                <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>
-                  {day}
-                </Text>
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Book a Ride</Text>
+
+      {/* Select Kid */}
+      <Text style={styles.label}>👦 Child</Text>
+      <View style={styles.chipRow}>
+        {kids.map(k => (
+          <TouchableOpacity
+            key={k._id}
+            style={[styles.chip, selectedKid === k._id && styles.chipActive]}
+            onPress={() => setSelectedKid(k._id)}
+          >
+            <Text style={[styles.chipText, selectedKid === k._id && styles.chipTextActive]}>{k.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Mode */}
+      <Text style={styles.label}>📋 Type</Text>
+      <View style={styles.chipRow}>
+        <TouchableOpacity style={[styles.chip, mode === 'school' && styles.chipActive]} onPress={() => setMode('school')}>
+          <Text style={[styles.chipText, mode === 'school' && styles.chipTextActive]}>🚸 School</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.chip, mode === 'ride' && styles.chipActive]} onPress={() => setMode('ride')}>
+          <Text style={[styles.chipText, mode === 'ride' && styles.chipTextActive]}>🚗 Ride</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Days (school mode only) */}
+      {mode === 'school' && (
+        <>
+          <Text style={styles.label}>📅 Days</Text>
+          <View style={styles.chipRow}>
+            {DAYS.map(d => (
+              <TouchableOpacity key={d} style={[styles.dayChip, days.includes(d) && styles.chipActive]} onPress={() => toggleDay(d)}>
+                <Text style={[styles.dayChipText, days.includes(d) && styles.chipTextActive]}>{d}</Text>
               </TouchableOpacity>
-            );
-          })}
-        </View>
-        {selectedDays.length > 0 && (
-          <Text style={styles.dayCount}>
-            {selectedDays.length} day{selectedDays.length > 1 ? 's' : ''} selected
-          </Text>
-        )}
-      </View>
-
-      {/* Pickup Time */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🌅 Pickup Time (Morning)</Text>
-        <View style={styles.timeRow}>
-          <TouchableOpacity
-            style={styles.timeArrow}
-            onPress={() => setPickupTime((p) => {
-              const h = parseInt(p.split(':')[0]);
-              return `${String(Math.max(5, h - 1)).padStart(2, '0')}:00`;
-            })}
-          >
-            <Text style={styles.timeArrowText}>−</Text>
-          </TouchableOpacity>
-          <View style={styles.timeDisplay}>
-            <Text style={styles.timeText}>{pickupTime}</Text>
+            ))}
           </View>
-          <TouchableOpacity
-            style={styles.timeArrow}
-            onPress={() => setPickupTime((p) => {
-              const h = parseInt(p.split(':')[0]);
-              return `${String(Math.min(10, h + 1)).padStart(2, '0')}:00`;
-            })}
-          >
-            <Text style={styles.timeArrowText}>+</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Dropoff Time */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🌇 Dropoff Time (Afternoon)</Text>
-        <View style={styles.timeRow}>
-          <TouchableOpacity
-            style={styles.timeArrow}
-            onPress={() => setDropoffTime((p) => {
-              const h = parseInt(p.split(':')[0]);
-              return `${String(Math.max(12, h - 1)).padStart(2, '0')}:00`;
-            })}
-          >
-            <Text style={styles.timeArrowText}>−</Text>
-          </TouchableOpacity>
-          <View style={styles.timeDisplay}>
-            <Text style={styles.timeText}>{dropoffTime}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.timeArrow}
-            onPress={() => setDropoffTime((p) => {
-              const h = parseInt(p.split(':')[0]);
-              return `${String(Math.min(18, h + 1)).padStart(2, '0')}:00`;
-            })}
-          >
-            <Text style={styles.timeArrowText}>+</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Kid Selector */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>👦 Select Kid</Text>
-        {kids.length === 0 ? (
-          <View>
-            <Text style={styles.emptyText}>No kids registered yet</Text>
-            <TouchableOpacity
-              style={styles.addKidBtn}
-              onPress={() => {
-                Alert.alert(
-                  'Add Child',
-                  'To add a child, please navigate to the Add Child screen or contact your school admin.',
-                  [{ text: 'OK' }]
-                );
-              }}
-            >
-              <Text style={styles.addKidBtnText}>➕ Add Child</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          kids.map((kid) => (
-            <TouchableOpacity
-              key={kid._id}
-              style={[
-                styles.optionRow,
-                selectedKid === kid._id && styles.optionRowSelected,
-              ]}
-              onPress={() => setSelectedKid(kid._id)}
-            >
-              <View style={styles.optionInfo}>
-                <Text style={styles.optionName}>{kid.name}</Text>
-                <Text style={styles.optionSub}>{kid.class || 'Class not set'}</Text>
-              </View>
-              {selectedKid === kid._id && (
-                <Text style={styles.checkMark}>✅</Text>
-              )}
-            </TouchableOpacity>
-          ))
-        )}
-      </View>
-
-      {/* Vehicle Type */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🚗 Vehicle Type</Text>
-        <View style={styles.vehicleRow}>
-          {VEHICLE_TYPES.map((v) => (
-            <TouchableOpacity
-              key={v.id}
-              style={[
-                styles.vehicleBtn,
-                vehicleType === v.id && styles.vehicleBtnSelected,
-              ]}
-              onPress={() => setVehicleType(v.id)}
-            >
-              <Text style={[
-                styles.vehicleLabel,
-                vehicleType === v.id && styles.vehicleLabelSelected,
-              ]}>
-                {v.label}
-              </Text>
-              <Text style={[
-                styles.vehicleDesc,
-                vehicleType === v.id && styles.vehicleDescSelected,
-              ]}>
-                {v.desc}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* School Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🏫 School</Text>
-        {schools.length === 0 ? (
-          <Text style={styles.emptyText}>No schools available</Text>
-        ) : (
-          schools.map((school) => (
-            <TouchableOpacity
-              key={school._id}
-              style={[
-                styles.optionRow,
-                selectedSchool === school._id && styles.optionRowSelected,
-              ]}
-              onPress={() => setSelectedSchool(school._id)}
-            >
-              <View style={styles.optionInfo}>
-                <Text style={styles.optionName}>{school.name}</Text>
-                <Text style={styles.optionSub}>{school.location || ''}</Text>
-              </View>
-              {selectedSchool === school._id && (
-                <Text style={styles.checkMark}>✅</Text>
-              )}
-            </TouchableOpacity>
-          ))
-        )}
-      </View>
-
-      {/* Price Estimate */}
-      {isFormValid() && selectedDays.length > 0 && (
-        <View style={styles.priceCard}>
-          <Text style={styles.priceTitle}>💰 Estimated Cost</Text>
-          <Text style={styles.pricePerTrip}>~5,000 UGX per trip</Text>
-          <Text style={styles.priceTotal}>
-            Total: {(selectedDays.length * 5000).toLocaleString('en-UG')} UGX per week
-          </Text>
-          <Text style={styles.priceNote}>
-            Final price will be confirmed after booking
-          </Text>
-        </View>
+        </>
       )}
 
-      {/* Review & Book */}
-      <TouchableOpacity
-        style={[styles.bookBtn, !isFormValid() && styles.btnDisabled]}
-        onPress={handleBook}
-        disabled={submitting || !isFormValid()}
-      >
-        {submitting ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.bookBtnText}>📋 Review & Book</Text>
-        )}
+      {/* Time */}
+      <Text style={styles.label}>⏰ Time</Text>
+      <View style={styles.chipRow}>
+        {TIMES.map(t => (
+          <TouchableOpacity key={t} style={[styles.chip, time === t && styles.chipActive]} onPress={() => setTime(t)}>
+            <Text style={[styles.chipText, time === t && styles.chipTextActive]}>{t}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Pickup / Dropoff */}
+      <Text style={styles.label}>📍 Pickup Location</Text>
+      <TextInput style={styles.input} value={pickup} onChangeText={setPickup} placeholder="e.g. Home, 123 Main St" placeholderTextColor="#999" />
+
+      {mode === 'ride' && (
+        <>
+          <Text style={styles.label}>📍 Dropoff</Text>
+          <TextInput style={styles.input} value={dropoff} onChangeText={setDropoff} placeholder="e.g. St. Mary's School" placeholderTextColor="#999" />
+        </>
+      )}
+
+      {/* Submit */}
+      <TouchableOpacity style={[styles.submitBtn, submitting && { opacity: 0.6 }]} onPress={submit} disabled={submitting}>
+        <Text style={styles.submitText}>{submitting ? 'Booking...' : 'Confirm Booking'}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
@@ -351,48 +172,18 @@ export default function ParentBooking({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas },
-  loadingText: { marginTop: 12, color: COLORS.textSecondary, fontSize: 14 },
-  section: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
-  sectionSub: { fontSize: 12, color: COLORS.textMuted, marginBottom: 12 },
-  dayGrid: { flexDirection: 'row', justifyContent: 'space-between' },
-  dayBtn: {
-    flex: 1, marginHorizontal: 3, paddingVertical: 14, borderRadius: 10,
-    backgroundColor: '#f0f0f0', alignItems: 'center',
-  },
-  dayBtnSelected: { backgroundColor: COLORS.green },
-  dayText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
-  dayTextSelected: { color: '#fff' },
-  dayCount: { fontSize: 12, color: COLORS.green, fontWeight: '600', marginTop: 8, textAlign: 'center' },
-  timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, marginTop: 8 },
-  timeArrow: { backgroundColor: '#f0f0f0', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  timeArrowText: { fontSize: 24, fontWeight: '600', color: COLORS.green },
-  timeDisplay: { backgroundColor: COLORS.greenBg, paddingHorizontal: 32, paddingVertical: 12, borderRadius: 12 },
-  timeText: { fontSize: 28, fontWeight: '700', color: COLORS.green },
-  optionRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 10, marginBottom: 6, backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: '#eee' },
-  optionRowSelected: { borderColor: COLORS.green, backgroundColor: COLORS.greenBg },
-  optionInfo: { flex: 1 },
-  optionName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  optionSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
-  checkMark: { fontSize: 18 },
-  vehicleRow: { flexDirection: 'row', gap: 12 },
-  vehicleBtn: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: '#eee', alignItems: 'center' },
-  vehicleBtnSelected: { borderColor: COLORS.green, backgroundColor: COLORS.greenBg },
-  vehicleLabel: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
-  vehicleLabelSelected: { color: COLORS.green },
-  vehicleDesc: { fontSize: 11, color: COLORS.textMuted },
-  vehicleDescSelected: { color: COLORS.textSecondary },
-  emptyText: { fontSize: 13, color: COLORS.textMuted, fontStyle: 'italic', paddingVertical: 8, textAlign: 'center' },
-  addKidBtn: { backgroundColor: COLORS.green, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, alignItems: 'center', marginTop: 12 },
-  addKidBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  priceCard: { backgroundColor: COLORS.orangeBg, borderRadius: 12, padding: 16, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: '#FF9800' },
-  priceTitle: { fontSize: 14, fontWeight: '600', color: COLORS.orange, marginBottom: 8 },
-  pricePerTrip: { fontSize: 15, color: COLORS.textPrimary, marginBottom: 4 },
-  priceTotal: { fontSize: 18, fontWeight: '700', color: COLORS.green, marginBottom: 6 },
-  priceNote: { fontSize: 11, color: COLORS.textMuted, fontStyle: 'italic' },
-  bookBtn: { backgroundColor: COLORS.green, padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 4 },
-  btnDisabled: { opacity: 0.5 },
-  bookBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  container: { flex: 1, backgroundColor: '#f8f9ff', padding: 20 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8f9ff' },
+  title: { fontSize: 24, fontWeight: '700', color: '#4361ee', marginBottom: 24 },
+  label: { fontSize: 15, fontWeight: '600', color: '#555', marginBottom: 10, marginTop: 16 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingHorizontal: 18, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 10, borderWidth: 2, borderColor: '#e0e0eb' },
+  chipActive: { borderColor: '#4361ee', backgroundColor: '#eef0ff' },
+  chipText: { fontSize: 14, color: '#666' },
+  chipTextActive: { color: '#4361ee', fontWeight: '600' },
+  dayChip: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 10, borderWidth: 2, borderColor: '#e0e0eb' },
+  dayChipText: { fontSize: 13, color: '#666' },
+  input: { backgroundColor: '#fff', borderRadius: 10, padding: 14, fontSize: 15, borderWidth: 2, borderColor: '#e0e0eb', color: '#333' },
+  submitBtn: { backgroundColor: '#4361ee', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 24 },
+  submitText: { color: '#fff', fontSize: 17, fontWeight: '600' },
 });
