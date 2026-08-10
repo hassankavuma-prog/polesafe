@@ -129,7 +129,7 @@ export default function DriverRoute({ navigation }) {
             setActionLoading(stop._id);
             try {
               const token = await AsyncStorage.getItem('polesafe_token');
-              const res = await fetch(`${API_BASE}/api/drivers/stop/${stop._id}`, {
+              const res = await fetch(`${API_BASE}/api/drivers/ride/${stop._id}/status`, {
                 method: 'PATCH',
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: nextStatus }),

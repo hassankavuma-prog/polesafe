@@ -52,7 +52,8 @@ export default function SchoolGateCheck({ navigation }) {
     setActionLoading(rideId);
     try {
       const token = await AsyncStorage.getItem('polesafe_token');
-      const res = await fetch(`${API_BASE}/api/schools/gate-check`, {
+      const schoolId = await AsyncStorage.getItem('polesafe_school_id');
+      const res = await fetch(`${API_BASE}/api/schools/${schoolId}/gate-checkin`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

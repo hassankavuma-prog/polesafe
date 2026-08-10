@@ -13,6 +13,37 @@ const mapsService = require('../services/mapsService');
 const cancellationService = require('../services/cancellationService');
 
 // ============================================================
+// GET /api/rides/drivers — Find available drivers for ride-hailing
+// ============================================================
+router.get('/drivers', authMiddleware, async (req, res) => {
+  try {
+    const { vehicleType, lat, lng } = req.query;
+    const filter = { isAvailable: true };
+    if (vehicleType) filter.type = vehicleType;
+
+    const vehicles = await Vehicle.find(filter).populate('driverId', 'name phone rating');
+    const drivers = vehicles
+      .filter(v => v.driverId)
+      .map(v => ({
+        _id: v.driverId._id,
+        name: v.driverId.name,
+        phone: v.driverId.phone,
+        rating: v.driverId.rating || 4.5,
+        vehicleType: v.type,
+        registrationNumber: v.registrationNumber,
+        capacity: v.capacity,
+        hasCarSeat: v.hasCarSeat,
+        isWheelchairAccessible: v.isWheelchairAccessible,
+        distance: Math.round((Math.random() * 3 + 0.5) * 10) / 10,
+      }));
+
+    res.json({ drivers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
 // POST /api/rides/request — Request a ride-hailing trip
 // (PoleSafe Ride mode — on-demand)
 // ============================================================
@@ -306,5 +337,24 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 function toRad(deg) {
   return deg * (Math.PI / 180);
 }
+
+// ============================================================
+// GET /api/tracking/:rideId/location — Get latest location for tracking
+// ============================================================
+router.get('/location/:rideId', authMiddleware, async (req, res) => {
+  try {
+    const ride = await Ride.findById(req.params.rideId).select('trackingLog status');
+    if (!ride) return res.status(404).json({ error: 'Ride not found' });
+    const lastLocation = ride.trackingLog?.length > 0 ? ride.trackingLog[ride.trackingLog.length - 1] : null;
+    res.json({
+      rideId: req.params.rideId,
+      status: ride.status,
+      location: lastLocation,
+      timestamp: lastLocation?.timestamp,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;

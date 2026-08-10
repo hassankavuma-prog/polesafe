@@ -75,7 +75,7 @@ export default function SchoolDetention({ navigation }) {
               const token = await AsyncStorage.getItem('polesafe_token');
               const schoolId = await AsyncStorage.getItem('polesafe_school_id');
 
-              const res = await fetch(`${API_BASE}/api/schools/update-pickup`, {
+              const res = await fetch(`${API_BASE}/api/schools/${schoolId}/detention`, {
                 method: 'POST',
                 headers: {
                   Authorization: `Bearer ${token}`,

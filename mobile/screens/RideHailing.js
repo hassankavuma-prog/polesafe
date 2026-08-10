@@ -42,7 +42,7 @@ export default function RideHailing({ navigation }) {
     try {
       const token = await AsyncStorage.getItem('polesafe_token');
       const headers = { Authorization: `Bearer ${token}` };
-      const res = await fetch(`${API_BASE}/api/ride-hailing/drivers?vehicleType=${selectedVehicle}`, {
+      const res = await fetch(`${API_BASE}/api/rides/drivers?vehicleType=${selectedVehicle}`, {
         headers,
       });
 
@@ -100,7 +100,7 @@ export default function RideHailing({ navigation }) {
             setRequesting(true);
             try {
               const token = await AsyncStorage.getItem('polesafe_token');
-              const res = await fetch(`${API_BASE}/api/ride-hailing/request`, {
+              const res = await fetch(`${API_BASE}/api/rides/request`, {
                 method: 'POST',
                 headers: {
                   Authorization: `Bearer ${token}`,

@@ -50,7 +50,7 @@ export default function ParentTrack({ navigation, route }) {
     try {
       const token = await AsyncStorage.getItem('polesafe_token');
       const headers = { Authorization: `Bearer ${token}` };
-      const res = await fetch(`${API_BASE}/api/tracking/${rideId}/location`, { headers });
+      const res = await fetch(`${API_BASE}/api/rides/location/${rideId}`, { headers });
       if (res.ok) {
         const data = await res.json();
         setDriverLocation(data);

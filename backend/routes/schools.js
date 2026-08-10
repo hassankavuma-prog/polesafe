@@ -15,6 +15,19 @@ router.use(authMiddleware);
 router.use(requireRole('school_admin', 'polesafe_admin'));
 
 // ============================================================
+// GET /api/schools — List all active schools (for mobile app)
+// ============================================================
+router.get('/', async (req, res) => {
+  try {
+    const schools = await School.find({ verificationStatus: 'approved' })
+      .select('name location address phone');
+    res.json({ schools });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
 // POST /api/schools/register — Register a new school
 // ============================================================
 router.post('/register', async (req, res) => {

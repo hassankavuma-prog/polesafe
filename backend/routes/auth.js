@@ -130,6 +130,47 @@ router.post('/login', async (req, res) => {
 });
 
 // ============================================================
+// POST /api/auth/verify — Verify PIN (alias for login with PIN)
+// Called by mobile app after receiving SMS with PIN
+// ============================================================
+router.post('/verify', async (req, res) => {
+  // Forward to login handler logic
+  try {
+    const { phone, pin } = req.body;
+    const bcrypt = require('bcryptjs');
+
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(404).json({ error: 'No account with this phone number' });
+    }
+
+    let validPin = false;
+    if (user.pin && user.pin.startsWith('$2')) {
+      validPin = await bcrypt.compare(pin, user.pin);
+    } else {
+      validPin = user.pin === pin;
+    }
+
+    if (!validPin) {
+      return res.status(401).json({ error: 'Invalid PIN. Try again.' });
+    }
+
+    const token = generateToken(user);
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        phone: user.phone,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
 // GET /api/auth/me — Get current user profile
 // ============================================================
 router.get('/me', authMiddleware, async (req, res) => {

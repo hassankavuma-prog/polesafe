@@ -197,4 +197,33 @@ router.post('/vehicle', async (req, res) => {
   }
 });
 
+// ============================================================
+// POST /api/drivers/availability — Toggle online/offline
+// ============================================================
+router.post('/availability', async (req, res) => {
+  try {
+    const { isAvailable } = req.body;
+    await Vehicle.findOneAndUpdate(
+      { driverId: req.userId },
+      { isAvailable },
+      { upsert: true }
+    );
+    res.json({ isAvailable, message: isAvailable ? 'You are now available for ride requests' : 'You are now offline' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// GET /api/drivers/availability — Get current availability
+// ============================================================
+router.get('/availability', async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findOne({ driverId: req.userId });
+    res.json({ isAvailable: vehicle?.isAvailable || false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
