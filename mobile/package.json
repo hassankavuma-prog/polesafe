@@ -20,7 +20,8 @@
     "@react-native-async-storage/async-storage": "^1.21.0",
     "react-native-screens": "^3.29.0",
     "react-native-gesture-handler": "^2.14.1",
-    "react-native-reanimated": "^3.6.2"
+    "react-native-reanimated": "^3.6.2",
+    "react-native-maps": "^1.10.3"
   },
   "devDependencies": {
     "@babel/core": "^7.23.9",

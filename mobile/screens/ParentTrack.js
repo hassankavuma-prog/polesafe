@@ -9,6 +9,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import StatusBadge from '../components/StatusBadge';
 import TrackingClient from '../services/TrackingClient';
+import LiveTrackingMap from '../components/LiveTrackingMap';
 
 import API_BASE from '../config';
 import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
@@ -190,23 +191,21 @@ export default function ParentTrack({ navigation, route }) {
       style={[styles.container, {backgroundColor: theme.canvas}]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      {/* Map Placeholder */}
-      <View style={styles.mapPlaceholder}>
-        <Text style={styles.mapEmoji}>🗺️</Text>
-        <Text style={styles.mapTitle}>Live Map</Text>
-        <Text style={styles.mapSub}>Real-time GPS tracking</Text>
-        {driverLocation && (
-          <View style={styles.coordBox}>
-            <Text style={styles.coordText}>
-              📍 {driverLocation.latitude?.toFixed(4)}, {driverLocation.longitude?.toFixed(4)}
-            </Text>
-          </View>
-        )}
-        <View style={styles.etaBox}>
-          <Text style={styles.etaLabel}>Estimated Arrival</Text>
-          <Text style={styles.etaValue}>{etaText}</Text>
-        </View>
-      </View>
+      {/* Live Tracking Map */}
+      <LiveTrackingMap
+        driverLocation={driverLocation}
+        pickupLocation={{
+          latitude: 0.3136,
+          longitude: 32.5811,
+          label: ride.pickupLocation || 'Pickup',
+        }}
+        dropoffLocation={{
+          latitude: 0.3476,
+          longitude: 32.5825,
+          label: ride.dropoffLocation || 'School',
+        }}
+        status={status}
+      />
 
       {/* Driver Info Card */}
       <View style={styles.driverCard}>
