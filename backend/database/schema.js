@@ -130,7 +130,7 @@ const schoolSchema = new mongoose.Schema({
 // ============================================================
 const vehicleSchema = new mongoose.Schema({
   driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { type: String, enum: ['car', 'boda'], required: true },
+  type: { type: String, enum: ['car', 'boda', 'taxi', 'bus'], required: true },
   registrationNumber: { type: String },
   capacity: { type: Number, default: 4 },
   hasCarSeat: { type: Boolean, default: false },
@@ -138,6 +138,12 @@ const vehicleSchema = new mongoose.Schema({
   isApproved: { type: Boolean, default: false },
   isAvailable: { type: Boolean, default: false },
   lastOnlineAt: { type: Date },
+
+  // Fleet ownership
+  owner: { type: mongoose.Schema.Types.ObjectId, refPath: 'ownerModel' },
+  ownerModel: { type: String, enum: ['User', 'School'] },
+  schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School' },
+  busLabel: { type: String },  // "Bus #3" — admin names their fleet vehicles
 });
 
 // ============================================================
@@ -397,6 +403,71 @@ attendanceSchema.index({ childId: 1, date: 1 }, { unique: true });
 attendanceSchema.index({ schoolId: 1, date: 1 });
 
 // ============================================================
+// SCHOOL TRIP — Tours, field trips, sports days
+// Admin creates trip → assigns kids → driver confirms → tracking
+// ============================================================
+const schoolTripSchema = new mongoose.Schema({
+  schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+
+  // Trip details
+  tripName: { type: String, required: true },
+  description: { type: String },
+  destination: { type: String, required: true },
+  departureDate: { type: Date, required: true },
+  returnDate: { type: Date },
+  departureTime: { type: String },
+  returnTime: { type: String },
+
+  // Vehicle & driver
+  vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
+  driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  vehicleSource: { type: String, enum: ['fleet', 'external'], default: 'external' },
+
+  // Capacity enforcement
+  maxSeats: { type: Number, required: true },
+  assignedKids: [{
+    childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child' },
+    childName: { type: String },
+    className: { type: String },
+    parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    parentPhone: { type: String },
+    assignedAt: { type: Date, default: Date.now },
+  }],
+  seatsFilled: { type: Number, default: 0 },
+
+  // Bus label (admin names it: "Bus #3")
+  busLabel: { type: String },
+
+  // Status flow
+  status: {
+    type: String,
+    enum: ['draft', 'open', 'confirmed', 'in_progress', 'completed', 'cancelled'],
+    default: 'draft',
+  },
+  driverConfirmedAt: { type: Date },
+  startedAt: { type: Date },
+  completedAt: { type: Date },
+
+  // Tracking
+  trackingId: { type: mongoose.Schema.Types.ObjectId },
+
+  // Privacy: kid names hidden until driver arrives at school
+  kidsRevealed: { type: Boolean, default: false },
+  arrivedAtSchool: { type: Date },
+
+  // Notifications sent flags
+  notificationsSent: {
+    teachers: { type: Boolean, default: false },
+    parents: { type: Boolean, default: false },
+  },
+}, { timestamps: true });
+
+// Index for fast school/status lookups
+schoolTripSchema.index({ schoolId: 1, status: 1 });
+schoolTripSchema.index({ driverId: 1, status: 1 });
+
+// ============================================================
 // FUEL PRICE — Tracking for dynamic adjustment
 // ============================================================
 const fuelPriceSchema = new mongoose.Schema({
@@ -416,6 +487,7 @@ module.exports = {
   Transaction: mongoose.model('Transaction', transactionSchema),
   Credit: mongoose.model('Credit', creditSchema),
   Broadcast: mongoose.model('Broadcast', broadcastSchema),
+  SchoolTrip: mongoose.model('SchoolTrip', schoolTripSchema),
   FuelPrice: mongoose.model('FuelPrice', fuelPriceSchema),
   Attendance: mongoose.model('Attendance', attendanceSchema),
 };

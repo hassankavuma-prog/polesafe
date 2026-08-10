@@ -80,6 +80,7 @@ app.use('/api/rides', require('./routes/rides'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/broadcasts', require('./routes/broadcasts'));
 app.use('/api/credits', require('./routes/credits'));
+app.use('/api/trips', require('./routes/trips'));
 const { authMiddleware } = require('./middleware/auth');
 app.use('/api/admin', authMiddleware, require('./routes/admin'));
 app.use('/api/safety', require('./routes/safety'));
