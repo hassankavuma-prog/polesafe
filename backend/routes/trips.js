@@ -14,7 +14,9 @@ const PhoneMaskingService = require('../services/phoneMaskingService');
 
 /**
  * POST /api/trips — Create a new school trip
- * School admin fills in trip details and selects a vehicle
+ * School admin fills in trip details
+ * Pricing is set via driver quotes — not at creation
+ * For fleet vehicles, admin assigns vehicle directly (free)
  */
 router.post('/', authMiddleware, requireRole('school_admin'), async (req, res) => {
   try {
@@ -23,17 +25,17 @@ router.post('/', authMiddleware, requireRole('school_admin'), async (req, res) =
       tripName, description, destination,
       departureDate, returnDate, departureTime, returnTime,
       vehicleId, busLabel,
-      pricePerHead, pricingModel, flatRate, paymentMethod, commissionRate,
     } = req.body;
 
     if (!tripName || !destination || !departureDate) {
       return res.status(400).json({ error: 'tripName, destination, and departureDate are required' });
     }
 
-    // If a vehicle is specified, use its capacity
+    // If a fleet vehicle is specified, assign it (free/no negotiation needed)
     let maxSeats = 0;
     let driverId = null;
     let vehicleSource = 'external';
+    let pricingModel = 'per_head';
 
     if (vehicleId) {
       const vehicle = await Vehicle.findById(vehicleId);
@@ -42,27 +44,16 @@ router.post('/', authMiddleware, requireRole('school_admin'), async (req, res) =
       }
 
       maxSeats = vehicle.capacity || 0;
-      vehicleSource = vehicle.ownerModel === 'School' ? 'fleet' : 'external';
       driverId = vehicle.driverId;
+
+      if (vehicle.ownerModel === 'School') {
+        // School fleet — free, no driver vehicleSource needed
+        vehicleSource = 'fleet';
+        pricingModel = 'free';
+      } else {
+        vehicleSource = 'external';
+      }
     }
-
-    // Calculate pricing
-    const model = pricingModel || (vehicleSource === 'fleet' ? 'free' : 'per_head');
-    const perHead = pricePerHead || 0;
-    const flat = flatRate || 0;
-    const commRate = commissionRate || 0.05;
-
-    let total = 0;
-    let payout = 0;
-    let commission = 0;
-
-    if (model === 'per_head') {
-      // Total = pricePerHead × seats (calculated fully when kids assigned)
-      total = 0; // Will recalculate on assign
-    } else if (model === 'flat_rate') {
-      total = flat;
-    }
-    // free = 0
 
     const trip = new SchoolTrip({
       schoolId,
@@ -79,15 +70,8 @@ router.post('/', authMiddleware, requireRole('school_admin'), async (req, res) =
       vehicleSource,
       maxSeats,
       busLabel,
-      // Pricing
-      pricingModel: model,
-      pricePerHead: perHead,
-      flatRate: flat,
-      totalTripCost: total,
-      paymentMethod: paymentMethod || 'parent_pay',
-      commissionRate: commRate,
-      // Status
-      status: vehicleId ? 'open' : 'draft',
+      pricingModel,  // fleet=free, external=per_head (price set via quotes)
+      status: vehicleId ? (pricingModel === 'free' ? 'confirmed' : 'open') : 'open',
     });
 
     await trip.save();
@@ -925,6 +909,332 @@ router.get('/external-drivers', authMiddleware, requireRole('school_admin'), asy
   } catch (err) {
     console.error('❌ List external drivers error:', err);
     res.status(500).json({ error: 'Failed to list external drivers' });
+  }
+});
+
+// ============================================================
+// 📋 DRIVER QUOTE NEGOTIATION
+// Admin posts trip → drivers quote prices → admin picks
+// ============================================================
+
+/**
+ * GET /api/trips/open-for-quotes — Drivers see trips needing quotes
+ * Shows trips without assigned vehicles that are open for bidding
+ */
+router.get('/open-for-quotes', authMiddleware, requireRole('driver'), async (req, res) => {
+  try {
+    const trips = await SchoolTrip.find({
+      status: 'open',
+      vehicleSource: { $ne: 'fleet' },
+      departureDate: { $gte: new Date() },
+    })
+      .sort({ departureDate: 1 })
+      .select('tripName description destination departureDate departureTime returnTime maxSeats seatsFilled busLabel')
+      .lean();
+
+    res.json(trips);
+  } catch (err) {
+    console.error('❌ Open for quotes error:', err);
+    res.status(500).json({ error: 'Failed to list trips needing quotes' });
+  }
+});
+
+/**
+ * POST /api/trips/:id/quote — Driver quotes a price on a trip
+ */
+router.post('/:id/quote', authMiddleware, requireRole('driver'), async (req, res) => {
+  try {
+    const { pricingModel, pricePerHead, flatRate, message } = req.body;
+
+    if (!pricingModel || !['per_head', 'flat_rate'].includes(pricingModel)) {
+      return res.status(400).json({ error: 'pricingModel must be per_head or flat_rate' });
+    }
+
+    if (pricingModel === 'per_head' && (!pricePerHead || pricePerHead <= 0)) {
+      return res.status(400).json({ error: 'pricePerHead is required and must be > 0' });
+    }
+
+    if (pricingModel === 'flat_rate' && (!flatRate || flatRate <= 0)) {
+      return res.status(400).json({ error: 'flatRate is required and must be > 0' });
+    }
+
+    const trip = await SchoolTrip.findById(req.params.id);
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    if (trip.status !== 'open') {
+      return res.status(400).json({ error: 'Trip is not open for quotes' });
+    }
+
+    // Find driver's vehicle
+    const vehicle = await Vehicle.findOne({
+      driverId: req.user._id,
+      type: { $in: ['taxi', 'bus'] },
+      isApproved: true,
+    });
+
+    if (!vehicle) {
+      return res.status(400).json({ error: 'No approved taxi/bus vehicle found for this driver' });
+    }
+
+    // Check if driver already quoted
+    const existingQuote = trip.quotes.find(
+      q => q.driverId.toString() === req.user._id.toString() &&
+           ['pending', 'countered'].includes(q.status)
+    );
+
+    if (existingQuote) {
+      // Update existing quote (driver can revise)
+      existingQuote.pricingModel = pricingModel;
+      existingQuote.pricePerHead = pricePerHead || 0;
+      existingQuote.flatRate = flatRate || 0;
+      existingQuote.message = message || existingQuote.message;
+      existingQuote.quotedAt = new Date();
+      existingQuote.status = 'pending';
+    } else {
+      // New quote
+      trip.quotes.push({
+        driverId: req.user._id,
+        vehicleId: vehicle._id,
+        pricingModel,
+        pricePerHead: pricePerHead || 0,
+        flatRate: flatRate || 0,
+        message,
+        status: 'pending',
+      });
+    }
+
+    await trip.save();
+
+    res.json({
+      message: 'Quote submitted',
+      tripId: trip._id,
+      pricingModel,
+      pricePerHead: pricePerHead || 0,
+      flatRate: flatRate || 0,
+    });
+  } catch (err) {
+    console.error('❌ Quote error:', err);
+    res.status(500).json({ error: 'Failed to submit quote' });
+  }
+});
+
+/**
+ * GET /api/trips/:id/quotes — Admin sees all quotes for a trip
+ */
+router.get('/:id/quotes', authMiddleware, requireRole('school_admin'), async (req, res) => {
+  try {
+    const trip = await SchoolTrip.findById(req.params.id)
+      .select('quotes')
+      .populate('quotes.driverId', 'name phone')
+      .populate('quotes.vehicleId', 'type registrationNumber capacity busLabel');
+
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    res.json(trip.quotes);
+  } catch (err) {
+    console.error('❌ Get quotes error:', err);
+    res.status(500).json({ error: 'Failed to get quotes' });
+  }
+});
+
+/**
+ * POST /api/trips/:id/accept-quote — Admin accepts a driver's quote
+ * Sets the trip's pricing, vehicle, and driver from the accepted quote
+ * Trip moves to 'confirmed' status
+ */
+router.post('/:id/accept-quote', authMiddleware, requireRole('school_admin'), async (req, res) => {
+  try {
+    const { quoteIndex } = req.body;
+
+    if (quoteIndex === undefined || quoteIndex < 0) {
+      return res.status(400).json({ error: 'quoteIndex is required' });
+    }
+
+    const trip = await SchoolTrip.findById(req.params.id);
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    if (trip.status !== 'open') {
+      return res.status(400).json({ error: 'Trip is not open for quotes' });
+    }
+
+    const quote = trip.quotes[quoteIndex];
+    if (!quote) {
+      return res.status(404).json({ error: 'Quote not found' });
+    }
+
+    if (quote.status !== 'pending' && quote.status !== 'countered') {
+      return res.status(400).json({ error: 'Quote is not available' });
+    }
+
+    // Mark all other quotes as declined
+    trip.quotes.forEach((q, i) => {
+      if (i !== quoteIndex && q.status === 'pending') {
+        q.status = 'declined';
+        q.respondedAt = new Date();
+      }
+    });
+
+    // Accept this quote
+    quote.status = 'accepted';
+    quote.respondedAt = new Date();
+
+    // Set trip pricing, vehicle, and driver from accepted quote
+    const vehicle = await Vehicle.findById(quote.vehicleId);
+    trip.vehicleId = quote.vehicleId;
+    trip.driverId = quote.driverId;
+    trip.vehicleSource = vehicle?.ownerModel === 'School' ? 'fleet' : 'external';
+    trip.maxSeats = vehicle?.capacity || trip.maxSeats;
+
+    trip.pricingModel = quote.pricingModel;
+    trip.pricePerHead = quote.pricePerHead || 0;
+    trip.flatRate = quote.flatRate || 0;
+    trip.commissionRate = 0.05;
+
+    // Calculate initial total
+    if (quote.pricingModel === 'per_head') {
+      trip.totalTripCost = quote.pricePerHead * trip.seatsFilled;
+    } else if (quote.pricingModel === 'flat_rate') {
+      trip.totalTripCost = quote.flatRate;
+    }
+
+    trip.driverPayout = Math.round(trip.totalTripCost * (1 - trip.commissionRate));
+    trip.poleSafeCommission = trip.totalTripCost - trip.driverPayout;
+
+    // Move to confirmed
+    trip.status = 'confirmed';
+    trip.driverConfirmedAt = new Date();
+
+    await trip.save();
+
+    res.json({
+      message: 'Quote accepted',
+      trip: {
+        _id: trip._id,
+        status: trip.status,
+        driverId: trip.driverId,
+        vehicleId: trip.vehicleId,
+        pricingModel: trip.pricingModel,
+        pricePerHead: trip.pricePerHead,
+        flatRate: trip.flatRate,
+        totalTripCost: trip.totalTripCost,
+        driverPayout: trip.driverPayout,
+        poleSafeCommission: trip.poleSafeCommission,
+      },
+    });
+  } catch (err) {
+    console.error('❌ Accept quote error:', err);
+    res.status(500).json({ error: 'Failed to accept quote' });
+  }
+});
+
+/**
+ * POST /api/trips/:id/counter-quote — Admin counters a driver's quote
+ * Driver can accept or decline the counter
+ */
+router.post('/:id/counter-quote', authMiddleware, requireRole('school_admin'), async (req, res) => {
+  try {
+    const { quoteIndex, adminCounter } = req.body;
+
+    if (quoteIndex === undefined || !adminCounter || adminCounter <= 0) {
+      return res.status(400).json({ error: 'quoteIndex and adminCounter (> 0) are required' });
+    }
+
+    const trip = await SchoolTrip.findById(req.params.id);
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    const quote = trip.quotes[quoteIndex];
+    if (!quote) {
+      return res.status(404).json({ error: 'Quote not found' });
+    }
+
+    quote.status = 'countered';
+    quote.adminCounter = adminCounter;
+    quote.respondedAt = new Date();
+
+    await trip.save();
+
+    res.json({
+      message: 'Counter-offer sent to driver',
+      driverId: quote.driverId,
+      originalPrice: quote.pricePerHead || quote.flatRate,
+      adminCounter,
+    });
+  } catch (err) {
+    console.error('❌ Counter quote error:', err);
+    res.status(500).json({ error: 'Failed to counter quote' });
+  }
+});
+
+/**
+ * POST /api/trips/:id/respond-counter — Driver accepts/declines admin's counter
+ */
+router.post('/:id/respond-counter', authMiddleware, requireRole('driver'), async (req, res) => {
+  try {
+    const { quoteIndex, response } = req.body;
+
+    if (quoteIndex === undefined || !['accepted', 'declined'].includes(response)) {
+      return res.status(400).json({ error: 'quoteIndex and response (accepted|declined) are required' });
+    }
+
+    const trip = await SchoolTrip.findById(req.params.id);
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    const quote = trip.quotes[quoteIndex];
+    if (!quote) {
+      return res.status(404).json({ error: 'Quote not found' });
+    }
+
+    if (quote.status !== 'countered' || quote.driverId.toString() !== req.user._id.toString()) {
+      return res.status(400).json({ error: 'No active counter-offer for this driver' });
+    }
+
+    quote.driverResponse = response;
+    quote.driverRespondedAt = new Date();
+
+    if (response === 'accepted') {
+      // Driver accepted the counter — use adminCounter as the price
+      quote.status = 'accepted';
+
+      // Set trip pricing from counter
+      const vehicle = await Vehicle.findById(quote.vehicleId);
+      trip.vehicleId = quote.vehicleId;
+      trip.driverId = quote.driverId;
+      trip.vehicleSource = vehicle?.ownerModel === 'School' ? 'fleet' : 'external';
+      trip.maxSeats = vehicle?.capacity || trip.maxSeats;
+
+      trip.pricingModel = quote.pricingModel;
+      trip.pricePerHead = quote.pricingModel === 'per_head' ? quote.adminCounter : 0;
+      trip.flatRate = quote.pricingModel === 'flat_rate' ? quote.adminCounter : 0;
+      trip.commissionRate = 0.05;
+
+      trip.totalTripCost = trip.pricePerHead * trip.seatsFilled || trip.flatRate;
+      trip.driverPayout = Math.round(trip.totalTripCost * (1 - trip.commissionRate));
+      trip.poleSafeCommission = trip.totalTripCost - trip.driverPayout;
+
+      trip.status = 'confirmed';
+      trip.driverConfirmedAt = new Date();
+    }
+
+    await trip.save();
+
+    res.json({
+      message: response === 'accepted' ? 'Counter-offer accepted — trip confirmed' : 'Counter-offer declined',
+      tripId: trip._id,
+      status: response === 'accepted' ? 'confirmed' : 'open',
+    });
+  } catch (err) {
+    console.error('❌ Respond counter error:', err);
+    res.status(500).json({ error: 'Failed to respond to counter-offer' });
   }
 });
 

@@ -444,15 +444,37 @@ const schoolTripSchema = new mongoose.Schema({
   // Bus label (admin names it: "Bus #3")
   busLabel: { type: String },
 
-  // 💰 Pricing — trips are charged per head
+  // 💰 Pricing — set via driver quote negotiation
+  // Admin creates trip without pricing
+  // Drivers quote prices, admin accepts one
   pricingModel: {
     type: String,
     enum: ['per_head', 'flat_rate', 'free'],
     default: 'per_head',
   },
-  pricePerHead: { type: Number, default: 0 },  // Cost per kid in UGX
-  flatRate: { type: Number, default: 0 },       // Flat bus cost in UGX (for flat_rate model)
-  totalTripCost: { type: Number, default: 0 },  // Auto-calculated
+  pricePerHead: { type: Number, default: 0 },  // Final agreed cost per kid in UGX
+  flatRate: { type: Number, default: 0 },       // Final agreed flat bus cost
+  totalTripCost: { type: Number, default: 0 },  // Auto-calculated from accepted quote
+
+  // 📋 Driver quotes — negotiation system
+  quotes: [{
+    driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle', required: true },
+    pricingModel: { type: String, enum: ['per_head', 'flat_rate'], required: true },
+    pricePerHead: { type: Number, default: 0 },
+    flatRate: { type: Number, default: 0 },
+    message: { type: String },  // Driver's note to admin
+    quotedAt: { type: Date, default: Date.now },
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'declined', 'countered'],
+      default: 'pending',
+    },
+    adminCounter: { type: Number },  // Admin's counter-offer per head
+    respondedAt: { type: Date },
+    driverResponse: { type: String, enum: ['accepted', 'declined'] },  // Driver's response to counter
+    driverRespondedAt: { type: Date },
+  }],
 
   // Payment collection method
   paymentMethod: {
