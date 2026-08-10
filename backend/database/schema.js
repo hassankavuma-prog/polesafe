@@ -136,6 +136,8 @@ const vehicleSchema = new mongoose.Schema({
   hasCarSeat: { type: Boolean, default: false },
   isWheelchairAccessible: { type: Boolean, default: false },
   isApproved: { type: Boolean, default: false },
+  isAvailable: { type: Boolean, default: false },
+  lastOnlineAt: { type: Date },
 });
 
 // ============================================================
