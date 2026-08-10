@@ -233,6 +233,17 @@ const rideSchema = new mongoose.Schema({
   },  // Layer 2: Teacher verification status
   driverVerifiedAt: { type: Date },  // When driver was verified by teacher
 
+  // 📸 Photo verification — driver selfie + kid pickup photos
+  photos: {
+    driverSelfie: { type: String },  // URL to driver selfie upon accepting ride
+    selfieTakenAt: { type: Date },
+    kidPickups: [{
+      childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child' },
+      photoUrl: { type: String },
+      timestamp: { type: Date, default: Date.now },
+    }],
+  },
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
@@ -513,6 +524,17 @@ const schoolTripSchema = new mongoose.Schema({
   kidsRevealed: { type: Boolean, default: false },
   arrivedAtSchool: { type: Date },
 
+  // 📸 Photo verification — driver selfie + kid boarding photos
+  photos: {
+    driverSelfie: { type: String },
+    selfieTakenAt: { type: Date },
+    kidBoarding: [{
+      childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child' },
+      photoUrl: { type: String },
+      timestamp: { type: Date, default: Date.now },
+    }],
+  },
+
   // Notifications sent flags
   notificationsSent: {
     teachers: { type: Boolean, default: false },
@@ -523,6 +545,59 @@ const schoolTripSchema = new mongoose.Schema({
 // Index for fast school/status lookups
 schoolTripSchema.index({ schoolId: 1, status: 1 });
 schoolTripSchema.index({ driverId: 1, status: 1 });
+
+// ============================================================
+// QUOTE REQUEST — Generic taxi/bus quote negotiation
+// For non-school bookings: parent requests taxi/bus, drivers quote
+// ============================================================
+const quoteRequestSchema = new mongoose.Schema({
+  requesterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  requesterRole: { type: String, enum: ['parent', 'school_admin'], default: 'parent' },
+
+  // Trip details
+  pickupLocation: {
+    address: { type: String },
+    coordinates: { type: [Number] },
+  },
+  dropoffLocation: {
+    address: { type: String },
+    coordinates: { type: [Number] },
+  },
+  pickupTime: { type: Date },
+  passengerCount: { type: Number, default: 1 },
+  vehicleType: { type: String, enum: ['taxi', 'bus'], required: true },
+  notes: { type: String },
+
+  // Status
+  status: {
+    type: String,
+    enum: ['open', 'confirmed', 'cancelled', 'expired'],
+    default: 'open',
+  },
+  expiresAt: { type: Date },
+
+  // Driver quotes
+  quotes: [{
+    driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle', required: true },
+    pricingModel: { type: String, enum: ['per_head', 'flat_rate'], required: true },
+    pricePerHead: { type: Number, default: 0 },
+    flatRate: { type: Number, default: 0 },
+    message: { type: String },
+    quotedAt: { type: Date, default: Date.now },
+    status: { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
+  }],
+
+  // Resulting ride (when quote is accepted)
+  rideId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ride' },
+  acceptedQuoteIndex: { type: Number },
+
+  createdAt: { type: Date, default: Date.now },
+});
+
+// Index for fast lookups
+quoteRequestSchema.index({ status: 1, vehicleType: 1 });
+quoteRequestSchema.index({ requesterId: 1, status: 1 });
 
 // ============================================================
 // FUEL PRICE — Tracking for dynamic adjustment
@@ -545,6 +620,7 @@ module.exports = {
   Credit: mongoose.model('Credit', creditSchema),
   Broadcast: mongoose.model('Broadcast', broadcastSchema),
   SchoolTrip: mongoose.model('SchoolTrip', schoolTripSchema),
+  QuoteRequest: mongoose.model('QuoteRequest', quoteRequestSchema),
   FuelPrice: mongoose.model('FuelPrice', fuelPriceSchema),
   Attendance: mongoose.model('Attendance', attendanceSchema),
 };
