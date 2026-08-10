@@ -41,6 +41,37 @@ async function handleIncoming(req, res) {
     const message = text.trim().toUpperCase();
     const [command, ...args] = message.split(/\s+/);
 
+    // 🧠 Hamna AI Assistant — try AI parsing first for natural language
+    if (process.env.OPENROUTER_API_KEY) {
+      try {
+        const hamna = require('./aiService');
+        const kids = user ? await Child.find({ parentId: user._id }).select('name class schoolId') : [];
+        const parsed = await hamna.parseSms(text.trim(), {
+          name: user?.name || 'Unknown',
+          kids: kids.map(k => ({ name: k.name, class: k.class })),
+        });
+
+        if (parsed.intent !== 'unknown' && parsed.confidence > 0.5) {
+          console.log(`[Hamna] Parsed: ${parsed.intent} (${parsed.confidence}) → ${parsed.response}`);
+
+          // For SMS-only commands like REGISTER, skip Hamna
+          if (parsed.intent === 'register') {
+            command = 'REGISTER';
+          } else {
+            // Send Hamna's response and let the existing handler process
+            await smsService.send({ to: phone, message: parsed.response });
+
+            // Only return here for support/help — let existing flow handle booking etc.
+            if (parsed.intent === 'support' || parsed.intent === 'help') {
+              return res.status(200).send('OK');
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Hamna] Parse failed, falling back to keywords:', e.message);
+      }
+    }
+
     console.log(`📨 SMS from ${phone}: "${text}"`);
 
     // Check if user exists (allow REGISTER command for new users)

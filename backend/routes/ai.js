@@ -1,0 +1,123 @@
+// Hamna — PoleSafe AI Assistant Routes
+// Chat endpoints for app, web, and SMS integration
+
+const express = require('express');
+const router = express.Router();
+const { authMiddleware } = require('../middleware/auth');
+const aiService = require('../services/aiService');
+const User = require('mongoose').model('User');
+const Child = require('mongoose').model('Child');
+
+// ============================================================
+// POST /api/hamna/chat — Chat with Hamna (app + web)
+// ============================================================
+router.post('/chat', authMiddleware, async (req, res) => {
+  try {
+    const { message } = req.body;
+
+    if (!message || typeof message !== 'string' || message.trim().length < 1) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    // Gather user context for Hamna
+    const user = await User.findById(req.userId).select('name role phone');
+    const kids = await Child.find({ parentId: req.userId }).select('name class schoolId');
+
+    const context = {
+      userId: req.userId,
+      role: user?.role || 'parent',
+      name: user?.name || 'User',
+      kids: kids.map(k => ({ name: k.name, class: k.class })),
+      source: 'chat',
+    };
+
+    const result = await aiService.chat(message.trim(), context);
+
+    res.json({
+      response: result.response || 'Sorry, Hamna could not understand that.',
+      action: result.action || 'none',
+      data: result.data || {},
+    });
+  } catch (err) {
+    console.error('[Hamna] Chat error:', err.message);
+    res.status(500).json({ error: 'Hamna is having trouble right now. Please try again.' });
+  }
+});
+
+// ============================================================
+// POST /api/hamna/sms-parse — Parse SMS text (for SMS gateway)
+// ============================================================
+router.post('/sms-parse', async (req, res) => {
+  try {
+    const { text, phone } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: 'Text is required' });
+    }
+
+    // Look up user by phone to get context
+    const user = phone ? await User.findOne({ phone }) : null;
+    const kids = user ? await Child.find({ parentId: user._id }).select('name class') : [];
+
+    const context = {
+      name: user?.name || 'Unknown',
+      kids: kids.map(k => ({ name: k.name, class: k.class })),
+    };
+
+    const result = await aiService.parseSms(text.trim(), context);
+
+    res.json({
+      intent: result.intent || 'unknown',
+      entities: result.entities || {},
+      confidence: result.confidence || 0,
+      response: result.response || 'Sorry, Hamna could not understand that.',
+    });
+  } catch (err) {
+    console.error('[Hamna] SMS parse error:', err.message);
+    res.status(500).json({ error: 'Hamna is having trouble right now.' });
+  }
+});
+
+// ============================================================
+// POST /api/hamna/support — Escalate to Hamna support
+// ============================================================
+router.post('/support', authMiddleware, async (req, res) => {
+  try {
+    const { issue } = req.body;
+
+    if (!issue) {
+      return res.status(400).json({ error: 'Please describe your issue' });
+    }
+
+    const user = await User.findById(req.userId).select('name role phone');
+    const kids = await Child.find({ parentId: req.userId }).select('name');
+
+    const result = await aiService.handleSupport(req.userId, issue, {
+      name: user?.name,
+      role: user?.role,
+      phone: user?.phone,
+      kids: kids.map(k => k.name),
+      source: 'chat',
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('[Hamna] Support error:', err.message);
+    res.status(500).json({ error: 'Failed to process support request.' });
+  }
+});
+
+// ============================================================
+// GET /api/hamna/health — Check if Hamna is alive
+// ============================================================
+router.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    name: 'Hamna',
+    version: '1.0.0',
+    model: process.env.HAMNA_MODEL || 'openai/gpt-4o-mini',
+    configured: !!process.env.OPENROUTER_API_KEY,
+  });
+});
+
+module.exports = router;
