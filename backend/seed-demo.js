@@ -5,6 +5,9 @@
 const mongoose = require('mongoose');
 const config = require('./config');
 
+// Register schemas first
+require('./database/schema');
+
 // Models
 const User = mongoose.model('User');
 const Child = mongoose.model('Child');

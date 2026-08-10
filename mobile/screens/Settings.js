@@ -73,7 +73,7 @@ export default function Settings({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <ActivityIndicator size="large" color="#2E7D32" />
       </View>
     );
@@ -81,7 +81,7 @@ export default function Settings({ navigation }) {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, {backgroundColor: theme.canvas}]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       {/* Profile Card */}
@@ -198,7 +198,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.canvas,
   },
 
   // Profile Card

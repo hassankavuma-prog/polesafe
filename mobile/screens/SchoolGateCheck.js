@@ -91,7 +91,7 @@ export default function SchoolGateCheck({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <ActivityIndicator size="large" color={ORANGE} />
         <Text style={styles.loadingText}>Loading arrivals...</Text>
       </View>
@@ -100,7 +100,7 @@ export default function SchoolGateCheck({ navigation }) {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, {backgroundColor: theme.canvas}]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       {/* Progress Header */}

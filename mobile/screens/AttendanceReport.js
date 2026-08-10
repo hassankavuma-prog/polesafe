@@ -66,7 +66,7 @@ export default function AttendanceReport({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <ActivityIndicator size="large" color="#1565C0" />
       </View>
     );
@@ -76,7 +76,7 @@ export default function AttendanceReport({ navigation }) {
   const attendance = report?.attendance || [];
 
   return (
-    <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <Text style={styles.title}>📊 Attendance Report</Text>
       <Text style={styles.dateText}>{selectedDate}</Text>
 

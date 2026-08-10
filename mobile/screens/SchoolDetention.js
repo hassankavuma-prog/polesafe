@@ -115,7 +115,7 @@ export default function SchoolDetention({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <ActivityIndicator size="large" color={ORANGE} />
       </View>
     );
@@ -125,7 +125,7 @@ export default function SchoolDetention({ navigation }) {
   const isPM = pickupHour >= 12;
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]}>
       {/* Info Banner */}
       <View style={styles.infoBanner}>
         <Text style={styles.infoEmoji}>⏰</Text>

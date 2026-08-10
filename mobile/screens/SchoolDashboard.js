@@ -57,7 +57,7 @@ export default function SchoolDashboard({ navigation }) {
 
   if (!loading && !dashboard) {
     return (
-      <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+      <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <View style={[styles.center, { paddingTop: 80 }]}>
           <Text style={styles.emptyIcon}>🏫</Text>
           <Text style={styles.emptyTitle}>No Data Yet</Text>
@@ -100,7 +100,7 @@ export default function SchoolDashboard({ navigation }) {
   const attendance = dashboard?.attendance || {};
 
   return (
-    <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       {/* School Name */}
       <Text style={styles.schoolName}>{dashboard?.schoolId || 'St Mary's School'}</Text>
       <Text style={styles.dateText}>Today • {dashboard?.date || new Date().toISOString().split('T')[0]}</Text>

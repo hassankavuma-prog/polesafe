@@ -164,7 +164,7 @@ export default function DriverRoute({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <ActivityIndicator size="large" color={BLUE} />
         <Text style={styles.loadingText}>Loading route...</Text>
       </View>
@@ -175,7 +175,7 @@ export default function DriverRoute({ navigation }) {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, {backgroundColor: theme.canvas}]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       {/* Driver Badge */}

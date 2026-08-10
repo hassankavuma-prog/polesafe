@@ -65,7 +65,7 @@ export default function DriverEarnings({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <ActivityIndicator size="large" color={BLUE} />
         <Text style={styles.loadingText}>Loading earnings...</Text>
       </View>
@@ -79,7 +79,7 @@ export default function DriverEarnings({ navigation }) {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, {backgroundColor: theme.canvas}]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       {/* Today's Earnings */}

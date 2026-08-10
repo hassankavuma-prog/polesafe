@@ -136,7 +136,7 @@ export default function ParentBooking({ navigation }) {
   }
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} keyboardShouldPersistTaps="handled">
       {/* Day Picker */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📅 Select Days</Text>

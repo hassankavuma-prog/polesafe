@@ -45,7 +45,7 @@ export default function DriverDashboard({ navigation }) {
 
   if (!loading && !route) {
     return (
-      <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+      <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <View style={[styles.center, { paddingTop: 80 }]}>
           <Text style={styles.emptyIcon}>🚗</Text>
           <Text style={styles.emptyTitle}>No Route Today</Text>
@@ -60,7 +60,7 @@ export default function DriverDashboard({ navigation }) {
   const gapCount = route?.gaps?.length || 0;
 
   return (
-    <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       {/* Availability Toggle */}
       <View style={styles.availableCard}>
         <TouchableOpacity

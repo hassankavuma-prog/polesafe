@@ -98,7 +98,7 @@ export default function TeacherPickupVerify({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} keyboardShouldPersistTaps="handled">
       {/* Stats Summary */}
       <View style={styles.statsRow}>
         <View style={[styles.statCard, { backgroundColor: COLORS.orangeBg }]}>

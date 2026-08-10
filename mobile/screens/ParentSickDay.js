@@ -138,7 +138,7 @@ export default function ParentSickDay({ navigation, route }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <ActivityIndicator size="large" color="#2E7D32" />
       </View>
     );
@@ -148,7 +148,7 @@ export default function ParentSickDay({ navigation, route }) {
   const dateLabel = formatDate(startDate);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]}>
       {/* Kid Profile */}
       <View style={styles.profileCard}>
         <View style={styles.avatar}>

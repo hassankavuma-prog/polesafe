@@ -88,7 +88,7 @@ export default function ParentTrack({ navigation, route }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <ActivityIndicator size="large" color="#2E7D32" />
         <Text style={styles.loadingText}>Loading ride details...</Text>
       </View>
@@ -97,7 +97,7 @@ export default function ParentTrack({ navigation, route }) {
 
   if (error && !ride) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <Text style={styles.errorIcon}>😕</Text>
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={fetchRideData}>
@@ -109,7 +109,7 @@ export default function ParentTrack({ navigation, route }) {
 
   if (!ride) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <Text style={styles.errorIcon}>🚗</Text>
         <Text style={styles.emptyText}>No ride selected</Text>
       </View>
@@ -132,7 +132,7 @@ export default function ParentTrack({ navigation, route }) {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, {backgroundColor: theme.canvas}]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       {/* Map Placeholder */}

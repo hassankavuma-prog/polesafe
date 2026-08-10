@@ -93,7 +93,7 @@ export default function AddChild({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, {backgroundColor: theme.canvas}]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">

@@ -10,6 +10,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
 import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+import GlassCard from '../components/GlassCard';
+import PrimaryButton from '../components/PrimaryButton';
 const API_URL = API_BASE;
 
 export default function ParentDashboard({ navigation }) {
@@ -67,21 +69,19 @@ export default function ParentDashboard({ navigation }) {
 
   if (!loading && kids.length === 0 && rides.length === 0) {
     return (
-      <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+      <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <View style={[styles.container, styles.center, { paddingTop: 60 }]}>
           <Text style={styles.emptyIcon}>🚸</Text>
           <Text style={styles.emptyTitle}>Welcome to PoleSafe!</Text>
           <Text style={styles.emptyText}>Add your child to get started with school transport.</Text>
-          <TouchableOpacity style={styles.addBtn} onPress={() => navigation.navigate('AddChild')}>
-            <Text style={styles.addBtnText}>+ Add Child</Text>
-          </TouchableOpacity>
+          <PrimaryButton title="+ Add Child" onPress={() => navigation.navigate('AddChild')} variant="primary" />
         </View>
       </ScrollView>
     );
   }
 
   return (
-    <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       {/* Mode Toggle */}
       <View style={styles.modeToggle}>
         <TouchableOpacity
@@ -112,7 +112,7 @@ export default function ParentDashboard({ navigation }) {
       {/* Kids Cards */}
       <Text style={styles.sectionTitle}>Your Kids</Text>
       {kids.map(kid => (
-        <View key={kid._id} style={styles.kidCard}>
+          <GlassCard key={kid._id} style={styles.kidCard}>
           <View style={styles.kidHeader}>
             <Text style={styles.kidName}>{kid.name}</Text>
             <Text style={styles.kidClass}>{kid.class}</Text>

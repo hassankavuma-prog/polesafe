@@ -40,9 +40,9 @@ function ParentTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerStyle: { backgroundColor: '#2E7D32' },
+        headerStyle: { backgroundColor: COLORS.green },
         headerTintColor: '#fff',
-        tabBarActiveTintColor: '#2E7D32',
+        tabBarActiveTintColor: COLORS.green,
         tabBarStyle: { paddingBottom: 5, height: 60 },
       })}
     >
@@ -62,7 +62,7 @@ function ParentTabs() {
         options={{
           tabBarLabel: '🚗 Ride',
           title: '🚗 PoleSafe Ride',
-          headerStyle: { backgroundColor: '#1565C0' },  // Blue — different from school green
+          headerStyle: { backgroundColor: COLORS.blue },  // Blue — different from school green
         }}
       />
       <Tab.Screen
@@ -81,9 +81,9 @@ function DriverTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: '#1565C0' },
+        headerStyle: { backgroundColor: COLORS.blue },
         headerTintColor: '#fff',
-        tabBarActiveTintColor: '#1565C0',
+        tabBarActiveTintColor: COLORS.blue,
       }}
     >
       <Tab.Screen
@@ -112,9 +112,9 @@ function SchoolTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: '#E65100' },
+        headerStyle: { backgroundColor: COLORS.orange },
         headerTintColor: '#fff',
-        tabBarActiveTintColor: '#E65100',
+        tabBarActiveTintColor: COLORS.orange,
       }}
     >
       <Tab.Screen
@@ -224,6 +224,6 @@ const splash = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
   },
-  logo: { fontSize: 36, fontWeight: 'bold', color: '#2E7D32' },
-  slogan: { fontSize: 14, color: '#666', marginTop: 8, marginBottom: 20 },
+  logo: { fontSize: 36, fontWeight: 'bold', color: COLORS.green },
+  slogan: { fontSize: 14, color: COLORS.textSecondary, marginTop: 8, marginBottom: 20 },
 });

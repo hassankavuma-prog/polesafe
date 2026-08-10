@@ -126,14 +126,14 @@ export default function ParentEarlyPickup({ navigation, route }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <ActivityIndicator size="large" color="#2E7D32" />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerAvatar}>

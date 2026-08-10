@@ -103,7 +103,7 @@ export default function SchoolBroadcast({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} keyboardShouldPersistTaps="handled">
       {/* Quick Announcement Buttons */}
       <Text style={styles.sectionTitle}>📢 Quick Announcements</Text>
       <View style={styles.quickGrid}>

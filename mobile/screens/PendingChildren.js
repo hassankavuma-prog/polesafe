@@ -56,14 +56,14 @@ export default function PendingChildren({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, {backgroundColor: theme.canvas}]}>
         <ActivityIndicator size="large" color="#1565C0" />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadPending(); setRefreshing(false); }} />}>
+    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadPending(); setRefreshing(false); }} />}>
       <Text style={styles.title}>👋 New Children Awaiting Approval</Text>
       <Text style={styles.subtitle}>Parents registered these kids. Verify and approve.</Text>
 
