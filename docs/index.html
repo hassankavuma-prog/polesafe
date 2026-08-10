@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoleSafe 🚸 — Progress Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
+  .header { background: linear-gradient(135deg, #1e293b, #0ea5e9); padding: 3rem 1.5rem; text-align: center; }
+  .header h1 { font-size: 2.5rem; color: #fff; margin-bottom: .5rem; }
+  .header p { color: #bae6fd; font-size: 1.1rem; }
+  .header .badge { display: inline-block; background: #065f46; color: #6ee7b7; padding: .3rem 1rem; border-radius: 20px; font-size: .85rem; margin-top: .75rem; }
+  .container { max-width: 1000px; margin: 0 auto; padding: 1.5rem; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .stat-card { background: #1e293b; border-radius: 12px; padding: 1.25rem; text-align: center; border: 1px solid #334155; }
+  .stat-card .num { font-size: 2rem; font-weight: 700; color: #0ea5e9; }
+  .stat-card .label { font-size: .85rem; color: #94a3b8; margin-top: .3rem; }
+  .section-title { font-size: 1.3rem; color: #f1f5f9; margin: 2rem 0 1rem; border-bottom: 2px solid #334155; padding-bottom: .5rem; }
+  .timeline { position: relative; padding-left: 2rem; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: #334155; }
+  .entry { position: relative; margin-bottom: 1.25rem; padding: 1rem 1.25rem; background: #1e293b; border-radius: 10px; border: 1px solid #334155; }
+  .entry::before { content: ''; position: absolute; left: -1.85rem; top: 1.3rem; width: 12px; height: 12px; border-radius: 50%; background: #0ea5e9; border: 2px solid #0f172a; }
+  .entry .time { font-size: .75rem; color: #64748b; }
+  .entry .msg { margin-top: .3rem; font-weight: 500; }
+  .entry .tag { display: inline-block; padding: .15rem .5rem; border-radius: 10px; font-size: .7rem; margin-right: .4rem; font-weight: 600; }
+  .tag-feat { background: #065f46; color: #6ee7b7; }
+  .tag-fix { background: #7c2d12; color: #fdba74; }
+  .tag-theme { background: #4c1d95; color: #c4b5fd; }
+  .tag-polish { background: #1e3a5f; color: #93c5fd; }
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
+  .feature-card { background: #1e293b; border-radius: 12px; padding: 1.25rem; border: 1px solid #334155; }
+  .feature-card h3 { color: #0ea5e9; margin-bottom: .5rem; }
+  .feature-card ul { list-style: none; }
+  .feature-card li { padding: .3rem 0; font-size: .9rem; color: #cbd5e1; }
+  .feature-card li::before { content: '✓ '; color: #22c55e; }
+  .footer { text-align: center; padding: 2rem; color: #64748b; font-size: .85rem; }
+  .docs-link { display: inline-block; margin-top: 1rem; padding: .6rem 1.5rem; background: #0ea5e9; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 500; }
+  .docs-link:hover { background: #0284c7; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🚸 PoleSafe</h1>
+  <p>School Transport Safety System — Uganda</p>
+  <span class="badge">Development Phase 1</span>
+</div>
+
+<div class="container">
+
+  <div class="stats">
+    <div class="stat-card"><div class="num">23</div><div class="label">Commits</div></div>
+    <div class="stat-card"><div class="num">30+</div><div class="label">API Endpoints</div></div>
+    <div class="stat-card"><div class="num">4</div><div class="label">Mobile Screens</div></div>
+    <div class="stat-card"><div class="num">🚸</div><div class="label">Building for Uganda</div></div>
+  </div>
+
+  <h2 class="section-title">📋 Features Built</h2>
+  <div class="features">
+
+    <div class="feature-card">
+      <h3>🔐 Safety & Verification</h3>
+      <ul>
+        <li>Two-layer child pickup safety (codes + teacher verification)</li>
+        <li>Photo verification — driver selfie + kid pickup photos</li>
+        <li>Trigger-based selfie checks (admin flag, new driver, 7-day interval)</li>
+        <li>Kid names hidden until driver arrives at school</li>
+        <li>Phone number masking for parents & drivers</li>
+        <li>Photo compression (sharp/libvips — ~50KB per photo)</li>
+      </ul>
+    </div>
+
+    <div class="feature-card">
+      <h3>🚕 Booking & Matching</h3>
+      <ul>
+        <li>Driver quote negotiation (school trips + all taxi/bus bookings)</li>
+        <li>Generic QuoteRequest system for non-school taxi/bus</li>
+        <li>Per-head pricing (auto-calculated per kid)</li>
+        <li>Vehicle types: car, boda, taxi, bus (no tuk-tuks)</li>
+        <li>School fleet management (My Fleet + Book External)</li>
+        <li>Capacity enforcement with hard seat limits</li>
+      </ul>
+    </div>
+
+    <div class="feature-card">
+      <h3>💰 Payments</h3>
+      <ul>
+        <li>Flutterwave integration (MoMo + card)</li>
+        <li>Per-kid payment tracking</li>
+        <li>Driver payouts with 5% PoleSafe commission</li>
+        <li>Credit system (sick day credits, early pickup credits)</li>
+        <li>Fuel adjustment pricing engine</li>
+      </ul>
+    </div>
+
+    <div class="feature-card">
+      <h3>👨‍👩‍👧‍👦 Mobile Apps</h3>
+      <ul>
+        <li>Parent app (booking, tracking, sick day, early pickup)</li>
+        <li>Driver app (route, earnings, safety codes, status updates)</li>
+        <li>School admin dashboard (broadcasts, gate check, detention)</li>
+        <li>Day/night theme with GlassCard design system</li>
+        <li>Loading states, empty states, form validation</li>
+      </ul>
+    </div>
+
+    <div class="feature-card">
+      <h3>📱 Accessibility</h3>
+      <ul>
+        <li>SMS command handler for feature phone parents</li>
+        <li>Africa's Talking SMS integration</li>
+        <li>WhatsApp notification channel</li>
+        <li>Attendance tracking (PoleSafe + non-PoleSafe kids)</li>
+        <li>Driver reliability spec (3-strike system, favorite drivers)</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <h2 class="section-title">📅 Today's Progress</h2>
+  <div class="timeline">
+
+    <div class="entry"><span class="tag tag-fix">FIX</span><span class="tag tag-fix">BUG</span><span class="time">13:42 UTC</span><div class="msg">Fixed 2 bugs: selfieVerificationRequired schema field + completedRidesCount increment</div></div>
+
+    <div class="entry"><span class="tag tag-feat">FEAT</span><span class="tag tag-feat">SELFIE</span><span class="time">13:23 UTC</span><div class="msg">Trigger-based selfie verification + photo compression (sharp/libvips)</div></div>
+
+    <div class="entry"><span class="tag tag-feat">FEAT</span><span class="tag tag-feat">QUOTES</span><span class="time">13:10 UTC</span><div class="msg">Generic quote requests for ALL taxi/bus bookings + photo upload endpoints</div></div>
+
+    <div class="entry"><span class="tag tag-feat">FEAT</span><span class="tag tag-feat">TRIPS</span><span class="time">13:03 UTC</span><div class="msg">Driver quote negotiation system for school trips (6 endpoints)</div></div>
+
+    <div class="entry"><span class="tag tag-feat">FEAT</span><span class="tag tag-feat">PRICING</span><span class="time">11:51 UTC</span><div class="msg">Per-head pricing system with per-kid payment tracking</div></div>
+
+    <div class="entry"><span class="tag tag-feat">FEAT</span><span class="tag tag-feat">TRIPS</span><span class="time">11:38 UTC</span><div class="msg">Tour/Trip system Phase 1 — schema, phone masking, 25+ API endpoints</div></div>
+
+    <div class="entry"><span class="tag tag-fix">FIX</span><span class="time">11:28 UTC</span><div class="msg">rides.js now queries isAvailable alongside isApproved</div></div>
+
+    <div class="entry"><span class="tag tag-fix">FIX</span><span class="time">10:47 UTC</span><div class="msg">Added isAvailable + lastOnlineAt to Vehicle schema</div></div>
+
+    <div class="entry"><span class="tag tag-feat">FEAT</span><span class="time">10:41 UTC</span><div class="msg">Driver reliability system spec + 3 endpoint fixes + tuk-tuk removal</div></div>
+
+    <div class="entry"><span class="tag tag-theme">THEME</span><span class="time">03:27 UTC</span><div class="msg">GlassCard + PrimaryButton applied to all dashboards</div></div>
+
+    <div class="entry"><span class="tag tag-fix">FIX</span><span class="time">03:23 UTC</span><div class="msg">Week 1 polish: E2E test, seed data, day/night switch, navigation</div></div>
+
+    <div class="entry"><span class="tag tag-theme">THEME</span><span class="time">03:11 UTC</span><div class="msg">Design system v2.0 with dual-theme support across all screens</div></div>
+
+    <div class="entry"><span class="tag tag-fix">FIX</span><span class="time">02:44 UTC</span><div class="msg">Fixed 11 API endpoint sync mismatches</div></div>
+
+    <div class="entry"><span class="tag tag-polish">POLISH</span><span class="time">02:30 UTC</span><div class="msg">Loading states, empty states on Parent/Driver/School dashboards</div></div>
+
+    <div class="entry"><span class="tag tag-feat">FEAT</span><span class="time">00:18 UTC</span><div class="msg">Attendance system, safety layer, SMS integration, mobile screens, seed data</div></div>
+
+    <div class="entry" style="border-color:#0ea5e9;"><span class="tag tag-feat">🎉</span><span class="time">Aug 9</span><div class="msg">PoleSafe v1.0 — First push from OpenClaw</div></div>
+
+    <div class="entry" style="border-color:#64748b;"><span class="time">Aug 9</span><div class="msg">Initial commit — repo setup</div></div>
+
+  </div>
+
+  <h2 class="section-title">📁 Spec Docs</h2>
+  <div class="features">
+    <div class="feature-card">
+      <h3>📄 Driver Reliability System</h3>
+      <ul>
+        <li>13-section full specification</li>
+        <li>3-strike system (per-booking)</li>
+        <li>Strike reset: 10 rides OR 21 days</li>
+        <li>Favorite driver + rating-priority matching</li>
+        <li>New Driver Boost (first 10 rides)</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <h3>📄 Tour/Trip System</h3>
+      <ul>
+        <li>14-section full specification</li>
+        <li>Phase 1 fully built (schema + API + masking + quotes + pricing)</li>
+        <li>Phase 2: Driver mobile screens</li>
+        <li>Phase 3: Notifications (WhatsApp/SMS)</li>
+        <li>Phase 4: Live tracking</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:2rem;">
+    <p style="color:#94a3b8;">View the full code on GitHub →</p>
+    <a class="docs-link" href="https://github.com/hassankavuma-prog/polesafe" target="_blank">View on GitHub</a>
+  </div>
+
+</div>
+
+<div class="footer">
+  🇺🇬 Building for Uganda — PoleSafe 🚸
+</div>
+
+</body>
+</html>
