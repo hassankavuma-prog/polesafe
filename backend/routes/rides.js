@@ -11,6 +11,7 @@ const fuelAdjustmentService = require('../services/fuelAdjustment');
 const schoolPremiumService = require('../services/schoolPremium');
 const mapsService = require('../services/mapsService');
 const cancellationService = require('../services/cancellationService');
+const notificationService = require('../services/notificationService');
 
 // ============================================================
 // GET /api/rides/drivers — Find available drivers for ride-hailing
@@ -229,6 +230,16 @@ router.post('/:id/cancel', authMiddleware, async (req, res) => {
     ride.cancellationReason = reason || 'user_requested';
     ride.cancelledAt = new Date();
     await ride.save();
+
+    // Notify parent about cancellation
+    try {
+      await notificationService.sendPush(ride.parentId, {
+        title: 'Ride Cancelled',
+        body: `Your ride has been cancelled. ${result.feeAmount > 0 ? `Cancellation fee: ${result.feeAmount} UGX` : 'No fee charged.'}`,
+      });
+    } catch (e) {
+      console.warn('[Push] Cancel notification failed:', e.message);
+    }
 
     res.json({
       message: result.message,

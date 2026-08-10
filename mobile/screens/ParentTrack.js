@@ -326,8 +326,28 @@ export default function ParentTrack({ navigation, route }) {
         })}
       </View>
 
-      {/* Contact Driver */}
-      <TouchableOpacity style={styles.contactBtn}>
+      {/* Contact Driver — uses phone masking */}
+      <TouchableOpacity style={styles.contactBtn} onPress={async () => {
+        if (!ride?.driverId?.phone) {
+          Alert.alert('Info', 'Driver contact will appear when a driver is assigned.');
+          return;
+        }
+        try {
+          // Get masked contact via phone masking service
+          const token = await AsyncStorage.getItem('polesafe_token');
+          const res = await fetch(`${API_BASE}/api/rides/${rideId}/contact`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            Alert.alert('📞 Driver Contact', `Call ${data.maskedPhone || ride.driverId.phone}`);
+          } else {
+            Alert.alert('📞 Driver Contact', `Call ${ride.driverId.phone}`);
+          }
+        } catch {
+          Alert.alert('📞 Driver Contact', `Call ${ride.driverId?.phone || 'the driver'}`);
+        }
+      }}>
         <Text style={styles.contactBtnText}>📞 Call Driver</Text>
       </TouchableOpacity>
 
