@@ -9,15 +9,16 @@
     "seed": "node seed-demo.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^8.0.0",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "flutterwave-node-v3": "^1.1.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "bcryptjs": "^2.4.3",
+    "mongoose": "^8.0.0",
     "nodemailer": "^6.9.7",
-    "ws": "^8.16.0",
-    "express-rate-limit": "^7.1.5",
-    "flutterwave-node-v3": "^1.1.0"
+    "sharp": "^0.35.3",
+    "ws": "^8.16.0"
   }
 }

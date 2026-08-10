@@ -10,23 +10,80 @@ const { requireRole } = require('../middleware/roles');
 const fs = require('fs');
 const path = require('path');
 
+const sharp = require('sharp');
+
 // Base upload directory
 const UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// Helper: save base64 photo to disk
-function saveBase64Photo(base64Data, prefix) {
+// Helper: save base64 photo to disk with compression
+// Uses sharp to keep files small (saves driver data costs)
+async function saveBase64Photo(base64Data, prefix) {
   const matches = base64Data.match(/^data:(image\/(\w+));base64,(.+)$/);
-  const ext = matches ? matches[2] : 'jpg';
-  const buffer = matches
+  const ext = 'jpg'; // Always save as JPEG after compression
+  let buffer = matches
     ? Buffer.from(matches[3], 'base64')
     : Buffer.from(base64Data, 'base64');
+
+  try {
+    // Sharp compression: resize to max 800px width, JPEG quality 60%
+    // Keeps photos ~50-80KB instead of 1-3MB
+    buffer = await sharp(buffer)
+      .resize({ width: 800, withoutEnlargement: true })
+      .jpeg({ quality: 60 })
+      .toBuffer();
+  } catch (err) {
+    console.error('⚠️ Sharp compression failed, saving raw:', err.message);
+    // Fallback: truncate if still too large
+    const maxBytes = 200 * 1024;
+    if (buffer.length > maxBytes) {
+      buffer = buffer.slice(0, maxBytes);
+    }
+  }
+
   const filename = `${prefix}-${Date.now()}.${ext}`;
   const filepath = path.join(UPLOAD_DIR, filename);
   fs.writeFileSync(filepath, buffer);
   return `/uploads/${filename}`;
+}
+
+// ============================================================
+// 📸 SELFIE VERIFICATION — Trigger system
+// Only fires when something unusual is detected, not every ride
+// ============================================================
+
+/**
+ * Check if a driver needs to take a selfie before proceeding
+ * Triggers: admin flag, new driver, 7+ days since last selfie
+ */
+async function isSelfieRequired(driver) {
+  // 1. Admin explicitly flagged this driver
+  if (driver.forceSelfieVerification) return true;
+
+  // 2. New driver (under 10 rides) — never verified before
+  if (!driver.lastSelfieAt && (driver.completedRidesCount || 0) < 10) return true;
+
+  // 3. Periodic check — no selfie in 7+ days
+  if (driver.lastSelfieAt) {
+    const daysSince = (Date.now() - new Date(driver.lastSelfieAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSince >= 7) return true;
+  }
+
+  // 4. Future: suspicious login, different device, location anomaly
+  return false;
+}
+
+/**
+ * Record a completed selfie and clear any flags
+ */
+async function recordSelfie(driverId) {
+  const User = require('../database/schema').User;
+  await User.findByIdAndUpdate(driverId, {
+    lastSelfieAt: new Date(),
+    forceSelfieVerification: false,
+  });
 }
 
 // ============================================================
@@ -311,7 +368,7 @@ router.post('/rides/:id/photo/selfie', authMiddleware, requireRole('driver'), as
       return res.status(403).json({ error: 'This is not your ride' });
     }
 
-    const url = saveBase64Photo(photo, `ride-selfie-${ride._id}`);
+    const url = await saveBase64Photo(photo, `ride-selfie-${ride._id}`);
     ride.photos = ride.photos || {};
     ride.photos.driverSelfie = url;
     ride.photos.selfieTakenAt = new Date();
@@ -338,7 +395,7 @@ router.post('/rides/:id/photo/kid', authMiddleware, requireRole('driver'), async
       return res.status(403).json({ error: 'This is not your ride' });
     }
 
-    const url = saveBase64Photo(photo, `ride-kid-${ride._id}`);
+    const url = await saveBase64Photo(photo, `ride-kid-${ride._id}`);
     ride.photos = ride.photos || {};
     if (!ride.photos.kidPickups) ride.photos.kidPickups = [];
 
@@ -353,6 +410,177 @@ router.post('/rides/:id/photo/kid', authMiddleware, requireRole('driver'), async
   } catch (err) {
     console.error('❌ Ride kid photo error:', err);
     res.status(500).json({ error: 'Failed to save kid photo' });
+  }
+});
+
+// ============================================================
+// 🔍 SELFIE CHECK — Driver checks before starting a ride
+// ============================================================
+
+/**
+ * GET /api/selfie/check — Driver checks if selfie is needed
+ * Returns { selfieRequired: true/false, reason } so the app knows whether to prompt
+ */
+router.get('/selfie/check', authMiddleware, requireRole('driver'), async (req, res) => {
+  try {
+    const driver = await User.findById(req.user._id).select(
+      'lastSelfieAt forceSelfieVerification completedRidesCount'
+    );
+    if (!driver) return res.status(404).json({ error: 'Driver not found' });
+
+    const required = await isSelfieRequired(driver);
+    let reason = null;
+    if (required) {
+      if (driver.forceSelfieVerification) reason = 'Admin verification request';
+      else if (!driver.lastSelfieAt) reason = 'First-time driver verification';
+      else reason = 'Periodic security check (7+ days)';
+    }
+
+    res.json({
+      selfieRequired: required,
+      reason,
+      lastSelfieAt: driver.lastSelfieAt,
+      nextCheckDue: driver.lastSelfieAt
+        ? new Date(new Date(driver.lastSelfieAt).getTime() + 7 * 24 * 60 * 60 * 1000)
+        : null,
+    });
+  } catch (err) {
+    console.error('❌ Selfie check error:', err);
+    res.status(500).json({ error: 'Failed to check selfie status' });
+  }
+});
+
+/**
+ * POST /api/selfie/verify — Driver submits a verification selfie
+ * Records to profile, clears flags. Good for 7 days.
+ */
+router.post('/selfie/verify', authMiddleware, requireRole('driver'), async (req, res) => {
+  try {
+    const { photo } = req.body;
+    if (!photo) return res.status(400).json({ error: 'photo (base64) is required' });
+
+    const url = await saveBase64Photo(photo, `driver-verify-${req.user._id}`);
+    await recordSelfie(req.user._id);
+
+    // Update driver's profile photo if they don't have one
+    const driver = await User.findById(req.user._id);
+    if (!driver.driverPhotoUrl) {
+      driver.driverPhotoUrl = url;
+      await driver.save();
+    }
+
+    res.json({
+      message: 'Verification selfie captured',
+      photoUrl: url,
+      nextCheckDue: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+  } catch (err) {
+    console.error('❌ Selfie verify error:', err);
+    res.status(500).json({ error: 'Failed to verify selfie' });
+  }
+});
+
+/**
+ * GET /api/selfie/my-photos — Driver sees their photo history
+ */
+router.get('/selfie/my-photos', authMiddleware, requireRole('driver'), async (req, res) => {
+  try {
+    const rides = await Ride.find({
+      driverId: req.user._id,
+      'photos.driverSelfie': { $exists: true, $ne: null },
+    })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('photos.driverSelfie photos.selfieTakenAt createdAt')
+      .lean();
+
+    const trips = await SchoolTrip.find({
+      driverId: req.user._id,
+      'photos.driverSelfie': { $exists: true, $ne: null },
+    })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('photos.driverSelfie photos.selfieTakenAt createdAt')
+      .lean();
+
+    res.json({ rides, trips });
+  } catch (err) {
+    console.error('❌ My photos error:', err);
+    res.status(500).json({ error: 'Failed to list photos' });
+  }
+});
+
+// ============================================================
+// 🛡️ ADMIN — Selfie verification controls
+// ============================================================
+
+/**
+ * POST /api/admin/selfie/request/:driverId — Admin flags a driver for selfie check
+ */
+router.post('/admin/selfie/request/:driverId', authMiddleware, requireRole('polesafe_admin'), async (req, res) => {
+  try {
+    const driver = await User.findByIdAndUpdate(
+      req.params.driverId,
+      { forceSelfieVerification: true },
+      { new: true }
+    ).select('name phone driverIdNumber forceSelfieVerification');
+
+    if (!driver) return res.status(404).json({ error: 'Driver not found' });
+
+    // Flag active rides too
+    await Ride.updateMany(
+      { driverId: req.params.driverId, status: { $nin: ['completed', 'cancelled'] } },
+      { selfieVerificationRequired: true }
+    );
+
+    res.json({
+      message: `Selfie verification flagged for ${driver.name}`,
+      driver: { id: driver._id, name: driver.name, driverIdNumber: driver.driverIdNumber },
+    });
+  } catch (err) {
+    console.error('❌ Admin selfie flag error:', err);
+    res.status(500).json({ error: 'Failed to flag driver for selfie check' });
+  }
+});
+
+/**
+ * GET /api/admin/selfie/drivers — Admin sees all drivers' selfie status
+ */
+router.get('/admin/selfie/drivers', authMiddleware, requireRole('polesafe_admin'), async (req, res) => {
+  try {
+    const drivers = await User.find({ role: 'driver' }).select(
+      'name phone driverIdNumber lastSelfieAt forceSelfieVerification completedRidesCount createdAt isDriverIdVerified'
+    );
+
+    const enriched = drivers.map(d => ({
+      ...d.toObject(),
+      needsSelfie: !d.lastSelfieAt || d.forceSelfieVerification,
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    console.error('❌ Admin drivers list error:', err);
+    res.status(500).json({ error: 'Failed to list drivers' });
+  }
+});
+
+/**
+ * POST /api/admin/selfie/clear/:driverId — Admin clears a driver's selfie flag
+ */
+router.post('/admin/selfie/clear/:driverId', authMiddleware, requireRole('polesafe_admin'), async (req, res) => {
+  try {
+    const driver = await User.findByIdAndUpdate(
+      req.params.driverId,
+      { forceSelfieVerification: false, lastSelfieAt: new Date() },
+      { new: true }
+    ).select('name phone driverIdNumber');
+
+    if (!driver) return res.status(404).json({ error: 'Driver not found' });
+
+    res.json({ message: `Selfie verification cleared for ${driver.name}` });
+  } catch (err) {
+    console.error('❌ Admin selfie clear error:', err);
+    res.status(500).json({ error: 'Failed to clear selfie flag' });
   }
 });
 
@@ -374,7 +602,7 @@ router.post('/trips/:tripId/photo/selfie', authMiddleware, requireRole('driver')
       return res.status(403).json({ error: 'This is not your trip' });
     }
 
-    const url = saveBase64Photo(photo, `trip-selfie-${trip._id}`);
+    const url = await saveBase64Photo(photo, `trip-selfie-${trip._id}`);
     trip.photos = trip.photos || {};
     trip.photos.driverSelfie = url;
     trip.photos.selfieTakenAt = new Date();
@@ -401,7 +629,7 @@ router.post('/trips/:tripId/photo/kid', authMiddleware, requireRole('driver'), a
       return res.status(403).json({ error: 'This is not your trip' });
     }
 
-    const url = saveBase64Photo(photo, `trip-kid-${trip._id}`);
+    const url = await saveBase64Photo(photo, `trip-kid-${trip._id}`);
     trip.photos = trip.photos || {};
     if (!trip.photos.kidBoarding) trip.photos.kidBoarding = [];
 

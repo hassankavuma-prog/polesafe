@@ -46,6 +46,11 @@ const userSchema = new mongoose.Schema({
   driverIdNumber: { type: String },  // PoleSafe driver ID like "PS-DRV-001"
   driverPhotoUrl: { type: String },  // photo URL for the ID badge
   isDriverIdVerified: { type: Boolean, default: false },  // PoleSafe verified this driver's identity
+
+  // 📸 Selfie verification (triggered, not per-ride)
+  lastSelfieAt: { type: Date },  // When driver last took a verification selfie
+  forceSelfieVerification: { type: Boolean, default: false },  // Admin can force next ride to require selfie
+  completedRidesCount: { type: Number, default: 0 },  // Total completed rides (for new-driver check)
 });
 
 // ============================================================
