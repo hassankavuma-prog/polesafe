@@ -303,6 +303,12 @@ const rideSchema = new mongoose.Schema({
   // Selfie verification flag (set by admin or trigger system)
   selfieVerificationRequired: { type: Boolean, default: false },
 
+  // Seat belt safety
+  seatBeltReminderPlayed: { type: Boolean, default: false },  // Ride mode: 10s voice played
+  seatBeltCheckpointShown: { type: Boolean, default: false },  // School mode: checkpoint displayed
+  seatBeltVerified: { type: Boolean, default: false },  // School mode: driver confirmed buckled
+  seatBeltVerifiedAt: { type: Date },  // When driver confirmed
+
   // Notification delivery tracking (set by scheduler)
   notificationsSent: {
     t60: { type: Boolean, default: false },

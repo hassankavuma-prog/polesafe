@@ -8,6 +8,7 @@ const { requireRole } = require('../middleware/roles');
 const { Ride, Vehicle, Booking, User, WithdrawalRequest } = require('../database/schema');
 const routeService = require('../services/routeService');
 const schoolPremiumService = require('../services/schoolPremium');
+const notificationService = require('../services/notificationService');
 const {
   validateVehicle,
   validateWithdrawal,
@@ -115,6 +116,20 @@ router.post('/ride/:id/status', async (req, res) => {
     }
 
     await ride.save();
+
+    // Notify parent of ride status changes
+    try {
+      const statusMessages = {
+        en_route: { title: '🚗 Driver En Route', body: 'Your child\'s driver is heading to the pickup location.' },
+        picked_up: { title: '👧 Kid Picked Up', body: 'Your child has been picked up and is on the way.' },
+        dropped_off: { title: '📍 Arrived Safely', body: 'Your child has been dropped off safely.' },
+        gate_confirmed: { title: '✅ Gate Confirmed', body: 'Your child has arrived at school and is confirmed at the gate.' },
+      };
+      const msg = statusMessages[status];
+      if (msg && ride.parentId) {
+        await notificationService.sendPush(ride.parentId, msg);
+      }
+    } catch {}
 
     res.json({ ride, message: `✅ Status updated to: ${status}` });
   } catch (err) {
@@ -656,6 +671,41 @@ router.post('/rides/:rideId/verify-safeword', async (req, res) => {
 
     res.json({
       message: '✅ Kid verified! Safe word matched.',
+      verified: true,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// POST /api/drivers/rides/:rideId/verify-seatbelt — School mode: driver confirms buckled up
+// ============================================================
+router.post('/rides/:rideId/verify-seatbelt', async (req, res) => {
+  try {
+    const Ride = require('../database/schema').Ride;
+    const ride = await Ride.findById(req.params.rideId);
+
+    if (!ride) return res.status(404).json({ error: 'Ride not found' });
+    if (ride.driverId?.toString() !== req.userId) {
+      return res.status(403).json({ error: 'This ride is not assigned to you' });
+    }
+
+    ride.seatBeltVerified = true;
+    ride.seatBeltVerifiedAt = new Date();
+    ride.seatBeltCheckpointShown = true;
+    await ride.save();
+
+    // Notify parent that seat belts are verified
+    try {
+      await notificationService.sendPush(ride.parentId, {
+        title: '✅ Seat Belts Verified',
+        body: 'All children are buckled up and safe.',
+      });
+    } catch {}
+
+    res.json({
+      message: '✅ Seat belts verified. You can start the ride.',
       verified: true,
     });
   } catch (err) {
