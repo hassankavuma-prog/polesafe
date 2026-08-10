@@ -28,6 +28,7 @@ async function authMiddleware(req, res, next) {
     req.user = user;
     req.userId = user._id;
     req.userRole = user.role;
+    req.adminSubRole = user.polesafeAdminRole;  // 'owner' or 'support' for polesafe_admin
 
     next();
   } catch (err) {

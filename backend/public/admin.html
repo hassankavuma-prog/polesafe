@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PoleSafe Admin Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    }
+
+    .login-box {
+      background: #1a1a1a;
+      border: 2px solid #2E7D32;
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(46, 125, 50, 0.2);
+    }
+
+    .login-box h1 {
+      color: #2E7D32;
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2em;
+    }
+
+    .login-box .subtitle {
+      text-align: center;
+      color: #888;
+      margin-bottom: 30px;
+      font-size: 0.9em;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #ccc;
+      font-weight: 500;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="tel"],
+    textarea {
+      width: 100%;
+      padding: 12px;
+      background: #0a0a0a;
+      border: 2px solid #333;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #2E7D32;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #2E7D32;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #1B5E20;
+    }
+
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #444;
+      margin-top: 10px;
+    }
+
+    .btn-secondary:hover {
+      background: #555;
+    }
+
+    .btn-danger {
+      background: #c62828;
+    }
+
+    .btn-danger:hover {
+      background: #8e0000;
+    }
+
+    .dashboard {
+      display: none;
+      padding-top: 20px;
+    }
+
+    .header {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #2E7D32;
+    }
+
+    .header h1 {
+      color: #2E7D32;
+      margin-bottom: 5px;
+    }
+
+    .header .role-badge {
+      display: inline-block;
+      background: #2E7D32;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.8em;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #2E7D32;
+    }
+
+    .stat-card .label {
+      color: #888;
+      font-size: 0.9em;
+      margin-bottom: 5px;
+    }
+
+    .stat-card .value {
+      color: #2E7D32;
+      font-size: 2em;
+      font-weight: 700;
+    }
+
+    .section {
+      background: #1a1a1a;
+      padding: 25px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+    }
+
+    .section h2 {
+      color: #2E7D32;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th {
+      background: #0a0a0a;
+      color: #2E7D32;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #2E7D32;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #333;
+    }
+
+    tr:hover {
+      background: #222;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+
+    .badge-pending { background: #ff9800; color: white; }
+    .badge-verified { background: #2E7D32; color: white; }
+    .badge-rejected { background: #c62828; color: white; }
+    .badge-suspended { background: #666; color: white; }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 0.85em;
+      width: auto;
+      margin-right: 5px;
+      margin-bottom: 5px;
+    }
+
+    .approval-form {
+      background: #0a0a0a;
+      padding: 20px;
+      border-radius: 6px;
+      margin-top: 15px;
+      border: 2px solid #2E7D32;
+    }
+
+    .approval-form h3 {
+      color: #2E7D32;
+      margin-bottom: 15px;
+    }
+
+    .coords-input {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .message {
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+
+    .message-success {
+      background: rgba(46, 125, 50, 0.2);
+      border: 2px solid #2E7D32;
+      color: #4CAF50;
+    }
+
+    .message-error {
+      background: rgba(198, 40, 40, 0.2);
+      border: 2px solid #c62828;
+      color: #f44336;
+    }
+
+    .logout-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      width: auto;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 30px 20px;
+      color: #666;
+      font-size: 0.9em;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        font-size: 0.85em;
+      }
+
+      .coords-input {
+        grid-template-columns: 1fr;
+      }
+
+      .logout-btn {
+        position: static;
+        margin: 20px auto;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+      <h1>🚸 PoleSafe</h1>
+      <p class="subtitle">Admin Dashboard</p>
+      <div id="loginMessage"></div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" placeholder="+256700000000" required>
+        </div>
+        <div class="form-group">
+          <label for="pin">PIN</label>
+          <input type="password" id="pin" placeholder="4-digit PIN" required maxlength="4">
+        </div>
+        <button type="submit">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="dashboard">
+    <div class="container">
+      
+      <button class="logout-btn" onclick="logout()">Logout</button>
+
+      <div class="header">
+        <h1>PoleSafe Admin Dashboard</h1>
+        <span class="role-badge" id="roleBadge">Loading...</span>
+      </div>
+
+      <div id="messageBox"></div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <!-- Owner Dashboard -->
+      <div id="ownerDashboard" style="display: none;">
+        
+        <!-- Support Staff Management -->
+        <div class="section">
+          <h2>Support Staff</h2>
+          <form id="addSupportForm">
+            <div class="form-group">
+              <label>Add New Support Staff</label>
+              <input type="text" id="supportName" placeholder="Full Name" required>
+            </div>
+            <div class="form-group">
+              <input type="tel" id="supportPhone" placeholder="+256700000000" required>
+            </div>
+            <button type="submit">Add Support Staff</button>
+          </form>
+          <div id="supportList"></div>
+        </div>
+
+        <!-- All Users -->
+        <div class="section">
+          <h2>All Users</h2>
+          <div id="usersList"></div>
+        </div>
+
+        <!-- All Schools -->
+        <div class="section">
+          <h2>All Schools</h2>
+          <div id="allSchoolsList"></div>
+        </div>
+
+      </div>
+
+      <!-- Support Dashboard -->
+      <div id="supportDashboard" style="display: none;">
+        
+        <!-- PIN Reset Tool -->
+        <div class="section">
+          <h2>Reset Parent PIN</h2>
+          <form id="pinResetForm">
+            <div class="form-group">
+              <label>Parent Phone Number</label>
+              <input type="tel" id="resetPhone" placeholder="+256700000000" required>
+            </div>
+            <button type="submit">Reset PIN</button>
+          </form>
+        </div>
+
+        <!-- Pending Schools Queue -->
+        <div class="section">
+          <h2>Pending School Verifications</h2>
+          <div id="pendingSchoolsList"></div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="footer">
+      PoleSafe v1.0 — Admin Panel<br>
+      From Home to School. And Beyond. 🚸
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+    let token = localStorage.getItem('adminToken');
+    let currentUser = null;
+
+    // Show message
+    function showMessage(message, type = 'success') {
+      const box = document.getElementById('messageBox') || document.getElementById('loginMessage');
+      box.innerHTML = `<div class="message message-${type}">${message}</div>`;
+      setTimeout(() => box.innerHTML = '', 5000);
+    }
+
+    // API call helper
+    async function apiCall(endpoint, options = {}) {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      };
+
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers: { ...headers, ...options.headers },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Request failed');
+      }
+
+      return data;
+    }
+
+    // Login
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = document.getElementById('phone').value;
+      const pin = document.getElementById('pin').value;
+
+      try {
+        const data = await apiCall('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ phone, pin }),
+        });
+
+        if (data.user.role !== 'polesafe_admin') {
+          throw new Error('Admin access only. Please use the mobile app.');
+        }
+
+        token = data.token;
+        localStorage.setItem('adminToken', token);
+        currentUser = data.user;
+        
+        showDashboard();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    });
+
+    // Logout
+    function logout() {
+      localStorage.removeItem('adminToken');
+      token = null;
+      currentUser = null;
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('dashboard').style.display = 'none';
+    }
+
+    // Show dashboard
+    async function showDashboard() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+
+      const role = currentUser.polesafeAdminRole || 'owner';
+      document.getElementById('roleBadge').textContent = role.toUpperCase();
+
+      // Show appropriate dashboard
+      if (role === 'owner') {
+        document.getElementById('ownerDashboard').style.display = 'block';
+        document.getElementById('supportDashboard').style.display = 'none';
+      } else {
+        document.getElementById('ownerDashboard').style.display = 'none';
+        document.getElementById('supportDashboard').style.display = 'block';
+      }
+
+      loadDashboard();
+    }
+
+    // Load dashboard data
+    async function loadDashboard() {
+      try {
+        // Load stats
+        const stats = await apiCall('/admin/stats');
+        
+        const statsHtml = `
+          <div class="stat-card">
+            <div class="label">Total Schools</div>
+            <div class="value">${stats.totalSchools}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Total Users</div>
+            <div class="value">${stats.totalUsers}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Total Children</div>
+            <div class="value">${stats.totalChildren}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Active Rides</div>
+            <div class="value">${stats.activeRides}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Pending Schools</div>
+            <div class="value">${stats.pendingSchools}</div>
+          </div>
+        `;
+        document.getElementById('statsGrid').innerHTML = statsHtml;
+
+        const role = currentUser.polesafeAdminRole || 'owner';
+
+        if (role === 'owner') {
+          loadSupportStaff();
+          loadAllUsers();
+          loadAllSchools();
+        } else {
+          loadPendingSchools();
+        }
+
+      } catch (err) {
+        showMessage('Failed to load dashboard: ' + err.message, 'error');
+      }
+    }
+
+    // Load support staff (owner only)
+    async function loadSupportStaff() {
+      try {
+        const data = await apiCall('/admin/support-staff');
+        
+        if (data.staff.length === 0) {
+          document.getElementById('supportList').innerHTML = '<p class="empty-state">No support staff yet</p>';
+          return;
+        }
+
+        const html = `
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Added</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.staff.map(s => `
+                <tr>
+                  <td>${s.name}</td>
+                  <td>${s.phone}</td>
+                  <td>${new Date(s.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <button class="btn-small btn-danger" onclick="removeSupportStaff('${s._id}', '${s.name}')">Remove</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        document.getElementById('supportList').innerHTML = html;
+      } catch (err) {
+        console.error('Failed to load support staff:', err);
+      }
+    }
+
+    // Add support staff
+    document.getElementById('addSupportForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('supportName').value;
+      const phone = document.getElementById('supportPhone').value;
+
+      try {
+        const data = await apiCall('/admin/add-support', {
+          method: 'POST',
+          body: JSON.stringify({ name, phone }),
+        });
+        
+        showMessage(data.message, 'success');
+        document.getElementById('addSupportForm').reset();
+        loadSupportStaff();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    });
+
+    // Remove support staff
+    async function removeSupportStaff(id, name) {
+      if (!confirm(`Remove ${name} from support staff?`)) return;
+
+      try {
+        const data = await apiCall(`/admin/remove-support/${id}`, { method: 'POST' });
+        showMessage(data.message, 'success');
+        loadSupportStaff();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // Load all users (owner only)
+    async function loadAllUsers() {
+      try {
+        const data = await apiCall('/admin/users');
+        
+        const html = `
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Role</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.users.map(u => `
+                <tr>
+                  <td>${u.name}</td>
+                  <td>${u.phone}</td>
+                  <td><span class="badge badge-${u.role === 'parent' ? 'verified' : 'pending'}">${u.role}</span></td>
+                  <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <button class="btn-small" onclick="resetUserPin('${u._id}', '${u.name}')">Reset PIN</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        document.getElementById('usersList').innerHTML = html;
+      } catch (err) {
+        console.error('Failed to load users:', err);
+      }
+    }
+
+    // Reset user PIN (owner)
+    async function resetUserPin(userId, userName) {
+      if (!confirm(`Reset PIN for ${userName}?`)) return;
+
+      try {
+        const data = await apiCall(`/admin/user/${userId}/reset-pin`, { method: 'POST' });
+        showMessage(data.message + ` New PIN: ${data.newPin}`, 'success');
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // Load all schools (owner only)
+    async function loadAllSchools() {
+      try {
+        const data = await apiCall('/admin/schools');
+        
+        const html = `
+          <table>
+            <thead>
+              <tr>
+                <th>School</th>
+                <th>Status</th>
+                <th>Admins</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.schools.map(s => `
+                <tr>
+                  <td>
+                    <strong>${s.name}</strong><br>
+                    <small>${s.address || 'No address'}</small>
+                  </td>
+                  <td><span class="badge badge-${s.verificationStatus}">${s.verificationStatus}</span></td>
+                  <td>${s.adminIds.length} admin(s)</td>
+                  <td>
+                    ${s.verificationStatus === 'verified' ? 
+                      `<button class="btn-small btn-danger" onclick="suspendSchool('${s._id}', '${s.name}')">Suspend</button>` :
+                      s.verificationStatus === 'suspended' ?
+                      `<button class="btn-small" onclick="unsuspendSchool('${s._id}', '${s.name}')">Unsuspend</button>` :
+                      ''
+                    }
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        document.getElementById('allSchoolsList').innerHTML = html;
+      } catch (err) {
+        console.error('Failed to load schools:', err);
+      }
+    }
+
+    // Suspend school
+    async function suspendSchool(id, name) {
+      if (!confirm(`Suspend ${name}?`)) return;
+
+      try {
+        const data = await apiCall(`/admin/school/${id}/suspend`, { method: 'POST' });
+        showMessage(data.message, 'success');
+        loadAllSchools();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // Unsuspend school
+    async function unsuspendSchool(id, name) {
+      if (!confirm(`Reactivate ${name}?`)) return;
+
+      try {
+        const data = await apiCall(`/admin/school/${id}/unsuspend`, { method: 'POST' });
+        showMessage(data.message, 'success');
+        loadAllSchools();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // PIN reset form (support)
+    document.getElementById('pinResetForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = document.getElementById('resetPhone').value;
+
+      try {
+        const data = await apiCall('/admin/user/reset-pin-by-phone', {
+          method: 'POST',
+          body: JSON.stringify({ phone }),
+        });
+        
+        showMessage(data.message + ` New PIN: ${data.newPin}`, 'success');
+        document.getElementById('pinResetForm').reset();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    });
+
+    // Load pending schools (support)
+    async function loadPendingSchools() {
+      try {
+        const data = await apiCall('/admin/pending-schools');
+        
+        if (data.schools.length === 0) {
+          document.getElementById('pendingSchoolsList').innerHTML = '<p class="empty-state">No pending schools ✅</p>';
+          return;
+        }
+
+        const html = data.schools.map(school => `
+          <div class="approval-form">
+            <h3>${school.name}</h3>
+            <p><strong>Head Teacher:</strong> ${school.headTeacherName || 'Not provided'}</p>
+            <p><strong>Phone:</strong> ${school.headTeacherPhone || 'Not provided'}</p>
+            <p><strong>Address:</strong> ${school.address || 'Not provided'}</p>
+            <p><strong>Submitted:</strong> ${new Date(school.createdAt).toLocaleString()}</p>
+            
+            <div class="form-group">
+              <label>Gate GPS Coordinates (required for verification)</label>
+              <div class="coords-input">
+                <input type="number" step="any" id="lng-${school._id}" placeholder="Longitude" required>
+                <input type="number" step="any" id="lat-${school._id}" placeholder="Latitude" required>
+                <button class="btn-small" onclick="getCurrentLocation('${school._id}')">📍 Get Location</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Head Teacher Phone (optional, to create admin account)</label>
+              <input type="tel" id="adminPhone-${school._id}" placeholder="+256700000000" value="${school.headTeacherPhone || ''}">
+            </div>
+
+            <button onclick="approveSchool('${school._id}')">✅ Approve School</button>
+            <button class="btn-danger btn-secondary" onclick="rejectSchool('${school._id}')">❌ Reject</button>
+          </div>
+        `).join('');
+
+        document.getElementById('pendingSchoolsList').innerHTML = html;
+      } catch (err) {
+        console.error('Failed to load pending schools:', err);
+      }
+    }
+
+    // Get current location for gate pinning
+    function getCurrentLocation(schoolId) {
+      if (!navigator.geolocation) {
+        showMessage('Geolocation not supported by your browser', 'error');
+        return;
+      }
+
+      showMessage('Getting your location...', 'success');
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          document.getElementById(`lng-${schoolId}`).value = position.coords.longitude;
+          document.getElementById(`lat-${schoolId}`).value = position.coords.latitude;
+          showMessage('✅ Location captured!', 'success');
+        },
+        (error) => {
+          showMessage('Failed to get location: ' + error.message, 'error');
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+
+    // Approve school
+    async function approveSchool(schoolId) {
+      const lng = parseFloat(document.getElementById(`lng-${schoolId}`).value);
+      const lat = parseFloat(document.getElementById(`lat-${schoolId}`).value);
+      const adminPhone = document.getElementById(`adminPhone-${schoolId}`).value;
+
+      if (!lng || !lat) {
+        showMessage('Please provide gate GPS coordinates', 'error');
+        return;
+      }
+
+      if (!confirm('Approve this school? This will activate it on the platform.')) return;
+
+      try {
+        const data = await apiCall(`/admin/school/${schoolId}/approve`, {
+          method: 'POST',
+          body: JSON.stringify({
+            gateCoordinates: [lng, lat],
+            headTeacherPhone: adminPhone || undefined,
+          }),
+        });
+        
+        showMessage(data.message, 'success');
+        loadPendingSchools();
+        loadDashboard();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // Reject school
+    async function rejectSchool(schoolId) {
+      const reason = prompt('Reason for rejection (optional):');
+      if (reason === null) return; // User cancelled
+
+      try {
+        const data = await apiCall(`/admin/school/${schoolId}/reject`, {
+          method: 'POST',
+          body: JSON.stringify({ reason }),
+        });
+        
+        showMessage(data.message, 'success');
+        loadPendingSchools();
+        loadDashboard();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // Initialize on page load
+    if (token) {
+      // Verify token by loading current user
+      apiCall('/auth/me')
+        .then(data => {
+          if (data.user.role !== 'polesafe_admin') {
+            throw new Error('Admin access only');
+          }
+          currentUser = data.user;
+          showDashboard();
+        })
+        .catch(() => {
+          // Token invalid, show login
+          localStorage.removeItem('adminToken');
+          token = null;
+        });
+    }
+  </script>
+
+</body>
+</html>

@@ -76,15 +76,27 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { phone, pin } = req.body;
+    const bcrypt = require('bcryptjs');
 
     const user = await User.findOne({ phone });
     if (!user) {
       return res.status(404).json({ error: 'No account with this phone number' });
     }
 
-    // For basic phone users — verify PIN
-    if (!user.hasSmartphone) {
-      if (user.pin !== pin) {
+    // If PIN provided, verify it (for admin users and basic phone users)
+    if (pin) {
+      // Check if PIN is hashed (bcrypt) or plain text (legacy)
+      let validPin = false;
+      
+      if (user.pin && user.pin.startsWith('$2')) {
+        // Hashed PIN (bcrypt)
+        validPin = await bcrypt.compare(pin, user.pin);
+      } else {
+        // Plain text PIN (legacy)
+        validPin = user.pin === pin;
+      }
+
+      if (!validPin) {
         return res.status(401).json({ error: 'Invalid PIN. Try again.' });
       }
 
@@ -96,12 +108,12 @@ router.post('/login', async (req, res) => {
           name: user.name,
           phone: user.phone,
           role: user.role,
+          polesafeAdminRole: user.polesafeAdminRole,
         },
       });
     }
 
-    // For smartphone users — could add password later
-    // For now, send PIN via SMS
+    // For smartphone users without PIN — send PIN via SMS
     const newPin = generatePinToken();
     user.pin = newPin;
     await user.save();

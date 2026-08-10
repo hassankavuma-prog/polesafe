@@ -9,6 +9,8 @@ const { requireRole } = require('../middleware/roles');
 const { Ride, User, Vehicle } = require('../database/schema');
 const fuelAdjustmentService = require('../services/fuelAdjustment');
 const schoolPremiumService = require('../services/schoolPremium');
+const mapsService = require('../services/mapsService');
+const cancellationService = require('../services/cancellationService');
 
 // ============================================================
 // POST /api/rides/request — Request a ride-hailing trip
@@ -18,8 +20,25 @@ router.post('/request', authMiddleware, async (req, res) => {
   try {
     const { pickupLat, pickupLng, dropoffLat, dropoffLng, vehicleType } = req.body;
 
-    // Calculate distance (simple haversine)
-    const distance = calculateDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
+    // Calculate distance — Google Maps if available, else haversine fallback
+    let distance;
+    let durationMin;
+    let matrixResult = null;
+
+    if (mapsService.apiKey) {
+      matrixResult = await mapsService.getDistanceMatrix(
+        [{ lat: pickupLat, lng: pickupLng }],
+        [{ lat: dropoffLat, lng: dropoffLng }]
+      );
+      if (matrixResult) {
+        distance = matrixResult.distanceKm;
+        durationMin = matrixResult.durationMin;
+      } else {
+        distance = calculateDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
+      }
+    } else {
+      distance = calculateDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
+    }
 
     // Find nearest available driver
     const Vehicle_model = Vehicle;
@@ -86,6 +105,7 @@ router.post('/request', authMiddleware, async (req, res) => {
       driverPayout: Math.round(fuelCalc.adjustedTotal - commission),
       poleSafeCommission: Math.round(commission),
       status: 'scheduled',
+      estimatedDurationMin: durationMin || null,
     });
 
     res.status(201).json({
@@ -95,12 +115,13 @@ router.post('/request', authMiddleware, async (req, res) => {
         phone: assignedDriver.driverId.phone,
         vehicleType: assignedDriver.type,
         rating: assignedDriver.driverId.rating || 4.5,
-        etaMinutes: Math.round(calculateDistance(pickupLat, pickupLng, assignedDriver.driverId.location.coordinates[1], assignedDriver.driverId.location.coordinates[0]) * 12), // ~5min per km
+        etaMinutes: Math.round(durationMin || calculateDistance(pickupLat, pickupLng, assignedDriver.driverId.location.coordinates[1], assignedDriver.driverId.location.coordinates[0]) * 12),
       },
       price: {
         total: fuelCalc.adjustedTotal,
         distance: `${distance.toFixed(1)} km`,
         perKm: `${perKm} UGX/km`,
+        ...(matrixResult ? { duration: matrixResult.durationText } : {}),
       },
     });
   } catch (err) {
@@ -156,7 +177,7 @@ router.get('/:id/track', authMiddleware, async (req, res) => {
 });
 
 // ============================================================
-// POST /api/rides/:id/cancel — Cancel a ride
+// POST /api/rides/:id/cancel — Cancel a ride with time-based fines
 // ============================================================
 router.post('/:id/cancel', authMiddleware, async (req, res) => {
   try {
@@ -164,44 +185,25 @@ router.post('/:id/cancel', authMiddleware, async (req, res) => {
     const ride = await Ride.findById(req.params.id);
     if (!ride) return res.status(404).json({ error: 'Ride not found' });
 
-    // Determine cancellation fee
-    const now = new Date();
-    const pickupTime = new Date(ride.scheduledPickupTime);
-    const minutesUntilPickup = (pickupTime - now) / 60000;
-    const config = require('../config');
-
-    let cancellationFee = 0;
-    let driverCompensation = 0;
-
-    if (minutesUntilPickup > config.CANCELLATION.FREE_IF_BEFORE_HOURS * 60) {
-      cancellationFee = 0; // Free if > 24 hours
-    } else if (minutesUntilPickup > 120) {
-      cancellationFee = ride.totalPrice * config.CANCELLATION.LOW_FEE_PERCENT;
-      driverCompensation = cancellationFee;
-    } else if (minutesUntilPickup > 30) {
-      cancellationFee = ride.totalPrice * config.CANCELLATION.MEDIUM_FEE_PERCENT;
-      driverCompensation = cancellationFee;
-    } else if (minutesUntilPickup > 0) {
-      cancellationFee = ride.totalPrice * config.CANCELLATION.HIGH_FEE_PERCENT;
-      driverCompensation = cancellationFee;
-    } else {
-      // No-show (pickup time already passed)
-      cancellationFee = ride.totalPrice + config.CANCELLATION.NO_SHOW_PENALTY;
-      driverCompensation = ride.totalPrice + config.CANCELLATION.NO_SHOW_PENALTY;
-      ride.status = 'missed';
-    }
+    // Apply cancellation policy — determines if fee applies
+    const result = await cancellationService.applyFee({
+      ride,
+      parentId: ride.parentId,
+      reason: reason || 'user_requested',
+    });
 
     ride.status = 'cancelled';
     ride.cancelledBy = req.userRole;
     ride.cancellationReason = reason || 'user_requested';
-    ride.cancelledAt = now;
-    ride.updatedAt = now;
+    ride.cancelledAt = new Date();
     await ride.save();
 
     res.json({
-      message: 'Ride cancelled',
-      cancellationFee: Math.round(cancellationFee),
-      driverCompensation: Math.round(driverCompensation),
+      message: result.message,
+      free: result.evaluation.free,
+      feeAmount: result.feeAmount,
+      tier: result.evaluation.tier,
+      hoursUntilPickup: result.evaluation.hoursUntilPickup,
       ride,
     });
   } catch (err) {

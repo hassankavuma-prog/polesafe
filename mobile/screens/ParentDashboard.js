@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Alert,
+  RefreshControl, Alert, TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -16,6 +16,7 @@ export default function ParentDashboard({ navigation }) {
   const [creditBalance, setCreditBalance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [mode, setMode] = useState('school'); // 'school' | 'ride'
+  const [customCodes, setCustomCodes] = useState({}); // Store custom code inputs per child
 
   const loadData = async () => {
     try {
@@ -87,6 +88,92 @@ export default function ParentDashboard({ navigation }) {
           <View style={styles.kidHeader}>
             <Text style={styles.kidName}>{kid.name}</Text>
             <Text style={styles.kidClass}>{kid.class}</Text>
+          </View>
+
+          {/* Pickup Word Section — Permanent word like "Mango", set once, kid remembers */}
+          <View style={styles.codeSection}>
+            <Text style={styles.codeTitle}>🔐 Pickup Word <Text style={styles.wordPermanent}>(Permanent)</Text></Text>
+            <Text style={styles.codeHint}>
+              One word your child will remember all term. The driver says this word at EVERY pickup. If they don't, your child doesn't get in.
+            </Text>
+            
+            {kid.pickupCode ? (
+              <View style={styles.currentCodeCard}>
+                <Text style={styles.currentCodeLabel}>Pickup Word:</Text>
+                <Text style={styles.currentCode}>{kid.pickupCode}</Text>
+                <Text style={styles.codeInstruction}>
+                  Tell your child: "The driver will say "{kid.pickupCode}" at pickup. If they don't say {kid.pickupCode}, don't get in." It's the same word every day so you won't forget!
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.noCode}>⚠️ No pickup word set yet</Text>
+            )}
+
+            <View style={styles.codeActions}>
+              <TouchableOpacity 
+                style={styles.randomCodeBtn} 
+                onPress={async () => {
+                  try {
+                    const token = await AsyncStorage.getItem('polesafe_token');
+                    const res = await fetch(`${API_URL}/api/safety/generate-pickup-word`, {
+                      method: 'POST',
+                      headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ childId: kid._id }),
+                    });
+                    const data = await res.json();
+                    Alert.alert('🎲 Pickup Word Generated', `Your child's word is: ${data.word}\n\nTell ${kid.name}: \"The driver will say ${data.word}. If they don't, don't get in!\" This word stays the same every day.`);
+                    loadData();
+                  } catch (err) {
+                    Alert.alert('Error', err.message);
+                  }
+                }}
+              >
+                <Text style={styles.btnText}>🎲 Random Word</Text>
+              </TouchableOpacity>
+              
+              <View style={styles.customCodeRow}>
+                <TextInput
+                  style={styles.codeInput}
+                  placeholder="Custom word (e.g. Mango)"
+                  placeholderTextColor="#aaa"
+                  maxLength={16}
+                  value={customCodes[kid._id] || ''}
+                  onChangeText={(text) => setCustomCodes({...customCodes, [kid._id]: text})}
+                />
+                <TouchableOpacity 
+                  style={styles.setCodeBtn} 
+                  onPress={async () => {
+                    const word = customCodes[kid._id];
+                    if (!word || word.trim() === '') {
+                      Alert.alert('Error', 'Please enter a word');
+                      return;
+                    }
+                    try {
+                      const token = await AsyncStorage.getItem('polesafe_token');
+                      const res = await fetch(`${API_URL}/api/safety/set-pickup-word`, {
+                        method: 'POST',
+                        headers: {
+                          Authorization: `Bearer ${token}`,
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ childId: kid._id, word: word.trim() }),
+                      });
+                      const data = await res.json();
+                      Alert.alert('✅ Word Set', `From now on, the driver will say "${word.trim()}" at every pickup. Tell ${kid.name} so they know!`);
+                      setCustomCodes({...customCodes, [kid._id]: ''});
+                      loadData();
+                    } catch (err) {
+                      Alert.alert('Error', err.message);
+                    }
+                  }}
+                >
+                  <Text style={styles.btnText}>Set Word</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
 
           {/* Today's ride status */}
@@ -195,4 +282,20 @@ const styles = StyleSheet.create({
   dayStatus: { fontSize: 18, marginTop: 6 },
   bookBtn: { backgroundColor: '#2E7D32', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
   bookBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  
+  // Pickup Code Section
+  codeSection: { backgroundColor: '#FFF3E0', borderRadius: 10, padding: 12, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#FF9800' },
+  codeTitle: { fontSize: 14, fontWeight: '700', color: '#E65100', marginBottom: 4 },
+  codeHint: { fontSize: 11, color: '#666', marginBottom: 8, lineHeight: 16 },
+  currentCodeCard: { backgroundColor: '#fff', borderRadius: 8, padding: 10, marginBottom: 8, borderWidth: 1, borderColor: '#FFB300' },
+  currentCodeLabel: { fontSize: 11, color: '#999', marginBottom: 2 },
+  currentCode: { fontSize: 24, fontWeight: '800', color: '#E65100', marginBottom: 6 },
+  codeInstruction: { fontSize: 11, color: '#555', lineHeight: 15, fontStyle: 'italic' },
+  noCode: { fontSize: 12, color: '#999', marginBottom: 8, fontStyle: 'italic' },
+  codeActions: { gap: 6 },
+  randomCodeBtn: { backgroundColor: '#FF9800', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  customCodeRow: { flexDirection: 'row', gap: 6 },
+  codeInput: { flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14 },
+  setCodeBtn: { backgroundColor: '#4CAF50', paddingHorizontal: 20, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  btnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 });

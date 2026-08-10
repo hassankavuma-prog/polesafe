@@ -1,6 +1,6 @@
 {
   "name": "polesafe-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "PoleSafe - From Home to School. And Beyond.",
   "main": "server.js",
   "scripts": {
@@ -16,6 +16,8 @@
     "jsonwebtoken": "^9.0.2",
     "bcryptjs": "^2.4.3",
     "nodemailer": "^6.9.7",
-    "ws": "^8.16.0"
+    "ws": "^8.16.0",
+    "express-rate-limit": "^7.1.5",
+    "flutterwave-node-v3": "^1.1.0"
   }
 }

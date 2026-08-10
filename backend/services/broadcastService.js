@@ -1,6 +1,6 @@
 // PoleSafe — Broadcast Service
 // Multi-channel notification system for school announcements
-// One tap → parents (app + SMS) + drivers (app + route update)
+// One tap → parents (app + SMS) + drivers (app + route update) + teachers
 
 const { Broadcast, School, Ride } = require('../database/schema');
 const smsService = require('./smsService');
@@ -13,70 +13,99 @@ class BroadcastService {
    * @param {object} params
    * @param {string} params.schoolId
    * @param {string} params.adminId
-   * @param {string} params.type - half_day | school_closed | emergency | reminder | custom
+   * @param {string} params.type - half_day | school_closed | emergency | reminder | custom | meeting | event
    * @param {string} params.message
    * @param {string} [params.newPickupTime] - For half_day: "12:00 PM" — auto-adjusts driver routes
+   * @param {string} [params.targetGroups] - 'all', 'parents', 'teachers', 'specific_class', 'morning_only', 'afternoon_only'
    * @returns {object} Broadcast result
    */
-  async sendBroadcast({ schoolId, adminId, type, message, newPickupTime }) {
+  async sendBroadcast({ schoolId, adminId, type, message, newPickupTime, targetGroups }) {
     const school = await School.findById(schoolId).lean();
     if (!school) throw new Error('School not found');
 
-    // 1. Find all parents with kids at this school
     const Child = require('mongoose').model('Child');
     const kids = await Child.find({ schoolId }).populate('parentId').lean();
     const parentIds = [...new Set(kids.map(k => k.parentId?._id?.toString()).filter(Boolean))];
 
-    // 2. Find all drivers with active rides for this school
+    // Find teachers (school admin users)
+    const User = require('mongoose').model('User');
+    const teachers = await User.find({ 
+      _id: { $in: school.adminIds },
+      role: 'school_admin',
+    }).lean();
+
+    // Find drivers
     const drivers = await Ride.distinct('driverId', {
       schoolId,
       status: { $in: ['scheduled', 'en_route', 'picked_up'] },
     });
 
-    // 3. If half day with new pickup time, auto-adjust driver routes
+    // Half-day route adjustment
     if (type === 'half_day' && newPickupTime) {
       await this.adjustDriverRoutes(schoolId, newPickupTime);
     }
 
-    // 4. Send push notifications to app users
-    // (App push handled by the mobile app's notification service)
+    // Determine who to notify
+    let notifyParents = targetGroups === 'all' || targetGroups === 'parents' || targetGroups === 'specific_class';
+    let notifyTeachers = targetGroups === 'all' || targetGroups === 'teachers';
+    let notifyDrivers = targetGroups === 'all' || targetGroups === 'parents';
 
-    // 5. Send SMS to basic phone parents
-    const basicPhoneKids = kids.filter(k => k.parentId && !k.parentId.hasSmartphone);
-    const smsResults = [];
-    for (const kid of basicPhoneKids) {
-      try {
-        const result = await smsService.send({
-          to: kid.parentId.phone,
-          message: `${school.name}: ${message} -PoleSafe`,
-        });
-        smsResults.push(result);
-      } catch (err) {
-        console.warn(`SMS failed for ${kid.parentId.phone}:`, err.message);
+    // Send SMS to basic phone parents
+    let smsCount = 0;
+    if (notifyParents) {
+      const basicPhoneKids = kids.filter(k => k.parentId && !k.parentId.hasSmartphone);
+      for (const kid of basicPhoneKids) {
+        try {
+          await smsService.send({
+            to: kid.parentId.phone,
+            message: `${school.name}: ${message} -PoleSafe`,
+          });
+          smsCount++;
+        } catch (err) {
+          console.warn(`SMS failed for ${kid.parentId.phone}:`, err.message);
+        }
       }
     }
 
-    // 6. Save broadcast record
+    // Send SMS to teachers (basic phone)
+    if (notifyTeachers) {
+      for (const teacher of teachers) {
+        if (!teacher.hasSmartphone) {
+          try {
+            await smsService.send({
+              to: teacher.phone,
+              message: `${school.name} (Staff): ${message} -PoleSafe`,
+            });
+            smsCount++;
+          } catch (err) { console.warn(err.message); }
+        }
+      }
+    }
+
+    // Save broadcast record
     const broadcast = await Broadcast.create({
       schoolId,
       sentByAdminId: adminId,
       type,
       message,
       newPickupTime: newPickupTime || null,
-      sentToParents: true,
-      sentToDrivers: true,
-      sentViaSMS: basicPhoneKids.length > 0,
+      sentToParents: notifyParents,
+      sentToDrivers: notifyDrivers,
+      sentToTeachers: notifyTeachers,
+      sentViaSMS: smsCount > 0,
       sentViaApp: true,
-      parentCount: parentIds.length,
-      driverCount: drivers.length,
-      smsCount: smsResults.length,
+      parentCount: notifyParents ? parentIds.length : 0,
+      teacherCount: notifyTeachers ? teachers.length : 0,
+      driverCount: notifyDrivers ? drivers.length : 0,
+      smsCount,
     });
 
     return {
       broadcast,
-      notifiedParents: parentIds.length,
-      notifiedDrivers: drivers.length,
-      smsSent: smsResults.length,
+      notifiedParents: notifyParents ? parentIds.length : 0,
+      notifiedDrivers: notifyDrivers ? drivers.length : 0,
+      notifiedTeachers: notifyTeachers ? teachers.length : 0,
+      smsSent: smsCount,
       routesAdjusted: type === 'half_day' && newPickupTime ? drivers.length : 0,
     };
   }

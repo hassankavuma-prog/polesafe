@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
     enum: ['parent', 'driver', 'school_admin', 'polesafe_admin'],
     required: true,
   },
+  polesafeAdminRole: { type: String, enum: ['owner', 'support'] },  // Only for polesafe_admin role
   pin: { type: String },              // Simple PIN for SMS login
   hasSmartphone: { type: Boolean, default: true },
   preferredLanguage: { type: String, enum: ['en', 'luganda', 'swahili'], default: 'en' },
@@ -40,6 +41,11 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   lastActive: { type: Date },
+
+  // Driver-specific fields
+  driverIdNumber: { type: String },  // PoleSafe driver ID like "PS-DRV-001"
+  driverPhotoUrl: { type: String },  // photo URL for the ID badge
+  isDriverIdVerified: { type: Boolean, default: false },  // PoleSafe verified this driver's identity
 });
 
 // ============================================================
@@ -70,7 +76,14 @@ const childSchema = new mongoose.Schema({
   siblingIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Child' }],
 
   isActive: { type: Boolean, default: true },
+  status: { type: String, enum: ['pending', 'active', 'rejected'], default: 'pending' },
+  registeredBy: { type: String, enum: ['parent', 'school'], default: 'parent' },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  approvedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
+
+  // Safety: Permanent pickup word (set once, kid remembers)
+  pickupCode: { type: String },  // e.g., "Mango" — permanent word, not daily
 });
 
 // ============================================================
@@ -99,9 +112,12 @@ const schoolSchema = new mongoose.Schema({
   },
   verificationStatus: {
     type: String,
-    enum: ['pending', 'verified', 'rejected'],
+    enum: ['pending', 'verified', 'rejected', 'suspended'],
     default: 'pending',
   },
+  verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },  // Who verified this school
+  verifiedAt: { type: Date },
+  rejectionReason: { type: String },
   commissionRate: { type: Number, default: 0.05 },  // 5% for school
   hasAffiliate: { type: Boolean, default: false },    // School earns commission
   adminIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],  // At least 2 admins
@@ -198,6 +214,16 @@ const rideSchema = new mongoose.Schema({
     coordinates: { type: [Number] },
     speed: { type: Number },
   }],
+
+  // Safety features
+  pickupCode: { type: String },  // Daily pickup code for this ride
+  pickupCodeUsed: { type: Boolean, default: false },  // Driver confirmed code was said
+  classroomPickupStatus: { 
+    type: String, 
+    enum: ['pending', 'verified_by_teacher', 'completed'], 
+    default: 'pending' 
+  },  // Layer 2: Teacher verification status
+  driverVerifiedAt: { type: Date },  // When driver was verified by teacher
 
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
@@ -304,7 +330,7 @@ const broadcastSchema = new mongoose.Schema({
 
   type: {
     type: String,
-    enum: ['half_day', 'school_closed', 'emergency', 'reminder', 'custom'],
+    enum: ['half_day', 'school_closed', 'emergency', 'reminder', 'custom', 'meeting', 'event'],
     required: true,
   },
 
@@ -314,16 +340,59 @@ const broadcastSchema = new mongoose.Schema({
   // Delivery targets
   sentToParents: { type: Boolean, default: true },
   sentToDrivers: { type: Boolean, default: true },
+  sentToTeachers: { type: Boolean, default: false },
   sentViaSMS: { type: Boolean, default: true },  // For basic phone parents
   sentViaApp: { type: Boolean, default: true },
 
   // Stats
   parentCount: { type: Number },
   driverCount: { type: Number },
+  teacherCount: { type: Number },
   smsCount: { type: Number },
 
   createdAt: { type: Date, default: Date.now },
 });
+
+// ============================================================
+// ATTENDANCE — Manual attendance records for ALL kids
+// Supports both PoleSafe-tracked kids and non-PoleSafe kids
+// ============================================================
+const attendanceSchema = new mongoose.Schema({
+  schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
+  childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child', required: true },
+  date: { type: Date, required: true },
+  
+  // Attendance status
+  status: { 
+    type: String, 
+    enum: ['present', 'absent', 'late', 'sick', 'excused', 'no_ride'],
+    required: true 
+  },
+  
+  // How this was recorded
+  source: { 
+    type: String, 
+    enum: ['auto_ride', 'manual_school', 'sms_parent', 'sms_school'],
+    default: 'manual_school'
+  },
+  
+  // Who recorded it (for manual entries)
+  recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  
+  // Notes (e.g., reason for absence)
+  notes: { type: String },
+  
+  // Track times
+  arrivalTime: { type: Date },
+  departureTime: { type: Date },
+  
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+// Compound index to prevent duplicate attendance per child per day
+attendanceSchema.index({ childId: 1, date: 1 }, { unique: true });
+attendanceSchema.index({ schoolId: 1, date: 1 });
 
 // ============================================================
 // FUEL PRICE — Tracking for dynamic adjustment
@@ -346,4 +415,5 @@ module.exports = {
   Credit: mongoose.model('Credit', creditSchema),
   Broadcast: mongoose.model('Broadcast', broadcastSchema),
   FuelPrice: mongoose.model('FuelPrice', fuelPriceSchema),
+  Attendance: mongoose.model('Attendance', attendanceSchema),
 };

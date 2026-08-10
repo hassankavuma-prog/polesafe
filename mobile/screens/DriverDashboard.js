@@ -5,7 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'https://api.polesafe.ug';
+import API_BASE from '../config';
+const API_URL = API_BASE;
 
 export default function DriverDashboard({ navigation }) {
   const [route, setRoute] = useState(null);

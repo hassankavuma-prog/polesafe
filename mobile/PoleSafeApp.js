@@ -24,6 +24,11 @@ import SchoolBroadcast from './screens/SchoolBroadcast';
 import SchoolGateCheck from './screens/SchoolGateCheck';
 import SchoolDetention from './screens/SchoolDetention';
 import RideHailing from './screens/RideHailing';
+import AddChild from './screens/AddChild';
+import Settings from './screens/Settings';
+import PendingChildren from './screens/PendingChildren';
+import AttendanceReport from './screens/AttendanceReport';
+import TeacherPickupVerify from './screens/TeacherPickupVerify';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -34,32 +39,36 @@ const Tab = createBottomTabNavigator();
 function ParentTabs() {
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerStyle: { backgroundColor: '#2E7D32' },
         headerTintColor: '#fff',
         tabBarActiveTintColor: '#2E7D32',
         tabBarStyle: { paddingBottom: 5, height: 60 },
-      }}
+      })}
     >
       <Tab.Screen
         name="Home"
         component={ParentDashboard}
-        options={{ tabBarLabel: '🏠 Home', title: 'PoleSafe 🚸' }}
-      />
-      <Tab.Screen
-        name="RideHailing"
-        component={RideHailing}
-        options={{ tabBarLabel: '🚗 Ride', title: 'PoleSafe Ride' }}
+        options={{ tabBarLabel: '🏫 Kids', title: '🚸 PoleSafe Kids' }}
       />
       <Tab.Screen
         name="Booking"
         component={ParentBooking}
-        options={{ tabBarLabel: '📅 Book', title: 'Book a Ride' }}
+        options={{ tabBarLabel: '📅 School', title: '📅 School Rides' }}
+      />
+      <Tab.Screen
+        name="RideHailing"
+        component={RideHailing}
+        options={{
+          tabBarLabel: '🚗 Ride',
+          title: '🚗 PoleSafe Ride',
+          headerStyle: { backgroundColor: '#1565C0' },  // Blue — different from school green
+        }}
       />
       <Tab.Screen
         name="Credits"
         component={ParentCredits}
-        options={{ tabBarLabel: '💰 Credits', title: 'My Credits' }}
+        options={{ tabBarLabel: '💰 Credits', title: '💰 My Credits' }}
       />
     </Tab.Navigator>
   );
@@ -183,6 +192,13 @@ export default function PoleSafeApp() {
           <Stack.Screen name="TrackRide" component={ParentTrack} />
           <Stack.Screen name="SickDay" component={ParentSickDay} />
           <Stack.Screen name="EarlyPickup" component={ParentEarlyPickup} />
+          {/* Parent-only screens */}
+          <Stack.Screen name="AddChild" component={AddChild} />
+          <Stack.Screen name="Settings" component={Settings} />
+          {/* School-only screens */}
+          <Stack.Screen name="PendingChildren" component={PendingChildren} />
+          <Stack.Screen name="AttendanceReport" component={AttendanceReport} />
+          <Stack.Screen name="TeacherPickupVerify" component={TeacherPickupVerify} options={{ headerShown: true, title: 'Pickup Verification', headerStyle: { backgroundColor: '#E65100' }, headerTintColor: '#fff' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

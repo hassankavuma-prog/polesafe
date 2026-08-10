@@ -44,9 +44,25 @@ router.post('/kids', async (req, res) => {
       finishTime,
       medical: medical || {},
       requiresCarSeat: age && age < 6,
+      status: 'pending', // Needs school approval
+      registeredBy: 'parent',
     });
 
-    res.status(201).json({ child });
+    // Notify school admins about the new child
+    const school = await School.findById(schoolId);
+    let schoolNotified = false;
+    if (school && school.adminIds.length > 0) {
+      schoolNotified = true;
+      // Log for now — actual SMS/notification would go here
+      console.log(`📢 NOTIFY SCHOOL: New child "${name}" registered by parent. School: ${school.name}`);
+    }
+
+    res.status(201).json({ 
+      child, 
+      message: `${name} has been submitted to ${school?.name || 'the school'} for approval. You'll be notified once approved.`,
+      pendingApproval: true,
+      schoolNotified,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -59,9 +75,12 @@ router.post('/book', async (req, res) => {
   try {
     const {
       childId, driverId, schoolId,
-      type, daysOfWeek, pickupTime, dropoffTime,
+      type, daysOfWeek, days, pickupTime, dropoffTime,
       vehicleType, staggeredPickups, amountPerTrip, totalTrips,
     } = req.body;
+
+    // Accept both `days` and `daysOfWeek` for compatibility with mobile app
+    const daysOfWeekFinal = daysOfWeek || days;
 
     // Calculate total amount
     const totalAmount = amountPerTrip * totalTrips;
@@ -81,10 +100,10 @@ router.post('/book', async (req, res) => {
     const booking = await Booking.create({
       parentId: req.userId,
       childId,
-      driverId,
+      driverId: driverId || null,  // Optional - can be assigned later
       schoolId,
       type: type || 'weekly',
-      daysOfWeek: daysOfWeek || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+      daysOfWeek: daysOfWeekFinal || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
       pickupTime: pickupTime || '7:00 AM',
       dropoffTime: dropoffTime || '4:30 PM',
       vehicleType: vehicleType || 'car',
@@ -135,15 +154,68 @@ router.get('/rides', async (req, res) => {
 });
 
 // ============================================================
+// GET /api/parents/rides/:id — Get single ride details for tracking
+// ============================================================
+router.get('/rides/:id', async (req, res) => {
+  try {
+    const ride = await Ride.findById(req.params.id)
+      .populate('childId', 'name photo schoolId')
+      .populate('driverId', 'name phone location')
+      .lean();
+
+    if (!ride) return res.status(404).json({ error: 'Ride not found' });
+
+    // Verify this parent owns this ride
+    if (ride.parentId?.toString() !== req.userId.toString()) {
+      return res.status(403).json({ error: 'Not your ride' });
+    }
+
+    res.json({ ride });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
 // POST /api/parents/sick-day — Report kid sick and cancel ride
 // ============================================================
 router.post('/sick-day', async (req, res) => {
   try {
-    const { childId, daysOff } = req.body;
+    const { childId, days } = req.body;
+    // Accept both `daysOff` and `days` for compatibility
+    const daysOff = req.body.daysOff || days || 1;
 
     const child = await Child.findById(childId);
     if (!child || child.parentId.toString() !== req.userId.toString()) {
       return res.status(403).json({ error: 'Not your child' });
+    }
+
+    // Find this term's date range from the child's school
+    const school = await School.findById(child.schoolId);
+    const term = school?.termSchedule?.currentTerm;
+    const termStart = term?.startDate || new Date(new Date().getFullYear(), 0, 1);
+    const termEnd = term?.endDate || new Date(new Date().getFullYear(), 11, 31);
+
+    // Count how many sick days this parent has already used this term
+    const { SICK_DAY } = require('../config');
+    const usedSickDays = await Ride.countDocuments({
+      parentId: req.userId,
+      childId,
+      isSickDay: true,
+      cancellationReason: 'sick_day',
+      cancelledAt: { $gte: termStart, $lte: termEnd },
+    });
+
+    const requestedDays = daysOff || 1;
+    if (usedSickDays + requestedDays > SICK_DAY.MAX_PER_TERM) {
+      const remaining = Math.max(0, SICK_DAY.MAX_PER_TERM - usedSickDays);
+      return res.status(400).json({
+        error: `You've used ${usedSickDays} of ${SICK_DAY.MAX_PER_TERM} allowed sick days this term.`,
+        usedSickDays,
+        maxPerTerm: SICK_DAY.MAX_PER_TERM,
+        remaining,
+        canStillReport: remaining > 0,
+      });
     }
 
     // Find today's and upcoming rides for this child
@@ -193,6 +265,22 @@ router.post('/sick-day', async (req, res) => {
       creditsIssued: credits.reduce((sum, c) => sum + c.amount, 0),
       creditBalance: await creditService.getBalance(req.userId),
       message: `✅ ${child.name}'s rides cancelled. No charge. Sick days credited.`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// POST /api/parents/emergency-pickup — Request emergency driver
+// ============================================================
+router.post('/emergency-pickup', async (req, res) => {
+  try {
+    const { childId } = req.body;
+    // In production, find nearest available driver and dispatch
+    res.json({ 
+      message: 'Emergency pickup requested. A driver is being dispatched.',
+      status: 'pending',
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

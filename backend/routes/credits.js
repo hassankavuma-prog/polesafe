@@ -36,7 +36,9 @@ router.get('/', async (req, res) => {
 // POST /api/credits/redeem — Redeem credits
 router.post('/redeem', async (req, res) => {
   try {
-    const { amount, purpose } = req.body;
+    const { amount, redemptionType } = req.body;
+    // Accept both `purpose` and `redemptionType` for compatibility
+    const purpose = req.body.purpose || redemptionType;
 
     const validPurposes = ['next_term', 'pole_ride', 'cashback'];
     if (!validPurposes.includes(purpose)) {
