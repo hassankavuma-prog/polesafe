@@ -13,6 +13,7 @@ export default function SchoolDashboard({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [sendingSms, setSendingSms] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadDashboard = async () => {
     try {
@@ -38,8 +39,29 @@ export default function SchoolDashboard({ navigation }) {
     }
   };
 
-  useEffect(() => { loadDashboard(); }, []);
+  useEffect(() => { setLoading(true); loadDashboard().finally(() => setLoading(false)); }, []);
   const onRefresh = async () => { setRefreshing(true); await loadDashboard(); setRefreshing(false); };
+
+  if (loading && !refreshing) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+        <Text style={styles.loadingText}>Loading school dashboard...</Text>
+      </View>
+    );
+  }
+
+  if (!loading && !dashboard) {
+    return (
+      <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <View style={[styles.center, { paddingTop: 80 }]}>
+          <Text style={styles.emptyIcon}>🏫</Text>
+          <Text style={styles.emptyTitle}>No Data Yet</Text>
+          <Text style={styles.emptyText}>Welcome to your school dashboard. Data will appear once rides and attendance are recorded.</Text>
+        </View>
+      </ScrollView>
+    );
+  }
 
   const handleSendAttendance = async () => {
     Alert.alert(
@@ -223,4 +245,9 @@ const styles = StyleSheet.create({
   broadcastTime: { fontSize: 11, color: '#999', marginTop: 2 },
   pendingBadge: { backgroundColor: '#C62828', width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
   pendingBadgeText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  center: { justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 15, color: '#666' },
+  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#333', marginBottom: 8 },
+  emptyText: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20, lineHeight: 20, paddingHorizontal: 20 },
 });
