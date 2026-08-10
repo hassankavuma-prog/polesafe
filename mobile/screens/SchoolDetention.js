@@ -9,7 +9,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
-const ORANGE = '#E65100';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+const ORANGE = COLORS.orange;
 
 const PICKUP_REASONS = [
   { key: 'detention', emoji: '⏰', label: 'Detention', desc: 'Student in detention' },
@@ -19,6 +20,7 @@ const PICKUP_REASONS = [
 ];
 
 export default function SchoolDetention({ navigation }) {
+  const theme = getTheme();
   const [kids, setKids] = useState([]);
   const [selectedKid, setSelectedKid] = useState(null);
   const [selectedReason, setSelectedReason] = useState(null);
@@ -289,62 +291,62 @@ export default function SchoolDetention({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas },
 
   // Info
-  infoBanner: { flexDirection: 'row', backgroundColor: '#FFF3E0', borderRadius: 12, padding: 14, marginBottom: 14 },
+  infoBanner: { flexDirection: 'row', backgroundColor: COLORS.orangeBg, borderRadius: 12, padding: 14, marginBottom: 14 },
   infoEmoji: { fontSize: 28, marginRight: 12 },
   infoContent: { flex: 1 },
   infoTitle: { fontSize: 15, fontWeight: '600', color: ORANGE, marginBottom: 4 },
-  infoText: { fontSize: 12, color: '#666', lineHeight: 18 },
+  infoText: { fontSize: 12, color: COLORS.textSecondary, lineHeight: 18 },
 
   // Sections
-  section: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 12 },
+  section: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12 },
 
   // Kid selector
-  kidRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 10, marginBottom: 6, backgroundColor: '#fafafa', borderWidth: 1, borderColor: '#eee' },
-  kidRowSelected: { borderColor: ORANGE, backgroundColor: '#FFF3E0' },
+  kidRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 10, marginBottom: 6, backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: '#eee' },
+  kidRowSelected: { borderColor: ORANGE, backgroundColor: COLORS.orangeBg },
   kidAvatar: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   kidAvatarText: { fontSize: 16, fontWeight: '700', color: '#fff' },
   kidInfo: { flex: 1 },
-  kidName: { fontSize: 15, fontWeight: '600', color: '#333' },
-  kidClass: { fontSize: 12, color: '#999', marginTop: 1 },
+  kidName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  kidClass: { fontSize: 12, color: COLORS.textMuted, marginTop: 1 },
   kidCheck: { fontSize: 18 },
-  emptyText: { fontSize: 13, color: '#999', fontStyle: 'italic' },
+  emptyText: { fontSize: 13, color: COLORS.textMuted, fontStyle: 'italic' },
 
   // Reasons
   reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   reasonBtn: {
     flex: 1, minWidth: '45%', padding: 14, borderRadius: 12,
-    backgroundColor: '#fafafa', borderWidth: 1, borderColor: '#eee',
+    backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: '#eee',
     alignItems: 'center',
   },
-  reasonBtnSelected: { borderColor: ORANGE, backgroundColor: '#FFF3E0' },
+  reasonBtnSelected: { borderColor: ORANGE, backgroundColor: COLORS.orangeBg },
   reasonEmoji: { fontSize: 24, marginBottom: 6 },
-  reasonLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 2 },
+  reasonLabel: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 2 },
   reasonLabelSelected: { color: ORANGE },
-  reasonDesc: { fontSize: 11, color: '#999' },
+  reasonDesc: { fontSize: 11, color: COLORS.textMuted },
 
   // Time Picker
   timeContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
   timeColumn: { alignItems: 'center' },
   timeArrowBtn: { padding: 8 },
   timeArrowText: { fontSize: 16, color: ORANGE, fontWeight: '600' },
-  timeValueBox: { backgroundColor: '#FFF3E0', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: ORANGE },
+  timeValueBox: { backgroundColor: COLORS.orangeBg, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: ORANGE },
   timeValue: { fontSize: 32, fontWeight: '700', color: ORANGE },
-  timeSeparator: { fontSize: 28, fontWeight: '700', color: '#333', marginBottom: 40 },
+  timeSeparator: { fontSize: 28, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 40 },
   ampmBox: { backgroundColor: '#f0f0f0', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginBottom: 40 },
-  ampmText: { fontSize: 14, fontWeight: '600', color: '#666' },
+  ampmText: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
 
   // Summary
-  summaryCard: { backgroundColor: '#FFF3E0', borderRadius: 12, padding: 16, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: ORANGE },
+  summaryCard: { backgroundColor: COLORS.orangeBg, borderRadius: 12, padding: 16, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: ORANGE },
   summaryTitle: { fontSize: 14, fontWeight: '600', color: ORANGE, marginBottom: 8 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  summaryLabel: { fontSize: 13, color: '#666' },
-  summaryValue: { fontSize: 14, fontWeight: '600', color: '#333' },
-  summaryNote: { fontSize: 12, color: '#666', marginTop: 8, fontStyle: 'italic' },
+  summaryLabel: { fontSize: 13, color: COLORS.textSecondary },
+  summaryValue: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  summaryNote: { fontSize: 12, color: COLORS.textSecondary, marginTop: 8, fontStyle: 'italic' },
 
   // Update
   updateBtn: { backgroundColor: ORANGE, padding: 18, borderRadius: 12, alignItems: 'center', elevation: 2 },

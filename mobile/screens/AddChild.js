@@ -8,8 +8,10 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 
 export default function AddChild({ navigation }) {
+  const theme = getTheme();
   const [loading, setLoading] = useState(false);
   const [schools, setSchools] = useState([]);
   const [loadingSchools, setLoadingSchools] = useState(true);
@@ -209,14 +211,14 @@ export default function AddChild({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: COLORS.canvas },
   scrollView: { flex: 1, padding: 16 },
   header: { alignItems: 'center', marginBottom: 24, marginTop: 8 },
   headerEmoji: { fontSize: 56, marginBottom: 8 },
-  headerTitle: { fontSize: 24, fontWeight: '700', color: '#333' },
-  headerSub: { fontSize: 13, color: '#999', marginTop: 4, textAlign: 'center' },
+  headerTitle: { fontSize: 24, fontWeight: '700', color: COLORS.textPrimary },
+  headerSub: { fontSize: 13, color: COLORS.textMuted, marginTop: 4, textAlign: 'center' },
 
-  section: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
+  section: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
   label: { fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 8 },
   input: {
     borderWidth: 1,
@@ -224,8 +226,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     fontSize: 15,
-    color: '#333',
-    backgroundColor: '#fafafa',
+    color: COLORS.textPrimary,
+    backgroundColor: COLORS.surfaceElevated,
   },
   textArea: {
     height: 80,
@@ -238,23 +240,23 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 10,
     marginBottom: 8,
-    backgroundColor: '#fafafa',
+    backgroundColor: COLORS.surfaceElevated,
     borderWidth: 1,
     borderColor: '#eee',
   },
   schoolOptionSelected: {
-    borderColor: '#2E7D32',
-    backgroundColor: '#E8F5E9',
+    borderColor: COLORS.green,
+    backgroundColor: COLORS.greenBg,
   },
   schoolInfo: { flex: 1 },
-  schoolName: { fontSize: 15, fontWeight: '600', color: '#333' },
-  schoolLocation: { fontSize: 12, color: '#999', marginTop: 2 },
+  schoolName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  schoolLocation: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   checkMark: { fontSize: 18 },
 
-  emptyText: { fontSize: 13, color: '#999', fontStyle: 'italic', textAlign: 'center', paddingVertical: 12 },
+  emptyText: { fontSize: 13, color: COLORS.textMuted, fontStyle: 'italic', textAlign: 'center', paddingVertical: 12 },
 
   submitBtn: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: COLORS.green,
     padding: 18,
     borderRadius: 12,
     alignItems: 'center',

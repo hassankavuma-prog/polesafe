@@ -9,9 +9,11 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
-const ORANGE = '#E65100';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+const ORANGE = COLORS.orange;
 
 export default function SchoolGateCheck({ navigation }) {
+  const theme = getTheme();
   const [arrivals, setArrivals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -112,7 +114,7 @@ export default function SchoolGateCheck({ navigation }) {
         </View>
         <View style={styles.progressStats}>
           <View style={styles.progressStat}>
-            <Text style={[styles.progressNum, { color: '#2E7D32' }]}>{arrived}</Text>
+            <Text style={[styles.progressNum, { color: COLORS.green }]}>{arrived}</Text>
             <Text style={styles.progressLabel}>Arrived ✅</Text>
           </View>
           <View style={styles.progressStat}>
@@ -120,7 +122,7 @@ export default function SchoolGateCheck({ navigation }) {
             <Text style={styles.progressLabel}>Pending ⏳</Text>
           </View>
           <View style={styles.progressStat}>
-            <Text style={[styles.progressNum, { color: '#C62828' }]}>{missing}</Text>
+            <Text style={[styles.progressNum, { color: COLORS.red }]}>{missing}</Text>
             <Text style={styles.progressLabel}>Missing ❓</Text>
           </View>
         </View>
@@ -156,7 +158,7 @@ export default function SchoolGateCheck({ navigation }) {
                 {/* Photo Placeholder */}
                 <View style={[
                   styles.photoPlaceholder,
-                  { backgroundColor: isReceived ? '#E8F5E9' : isMissing ? '#FFEBEE' : '#FFF3E0' },
+                  { backgroundColor: isReceived ? COLORS.greenBg : isMissing ? COLORS.redBg : COLORS.orangeBg },
                 ]}>
                   <Text style={styles.photoText}>
                     {(kid.name || '?').charAt(0)}
@@ -229,7 +231,7 @@ export default function SchoolGateCheck({ navigation }) {
                   style={styles.processedBtn}
                   onPress={() => handleStatus(item._id, 'received')}
                 >
-                  <Text style={[styles.processedBtnText, { color: '#2E7D32' }]}>
+                  <Text style={[styles.processedBtnText, { color: COLORS.green }]}>
                     ✅ Mark as Received
                   </Text>
                 </TouchableOpacity>
@@ -245,33 +247,33 @@ export default function SchoolGateCheck({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
-  loadingText: { marginTop: 12, color: '#666', fontSize: 14 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas },
+  loadingText: { marginTop: 12, color: COLORS.textSecondary, fontSize: 14 },
 
   // Progress
-  progressCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 14, elevation: 2 },
-  progressTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 4 },
-  progressCount: { fontSize: 13, color: '#666', marginBottom: 12 },
+  progressCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 2 },
+  progressTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
+  progressCount: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 12 },
   progressBar: { height: 10, backgroundColor: '#f0f0f0', borderRadius: 5, overflow: 'hidden', marginBottom: 12 },
   progressFill: { height: '100%', backgroundColor: ORANGE, borderRadius: 5 },
   progressStats: { flexDirection: 'row', justifyContent: 'space-around' },
   progressStat: { alignItems: 'center' },
   progressNum: { fontSize: 24, fontWeight: '700' },
-  progressLabel: { fontSize: 11, color: '#666', marginTop: 2 },
+  progressLabel: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
 
   // Section
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12 },
 
   // Empty
-  emptyCard: { backgroundColor: '#fff', borderRadius: 12, padding: 32, alignItems: 'center', elevation: 1 },
+  emptyCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 32, alignItems: 'center', elevation: 1 },
   emptyEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 14, color: '#999' },
+  emptyText: { fontSize: 14, color: COLORS.textMuted },
 
   // Arrival Card
-  arrivalCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2 },
-  arrivalReceived: { borderLeftWidth: 4, borderLeftColor: '#2E7D32' },
-  arrivalMissing: { borderLeftWidth: 4, borderLeftColor: '#C62828' },
+  arrivalCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2 },
+  arrivalReceived: { borderLeftWidth: 4, borderLeftColor: COLORS.green },
+  arrivalMissing: { borderLeftWidth: 4, borderLeftColor: COLORS.red },
   arrivalRow: { flexDirection: 'row', alignItems: 'center' },
 
   // Photo
@@ -283,11 +285,11 @@ const styles = StyleSheet.create({
 
   // Info
   arrivalInfo: { flex: 1 },
-  arrivalName: { fontSize: 16, fontWeight: '600', color: '#333' },
-  arrivalClass: { fontSize: 12, color: '#999', marginTop: 1 },
+  arrivalName: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary },
+  arrivalClass: { fontSize: 12, color: COLORS.textMuted, marginTop: 1 },
   arrivalDriver: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  arrivalDriverText: { fontSize: 12, color: '#666', flex: 1 },
-  arrivalTime: { fontSize: 11, color: '#999' },
+  arrivalDriverText: { fontSize: 12, color: COLORS.textSecondary, flex: 1 },
+  arrivalTime: { fontSize: 11, color: COLORS.textMuted },
 
   // Status
   statusReceived: { fontSize: 22 },
@@ -297,9 +299,9 @@ const styles = StyleSheet.create({
   // Actions
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   actionBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
-  receivedBtn: { backgroundColor: '#2E7D32' },
-  missingBtn: { backgroundColor: '#C62828' },
+  receivedBtn: { backgroundColor: COLORS.green },
+  missingBtn: { backgroundColor: COLORS.red },
   actionBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   processedBtn: { alignItems: 'center', marginTop: 8 },
-  processedBtnText: { fontSize: 13, color: '#999', fontWeight: '500' },
+  processedBtnText: { fontSize: 13, color: COLORS.textMuted, fontWeight: '500' },
 });

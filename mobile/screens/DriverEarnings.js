@@ -9,9 +9,11 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
-const BLUE = '#1565C0';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+const BLUE = COLORS.blue;
 
 export default function DriverEarnings({ navigation }) {
+  const theme = getTheme();
   const [earnings, setEarnings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,7 +91,7 @@ export default function DriverEarnings({ navigation }) {
 
       {/* Weekly / Monthly Summary */}
       <View style={styles.summaryRow}>
-        <View style={[styles.summaryCard, { backgroundColor: '#E3F2FD' }]}>
+        <View style={[styles.summaryCard, { backgroundColor: COLORS.blueBg }]}>
           <Text style={styles.summaryIcon}>📅</Text>
           <Text style={styles.summaryLabel}>Weekly</Text>
           <Text style={[styles.summaryAmount, { color: BLUE }]}>
@@ -97,10 +99,10 @@ export default function DriverEarnings({ navigation }) {
           </Text>
           <Text style={styles.summaryTrips}>{weekly.trips || 0} trips</Text>
         </View>
-        <View style={[styles.summaryCard, { backgroundColor: '#E8F5E9' }]}>
+        <View style={[styles.summaryCard, { backgroundColor: COLORS.greenBg }]}>
           <Text style={styles.summaryIcon}>📆</Text>
           <Text style={styles.summaryLabel}>Monthly</Text>
-          <Text style={[styles.summaryAmount, { color: '#2E7D32' }]}>
+          <Text style={[styles.summaryAmount, { color: COLORS.green }]}>
             {formatCurrency(monthly.total || 0)} UGX
           </Text>
           <Text style={styles.summaryTrips}>{monthly.trips || 0} trips</Text>
@@ -150,7 +152,7 @@ export default function DriverEarnings({ navigation }) {
           <View style={styles.perfBox}>
             <Text style={styles.perfEmoji}>🎖️</Text>
             <Text style={styles.perfLabel}>Bonus</Text>
-            <Text style={[styles.perfValue, { color: '#2E7D32' }]}>
+            <Text style={[styles.perfValue, { color: COLORS.green }]}>
               {formatCurrency(earnings?.bonus || 0)} UGX
             </Text>
           </View>
@@ -207,9 +209,9 @@ export default function DriverEarnings({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
-  loadingText: { marginTop: 12, color: '#666', fontSize: 14 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas },
+  loadingText: { marginTop: 12, color: COLORS.textSecondary, fontSize: 14 },
 
   // Today
   todayCard: { backgroundColor: BLUE, borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 14, elevation: 4 },
@@ -221,13 +223,13 @@ const styles = StyleSheet.create({
   summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   summaryCard: { flex: 1, padding: 16, borderRadius: 12, alignItems: 'center' },
   summaryIcon: { fontSize: 24, marginBottom: 4 },
-  summaryLabel: { fontSize: 13, fontWeight: '500', color: '#666' },
+  summaryLabel: { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary },
   summaryAmount: { fontSize: 20, fontWeight: '700', marginTop: 4 },
-  summaryTrips: { fontSize: 11, color: '#999', marginTop: 2 },
+  summaryTrips: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
 
   // Section
-  section: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 12 },
+  section: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12 },
 
   // Breakdown
   breakdownRow: { flexDirection: 'row', alignItems: 'stretch' },
@@ -235,35 +237,35 @@ const styles = StyleSheet.create({
   breakdownDivider: { width: 1, backgroundColor: '#eee', marginHorizontal: 12 },
   breakdownItem: { alignItems: 'center' },
   breakdownIcon: { fontSize: 24, marginBottom: 4 },
-  breakdownLabel: { fontSize: 12, color: '#999', marginBottom: 4 },
-  breakdownAmount: { fontSize: 16, fontWeight: '700', color: '#333' },
+  breakdownLabel: { fontSize: 12, color: COLORS.textMuted, marginBottom: 4 },
+  breakdownAmount: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
 
   // Performance
   perfRow: { flexDirection: 'row', justifyContent: 'space-around' },
   perfBox: { alignItems: 'center' },
   perfEmoji: { fontSize: 24, marginBottom: 4 },
-  perfLabel: { fontSize: 12, color: '#999', marginBottom: 2 },
+  perfLabel: { fontSize: 12, color: COLORS.textMuted, marginBottom: 2 },
   perfValue: { fontSize: 18, fontWeight: '700', color: BLUE },
 
   // History
-  historyCard: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 14, elevation: 1 },
+  historyCard: { backgroundColor: COLORS.surface, borderRadius: 12, marginBottom: 14, elevation: 1 },
   historyRow: {
     flexDirection: 'row', alignItems: 'center', padding: 14,
     borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
   },
   historyLeft: { flex: 1 },
-  historyDate: { fontSize: 13, fontWeight: '500', color: '#333' },
+  historyDate: { fontSize: 13, fontWeight: '500', color: COLORS.textPrimary },
   historyType: { marginTop: 2 },
-  historyTypeText: { fontSize: 11, color: '#999' },
+  historyTypeText: { fontSize: 11, color: COLORS.textMuted },
   historyMiddle: { marginHorizontal: 12 },
-  historyTrips: { fontSize: 13, color: '#666' },
-  historyEarnings: { fontSize: 15, fontWeight: '700', color: '#333' },
+  historyTrips: { fontSize: 13, color: COLORS.textSecondary },
+  historyEarnings: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
 
   // Empty
-  emptyCard: { backgroundColor: '#fff', borderRadius: 12, padding: 24, alignItems: 'center', marginBottom: 14, elevation: 1 },
-  emptyText: { fontSize: 14, color: '#999' },
+  emptyCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 24, alignItems: 'center', marginBottom: 14, elevation: 1 },
+  emptyText: { fontSize: 14, color: COLORS.textMuted },
 
   // Withdraw
-  withdrawBtn: { backgroundColor: '#fff', padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 2, borderColor: BLUE },
+  withdrawBtn: { backgroundColor: COLORS.surface, padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 2, borderColor: BLUE },
   withdrawBtnText: { color: BLUE, fontSize: 16, fontWeight: '600' },
 });

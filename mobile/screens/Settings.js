@@ -8,8 +8,10 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 
 export default function Settings({ navigation }) {
+  const theme = getTheme();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -191,17 +193,17 @@ export default function Settings({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.canvas,
   },
 
   // Profile Card
   profileCard: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
@@ -212,26 +214,26 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#2E7D32',
+    backgroundColor: COLORS.green,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
   avatarText: { fontSize: 36, color: '#fff', fontWeight: '700' },
-  profileName: { fontSize: 22, fontWeight: '700', color: '#333' },
-  profilePhone: { fontSize: 14, color: '#999', marginTop: 4 },
+  profileName: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary },
+  profilePhone: { fontSize: 14, color: COLORS.textMuted, marginTop: 4 },
   roleBadge: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: COLORS.greenBg,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     marginTop: 10,
   },
-  roleBadgeText: { fontSize: 12, fontWeight: '700', color: '#2E7D32', letterSpacing: 0.5 },
+  roleBadgeText: { fontSize: 12, fontWeight: '700', color: COLORS.green, letterSpacing: 0.5 },
 
   // Section
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 14,
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#999',
+    color: COLORS.textMuted,
     textTransform: 'uppercase',
     marginBottom: 12,
     letterSpacing: 0.5,
@@ -254,8 +256,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  infoLabel: { fontSize: 14, color: '#666' },
-  infoValue: { fontSize: 14, fontWeight: '600', color: '#333', maxWidth: '60%', textAlign: 'right' },
+  infoLabel: { fontSize: 14, color: COLORS.textSecondary },
+  infoValue: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, maxWidth: '60%', textAlign: 'right' },
 
   // Setting Rows
   settingRow: {
@@ -266,8 +268,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   settingInfo: { flex: 1 },
-  settingLabel: { fontSize: 15, fontWeight: '600', color: '#333' },
-  settingSub: { fontSize: 12, color: '#999', marginTop: 2 },
+  settingLabel: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  settingSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   settingArrow: { fontSize: 18, color: '#ccc' },
 
   placeholderNote: {
@@ -280,7 +282,7 @@ const styles = StyleSheet.create({
 
   // Logout
   logoutBtn: {
-    backgroundColor: '#C62828',
+    backgroundColor: COLORS.red,
     padding: 18,
     borderRadius: 12,
     alignItems: 'center',

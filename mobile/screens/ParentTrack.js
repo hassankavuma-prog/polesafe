@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import StatusBadge from '../components/StatusBadge';
 
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 
 /**
  * Timeline steps for a school ride
@@ -23,6 +24,7 @@ const TIMELINE_STEPS = [
 ];
 
 export default function ParentTrack({ navigation, route }) {
+  const theme = getTheme();
   const rideId = route?.params?.rideId;
   const [ride, setRide] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
@@ -280,18 +282,18 @@ export default function ParentTrack({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5', padding: 32 },
-  loadingText: { marginTop: 12, color: '#666', fontSize: 14 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas, padding: 32 },
+  loadingText: { marginTop: 12, color: COLORS.textSecondary, fontSize: 14 },
   errorIcon: { fontSize: 48, marginBottom: 12 },
-  errorText: { fontSize: 15, color: '#C62828', textAlign: 'center', marginBottom: 16 },
-  emptyText: { fontSize: 15, color: '#999', textAlign: 'center' },
-  retryBtn: { backgroundColor: '#2E7D32', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
+  errorText: { fontSize: 15, color: COLORS.red, textAlign: 'center', marginBottom: 16 },
+  emptyText: { fontSize: 15, color: COLORS.textMuted, textAlign: 'center' },
+  retryBtn: { backgroundColor: COLORS.green, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
   retryText: { color: '#fff', fontWeight: '600' },
 
   // Map Placeholder
   mapPlaceholder: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: COLORS.greenBg,
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
@@ -301,56 +303,56 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   mapEmoji: { fontSize: 48, marginBottom: 8 },
-  mapTitle: { fontSize: 18, fontWeight: '700', color: '#2E7D32' },
-  mapSub: { fontSize: 12, color: '#666', marginBottom: 12 },
-  coordBox: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginBottom: 8 },
+  mapTitle: { fontSize: 18, fontWeight: '700', color: COLORS.green },
+  mapSub: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 12 },
+  coordBox: { backgroundColor: COLORS.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginBottom: 8 },
   coordText: { fontSize: 12, color: '#555', fontFamily: Platform?.OS === 'ios' ? 'Menlo' : 'monospace' },
-  etaBox: { backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
-  etaLabel: { fontSize: 11, color: '#999', textAlign: 'center' },
-  etaValue: { fontSize: 18, fontWeight: '800', color: '#2E7D32', textAlign: 'center' },
+  etaBox: { backgroundColor: COLORS.surface, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
+  etaLabel: { fontSize: 11, color: COLORS.textMuted, textAlign: 'center' },
+  etaValue: { fontSize: 18, fontWeight: '800', color: COLORS.green, textAlign: 'center' },
 
   // Driver Card
-  driverCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
-  cardTitle: { fontSize: 14, fontWeight: '600', color: '#999', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  driverCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
+  cardTitle: { fontSize: 14, fontWeight: '600', color: COLORS.textMuted, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   driverInfoRow: { flexDirection: 'row', alignItems: 'center' },
-  driverAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#1565C0', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  driverAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.blue, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   driverAvatarText: { fontSize: 22, color: '#fff', fontWeight: '700' },
   driverDetails: { flex: 1 },
-  driverName: { fontSize: 17, fontWeight: '700', color: '#333' },
-  driverPhone: { fontSize: 13, color: '#1565C0', marginTop: 2 },
-  driverVehicle: { fontSize: 13, color: '#666', marginTop: 2 },
+  driverName: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
+  driverPhone: { fontSize: 13, color: COLORS.blue, marginTop: 2 },
+  driverVehicle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
 
   // Kid Card
-  kidCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
+  kidCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
   kidRow: { flexDirection: 'row', alignItems: 'center' },
-  kidAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#2E7D32', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  kidAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.green, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   kidAvatarText: { fontSize: 18, color: '#fff', fontWeight: '700' },
   kidInfo: { flex: 1 },
   kidName: { fontSize: 16, fontWeight: '600' },
-  kidSchool: { fontSize: 12, color: '#666', marginTop: 2 },
+  kidSchool: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
 
   // Info Card
-  infoCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
+  infoCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  infoLabel: { fontSize: 13, color: '#999' },
-  infoValue: { fontSize: 13, fontWeight: '500', color: '#333', maxWidth: '60%', textAlign: 'right' },
+  infoLabel: { fontSize: 13, color: COLORS.textMuted },
+  infoValue: { fontSize: 13, fontWeight: '500', color: COLORS.textPrimary, maxWidth: '60%', textAlign: 'right' },
 
   // Timeline
-  timelineCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
+  timelineCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
   timelineStep: { flexDirection: 'row', alignItems: 'flex-start', minHeight: 44 },
   timelineLeft: { alignItems: 'center', width: 24, marginRight: 12 },
   timelineDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#e0e0e0', marginTop: 4 },
-  timelineDotCompleted: { backgroundColor: '#2E7D32' },
-  timelineDotCurrent: { backgroundColor: '#2E7D32', width: 18, height: 18, borderRadius: 9, marginTop: 2 },
+  timelineDotCompleted: { backgroundColor: COLORS.green },
+  timelineDotCurrent: { backgroundColor: COLORS.green, width: 18, height: 18, borderRadius: 9, marginTop: 2 },
   timelineLine: { width: 2, flex: 1, backgroundColor: '#e0e0e0', marginVertical: 2 },
-  timelineLineCompleted: { backgroundColor: '#2E7D32' },
+  timelineLineCompleted: { backgroundColor: COLORS.green },
   timelineContent: { flex: 1, paddingBottom: 8 },
   timelineLabel: { fontSize: 14, color: '#bbb', fontWeight: '500' },
-  timelineLabelCompleted: { color: '#333' },
-  timelineLabelCurrent: { color: '#2E7D32', fontWeight: '700' },
-  timelineCurrent: { fontSize: 11, color: '#2E7D32', fontWeight: '600', marginTop: 2 },
+  timelineLabelCompleted: { color: COLORS.textPrimary },
+  timelineLabelCurrent: { color: COLORS.green, fontWeight: '700' },
+  timelineCurrent: { fontSize: 11, color: COLORS.green, fontWeight: '600', marginTop: 2 },
 
   // Contact
-  contactBtn: { backgroundColor: '#2E7D32', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 4 },
+  contactBtn: { backgroundColor: COLORS.green, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 4 },
   contactBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

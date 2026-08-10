@@ -9,9 +9,11 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 const MAX_SICK_DAYS = 3;
 
 export default function ParentSickDay({ navigation, route }) {
+  const theme = getTheme();
   const childId = route?.params?.childId;
   const childName = route?.params?.childName || 'your child';
 
@@ -167,11 +169,11 @@ export default function ParentSickDay({ navigation, route }) {
             <Text style={styles.counterLabel}>Used</Text>
           </View>
           <View style={styles.counterItem}>
-            <Text style={[styles.counterNum, { color: '#2E7D32' }]}>{daysRemaining}</Text>
+            <Text style={[styles.counterNum, { color: COLORS.green }]}>{daysRemaining}</Text>
             <Text style={styles.counterLabel}>Remaining</Text>
           </View>
           <View style={styles.counterItem}>
-            <Text style={[styles.counterNum, { color: '#999' }]}>{sickDaysTotal}</Text>
+            <Text style={[styles.counterNum, { color: COLORS.textMuted }]}>{sickDaysTotal}</Text>
             <Text style={styles.counterLabel}>Total</Text>
           </View>
         </View>
@@ -181,7 +183,7 @@ export default function ParentSickDay({ navigation, route }) {
             style={[
               styles.progressFill,
               { width: `${Math.min((sickDaysUsed / 3) * 100, 100)}%` },
-              daysRemaining < 1 && { backgroundColor: '#C62828' },
+              daysRemaining < 1 && { backgroundColor: COLORS.red },
             ]}
           />
         </View>
@@ -299,36 +301,36 @@ export default function ParentSickDay({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas },
 
   // Profile
-  profileCard: { backgroundColor: '#fff', borderRadius: 12, padding: 20, alignItems: 'center', marginBottom: 14, elevation: 2 },
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#2E7D32', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  profileCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 20, alignItems: 'center', marginBottom: 14, elevation: 2 },
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: COLORS.green, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
   avatarText: { fontSize: 28, color: '#fff', fontWeight: '700' },
-  profileName: { fontSize: 20, fontWeight: '700', color: '#333' },
-  profileClass: { fontSize: 13, color: '#999', marginTop: 2 },
+  profileName: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary },
+  profileClass: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
 
   // Counter
-  counterCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
-  counterTitle: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 12 },
+  counterCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
+  counterTitle: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 12 },
   counterRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12 },
   counterItem: { alignItems: 'center' },
-  counterNum: { fontSize: 28, fontWeight: '700', color: '#C62828' },
-  counterLabel: { fontSize: 12, color: '#666', marginTop: 2 },
+  counterNum: { fontSize: 28, fontWeight: '700', color: COLORS.red },
+  counterLabel: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   progressBar: { height: 8, backgroundColor: '#f0f0f0', borderRadius: 4, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#2E7D32', borderRadius: 4 },
+  progressFill: { height: '100%', backgroundColor: COLORS.green, borderRadius: 4 },
 
   // Section
-  section: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 12 },
+  section: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12 },
 
   // Date
   dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
   dateArrow: { backgroundColor: '#f0f0f0', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  dateArrowText: { fontSize: 20, fontWeight: '600', color: '#2E7D32' },
-  dateDisplay: { backgroundColor: '#E8F5E9', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  dateText: { fontSize: 18, fontWeight: '700', color: '#2E7D32' },
+  dateArrowText: { fontSize: 20, fontWeight: '600', color: COLORS.green },
+  dateDisplay: { backgroundColor: COLORS.greenBg, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  dateText: { fontSize: 18, fontWeight: '700', color: COLORS.green },
 
   // Days
   daysGrid: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -336,25 +338,25 @@ const styles = StyleSheet.create({
     flex: 1, marginHorizontal: 4, paddingVertical: 16, borderRadius: 12,
     backgroundColor: '#f0f0f0', alignItems: 'center',
   },
-  dayNumBtnSelected: { backgroundColor: '#2E7D32' },
-  dayNumText: { fontSize: 24, fontWeight: '700', color: '#666' },
+  dayNumBtnSelected: { backgroundColor: COLORS.green },
+  dayNumText: { fontSize: 24, fontWeight: '700', color: COLORS.textSecondary },
   dayNumTextSelected: { color: '#fff' },
-  dayNumUnit: { fontSize: 11, color: '#999', marginTop: 2 },
-  dayNumUnitSelected: { color: '#E8F5E9' },
+  dayNumUnit: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  dayNumUnitSelected: { color: COLORS.greenBg },
 
   // Summary
-  summaryCard: { backgroundColor: '#E8F5E9', borderRadius: 12, padding: 16, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: '#2E7D32' },
-  summaryTitle: { fontSize: 14, fontWeight: '600', color: '#2E7D32', marginBottom: 8 },
-  summaryText: { fontSize: 13, color: '#333', marginBottom: 4 },
-  warningBox: { backgroundColor: '#FFEBEE', padding: 10, borderRadius: 8, marginTop: 8 },
-  warningText: { fontSize: 12, color: '#C62828', fontWeight: '500' },
+  summaryCard: { backgroundColor: COLORS.greenBg, borderRadius: 12, padding: 16, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: COLORS.green },
+  summaryTitle: { fontSize: 14, fontWeight: '600', color: COLORS.green, marginBottom: 8 },
+  summaryText: { fontSize: 13, color: COLORS.textPrimary, marginBottom: 4 },
+  warningBox: { backgroundColor: COLORS.redBg, padding: 10, borderRadius: 8, marginTop: 8 },
+  warningText: { fontSize: 12, color: COLORS.red, fontWeight: '500' },
 
   // Submit
-  submitBtn: { backgroundColor: '#2E7D32', padding: 18, borderRadius: 12, alignItems: 'center' },
+  submitBtn: { backgroundColor: COLORS.green, padding: 18, borderRadius: 12, alignItems: 'center' },
   btnDisabled: { opacity: 0.6 },
   submitBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  input: { backgroundColor: '#f9f9f9', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#333' },
+  input: { backgroundColor: '#f9f9f9', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: COLORS.textPrimary },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
-  errorBox: { backgroundColor: '#FFEBEE', borderRadius: 10, padding: 12, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: '#C62828' },
-  errorText: { fontSize: 13, color: '#C62828', fontWeight: '500' },
+  errorBox: { backgroundColor: COLORS.redBg, borderRadius: 10, padding: 12, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: COLORS.red },
+  errorText: { fontSize: 13, color: COLORS.red, fontWeight: '500' },
 });

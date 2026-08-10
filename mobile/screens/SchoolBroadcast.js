@@ -9,11 +9,12 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
-const ORANGE = '#E65100';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+const ORANGE = COLORS.orange;
 
 const QUICK_TYPES = [
   { key: 'half_day', emoji: '🚩', label: 'HALF DAY', color: '#FF9800' },
-  { key: 'school_closed', emoji: '❄️', label: 'CLOSED', color: '#C62828' },
+  { key: 'school_closed', emoji: '❄️', label: 'CLOSED', color: COLORS.red },
   { key: 'emergency', emoji: '🚨', label: 'EMERGENCY', color: '#D32F2F' },
   { key: 'meeting', emoji: '📅', label: 'MEETING', color: '#7B1FA2' },
   { key: 'reminder', emoji: '📢', label: 'REMINDER', color: '#1976D2' },
@@ -30,6 +31,7 @@ const RECIPIENT_OPTIONS = [
 ];
 
 export default function SchoolBroadcast({ navigation }) {
+  const theme = getTheme();
   const [selectedType, setSelectedType] = useState(null);
   const [customMessage, setCustomMessage] = useState('');
   const [recipients, setRecipients] = useState('all');
@@ -204,8 +206,8 @@ export default function SchoolBroadcast({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 12 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12 },
 
   // Quick Buttons
   quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
@@ -220,13 +222,13 @@ const styles = StyleSheet.create({
   quickLabel: { fontSize: 12, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
 
   // Section
-  section: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
+  section: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
 
   // Message Input
   messageInput: {
     borderWidth: 1, borderColor: '#ddd', borderRadius: 10,
-    padding: 14, fontSize: 15, color: '#333', minHeight: 100,
-    backgroundColor: '#fafafa',
+    padding: 14, fontSize: 15, color: COLORS.textPrimary, minHeight: 100,
+    backgroundColor: COLORS.surfaceElevated,
   },
   charCount: { fontSize: 11, color: '#bbb', textAlign: 'right', marginTop: 4 },
 
@@ -237,24 +239,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10,
     borderRadius: 20, backgroundColor: '#f0f0f0',
   },
-  recipientBtnSelected: { backgroundColor: '#FFF3E0', borderWidth: 1, borderColor: ORANGE },
+  recipientBtnSelected: { backgroundColor: COLORS.orangeBg, borderWidth: 1, borderColor: ORANGE },
   recipientIcon: { fontSize: 16, marginRight: 6 },
-  recipientLabel: { fontSize: 13, fontWeight: '500', color: '#666' },
+  recipientLabel: { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary },
   recipientLabelSelected: { color: ORANGE, fontWeight: '600' },
   classInput: {
     borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    padding: 12, fontSize: 14, marginTop: 10, backgroundColor: '#fafafa',
+    padding: 12, fontSize: 14, marginTop: 10, backgroundColor: COLORS.surfaceElevated,
   },
 
   // Preview
   previewCard: {
-    backgroundColor: '#FFF3E0', borderRadius: 12, padding: 16,
+    backgroundColor: COLORS.orangeBg, borderRadius: 12, padding: 16,
     marginBottom: 14, borderLeftWidth: 4, borderLeftColor: ORANGE,
   },
   previewTitle: { fontSize: 12, fontWeight: '600', color: ORANGE, textTransform: 'uppercase', marginBottom: 4 },
-  previewType: { fontSize: 12, color: '#999', marginBottom: 6 },
-  previewMessage: { fontSize: 15, color: '#333', lineHeight: 22, marginBottom: 8 },
-  previewRecipients: { fontSize: 12, color: '#666', fontStyle: 'italic' },
+  previewType: { fontSize: 12, color: COLORS.textMuted, marginBottom: 6 },
+  previewMessage: { fontSize: 15, color: COLORS.textPrimary, lineHeight: 22, marginBottom: 8 },
+  previewRecipients: { fontSize: 12, color: COLORS.textSecondary, fontStyle: 'italic' },
 
   // Send
   sendBtn: { backgroundColor: ORANGE, padding: 18, borderRadius: 12, alignItems: 'center', elevation: 2 },

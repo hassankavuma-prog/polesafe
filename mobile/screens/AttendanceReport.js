@@ -5,8 +5,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 
 export default function AttendanceReport({ navigation }) {
+  const theme = getTheme();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,11 +42,11 @@ export default function AttendanceReport({ navigation }) {
 
   const getStatusColor = (attendance) => {
     switch (attendance) {
-      case 'present': return '#2E7D32';
-      case 'absent': return '#C62828';
-      case 'late': return '#E65100';
-      case 'sick': return '#6A1B9A';
-      case 'excused': return '#0277BD';
+      case 'present': return COLORS.green;
+      case 'absent': return COLORS.red;
+      case 'late': return COLORS.orange;
+      case 'sick': return COLORS.purple;
+      case 'excused': return COLORS.teal;
       case 'no_data': return '#999';
       default: return '#999';
     }
@@ -80,20 +82,20 @@ export default function AttendanceReport({ navigation }) {
 
       {/* Stats Grid */}
       <View style={styles.statsGrid}>
-        <View style={[styles.statBox, { backgroundColor: '#E8F5E9' }]}>
-          <Text style={[styles.statNum, { color: '#2E7D32' }]}>{stats.present || 0}</Text>
+        <View style={[styles.statBox, { backgroundColor: COLORS.greenBg }]}>
+          <Text style={[styles.statNum, { color: COLORS.green }]}>{stats.present || 0}</Text>
           <Text style={styles.statLabel}>Present ✅</Text>
         </View>
-        <View style={[styles.statBox, { backgroundColor: '#FFEBEE' }]}>
-          <Text style={[styles.statNum, { color: '#C62828' }]}>{stats.absent || 0}</Text>
+        <View style={[styles.statBox, { backgroundColor: COLORS.redBg }]}>
+          <Text style={[styles.statNum, { color: COLORS.red }]}>{stats.absent || 0}</Text>
           <Text style={styles.statLabel}>Absent ❌</Text>
         </View>
-        <View style={[styles.statBox, { backgroundColor: '#FFF3E0' }]}>
-          <Text style={[styles.statNum, { color: '#E65100' }]}>{stats.late || 0}</Text>
+        <View style={[styles.statBox, { backgroundColor: COLORS.orangeBg }]}>
+          <Text style={[styles.statNum, { color: COLORS.orange }]}>{stats.late || 0}</Text>
           <Text style={styles.statLabel}>Late ⏰</Text>
         </View>
-        <View style={[styles.statBox, { backgroundColor: '#F3E5F5' }]}>
-          <Text style={[styles.statNum, { color: '#6A1B9A' }]}>{stats.sick || 0}</Text>
+        <View style={[styles.statBox, { backgroundColor: COLORS.purpleBg }]}>
+          <Text style={[styles.statNum, { color: COLORS.purple }]}>{stats.sick || 0}</Text>
           <Text style={styles.statLabel}>Sick 🤒</Text>
         </View>
       </View>
@@ -170,33 +172,33 @@ export default function AttendanceReport({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
-  title: { fontSize: 22, fontWeight: '700', color: '#333', marginBottom: 4 },
-  dateText: { fontSize: 13, color: '#999', marginBottom: 16 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas },
+  title: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
+  dateText: { fontSize: 13, color: COLORS.textMuted, marginBottom: 16 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   statBox: { flex: 1, minWidth: '47%', padding: 14, borderRadius: 12, alignItems: 'center' },
   statNum: { fontSize: 28, fontWeight: '700' },
-  statLabel: { fontSize: 11, color: '#666', marginTop: 4 },
-  trackingInfo: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 16, elevation: 1 },
+  statLabel: { fontSize: 11, color: COLORS.textSecondary, marginTop: 4 },
+  trackingInfo: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 14, marginBottom: 16, elevation: 1 },
   trackingRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  trackingLabel: { fontSize: 13, color: '#666' },
-  trackingValue: { fontSize: 13, fontWeight: '600', color: '#333' },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: '#333' },
-  kidCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 8, elevation: 1 },
+  trackingLabel: { fontSize: 13, color: COLORS.textSecondary },
+  trackingValue: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: COLORS.textPrimary },
+  kidCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 14, marginBottom: 8, elevation: 1 },
   kidHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  kidAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1565C0', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  kidAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.blue, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
   kidAvatarText: { fontSize: 18, color: '#fff', fontWeight: '700' },
   kidInfo: { flex: 1 },
-  kidName: { fontSize: 16, fontWeight: '600', color: '#333' },
-  kidClass: { fontSize: 12, color: '#999', marginTop: 2 },
+  kidName: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary },
+  kidClass: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   statusBadge: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   statusIcon: { fontSize: 18 },
   kidDetails: { paddingLeft: 50 },
-  detailText: { fontSize: 12, color: '#666', marginBottom: 3 },
-  pendingBadge: { backgroundColor: '#FFF3E0', borderRadius: 6, padding: 6, marginTop: 4, alignSelf: 'flex-start' },
-  pendingText: { fontSize: 11, fontWeight: '600', color: '#E65100' },
-  helpCard: { backgroundColor: '#E3F2FD', borderRadius: 12, padding: 16, marginTop: 8 },
-  helpTitle: { fontSize: 14, fontWeight: '600', color: '#1565C0', marginBottom: 8 },
-  helpText: { fontSize: 12, color: '#333', lineHeight: 18 },
+  detailText: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 3 },
+  pendingBadge: { backgroundColor: COLORS.orangeBg, borderRadius: 6, padding: 6, marginTop: 4, alignSelf: 'flex-start' },
+  pendingText: { fontSize: 11, fontWeight: '600', color: COLORS.orange },
+  helpCard: { backgroundColor: COLORS.blueBg, borderRadius: 12, padding: 16, marginTop: 8 },
+  helpTitle: { fontSize: 14, fontWeight: '600', color: COLORS.blue, marginBottom: 8 },
+  helpText: { fontSize: 12, color: COLORS.textPrimary, lineHeight: 18 },
 });

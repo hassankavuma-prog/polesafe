@@ -6,9 +6,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, A
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+import GlassCard from '../components/GlassCard';
+import PrimaryButton from '../components/PrimaryButton';
 const API_URL = API_BASE;
 
 export default function SchoolDashboard({ navigation }) {
+  const theme = getTheme();
   const [dashboard, setDashboard] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
@@ -45,7 +49,7 @@ export default function SchoolDashboard({ navigation }) {
   if (loading && !refreshing) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#2E7D32" />
+        <ActivityIndicator size="large" color={COLORS.green} />
         <Text style={styles.loadingText}>Loading school dashboard...</Text>
       </View>
     );
@@ -103,16 +107,16 @@ export default function SchoolDashboard({ navigation }) {
 
       {/* Attendance Stats */}
       <View style={styles.attendanceGrid}>
-        <View style={[styles.attendBox, { backgroundColor: '#E8F5E9' }]}>
-          <Text style={[styles.attendNum, { color: '#2E7D32' }]}>{attendance.arrived || 0}</Text>
+        <View style={[styles.attendBox, { backgroundColor: COLORS.greenBg }]}>
+          <Text style={[styles.attendNum, { color: COLORS.green }]}>{attendance.arrived || 0}</Text>
           <Text style={styles.attendLabel}>Arrived ✅</Text>
         </View>
-        <View style={[styles.attendBox, { backgroundColor: '#FFF3E0' }]}>
-          <Text style={[styles.attendNum, { color: '#E65100' }]}>{attendance.onRoute || 0}</Text>
+        <View style={[styles.attendBox, { backgroundColor: COLORS.orangeBg }]}>
+          <Text style={[styles.attendNum, { color: COLORS.orange }]}>{attendance.onRoute || 0}</Text>
           <Text style={styles.attendLabel}>On Route 🚗</Text>
         </View>
-        <View style={[styles.attendBox, { backgroundColor: '#FFEBEE' }]}>
-          <Text style={[styles.attendNum, { color: '#C62828' }]}>{attendance.missing || 0}</Text>
+        <View style={[styles.attendBox, { backgroundColor: COLORS.redBg }]}>
+          <Text style={[styles.attendNum, { color: COLORS.red }]}>{attendance.missing || 0}</Text>
           <Text style={styles.attendLabel}>Missing ❓</Text>
         </View>
       </View>
@@ -185,7 +189,7 @@ export default function SchoolDashboard({ navigation }) {
           <Text style={styles.actionTitle}>Send Attendance SMS</Text>
           <Text style={styles.actionSub}>End-of-day attendance report to all parents via SMS</Text>
         </View>
-        {sendingSms && <ActivityIndicator color="#E65100" size="small" />}
+        {sendingSms && <ActivityIndicator color={COLORS.orange} size="small" />}
         <Text style={styles.arrow}>→</Text>
       </TouchableOpacity>
 
@@ -221,33 +225,33 @@ export default function SchoolDashboard({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  schoolName: { fontSize: 22, fontWeight: '700', color: '#333' },
-  dateText: { fontSize: 13, color: '#999', marginBottom: 16 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  schoolName: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary },
+  dateText: { fontSize: 13, color: COLORS.textMuted, marginBottom: 16 },
   attendanceGrid: { flexDirection: 'row', gap: 8, marginBottom: 24 },
   attendBox: { flex: 1, padding: 16, borderRadius: 12, alignItems: 'center' },
   attendNum: { fontSize: 32, fontWeight: '700' },
-  attendLabel: { fontSize: 12, color: '#666', marginTop: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: '#333' },
-  actionCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 8, elevation: 1 },
+  attendLabel: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: COLORS.textPrimary },
+  actionCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 8, elevation: 1 },
   actionIcon: { fontSize: 28, marginRight: 14 },
   actionContent: { flex: 1 },
   actionTitle: { fontSize: 15, fontWeight: '600' },
-  actionSub: { fontSize: 12, color: '#999', marginTop: 2 },
+  actionSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   arrow: { fontSize: 18, color: '#ccc' },
-  sickCard: { backgroundColor: '#FFF3E0', borderRadius: 12, padding: 16, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#E65100' },
-  sickTitle: { fontSize: 15, fontWeight: '600', color: '#E65100' },
-  sickSub: { fontSize: 12, color: '#666', marginTop: 4 },
-  broadcastRow: { flexDirection: 'row', backgroundColor: '#fff', padding: 12, borderRadius: 8, marginBottom: 8 },
+  sickCard: { backgroundColor: COLORS.orangeBg, borderRadius: 12, padding: 16, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: COLORS.orange },
+  sickTitle: { fontSize: 15, fontWeight: '600', color: COLORS.orange },
+  sickSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
+  broadcastRow: { flexDirection: 'row', backgroundColor: COLORS.surface, padding: 12, borderRadius: 8, marginBottom: 8 },
   broadcastIcon: { fontSize: 20, marginRight: 10 },
   broadcastInfo: { flex: 1 },
-  broadcastMsg: { fontSize: 13, color: '#333' },
-  broadcastTime: { fontSize: 11, color: '#999', marginTop: 2 },
-  pendingBadge: { backgroundColor: '#C62828', width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
+  broadcastMsg: { fontSize: 13, color: COLORS.textPrimary },
+  broadcastTime: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  pendingBadge: { backgroundColor: COLORS.red, width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
   pendingBadgeText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   center: { justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 15, color: '#666' },
+  loadingText: { marginTop: 12, fontSize: 15, color: COLORS.textSecondary },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#333', marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20, lineHeight: 20, paddingHorizontal: 20 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8 },
+  emptyText: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 20, lineHeight: 20, paddingHorizontal: 20 },
 });

@@ -9,9 +9,11 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 const API_URL = API_BASE;
 
 export default function ParentDashboard({ navigation }) {
+  const theme = getTheme();
   const [kids, setKids] = useState([]);
   const [rides, setRides] = useState([]);
   const [creditBalance, setCreditBalance] = useState(0);
@@ -279,56 +281,56 @@ function getStatusEmoji(status) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
   modeToggle: { flexDirection: 'row', backgroundColor: '#e0e0e0', borderRadius: 12, marginBottom: 16, padding: 4 },
   modeBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-  modeActive: { backgroundColor: '#2E7D32' },
-  modeText: { fontSize: 14, fontWeight: '600', color: '#666' },
+  modeActive: { backgroundColor: COLORS.green },
+  modeText: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
   modeTextActive: { color: '#fff' },
   creditBanner: { backgroundColor: '#FFF8E1', padding: 14, borderRadius: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#FFB300' },
-  creditText: { fontSize: 15, fontWeight: '600', color: '#333' },
-  creditSub: { fontSize: 12, color: '#666', marginTop: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, marginTop: 8, color: '#333' },
-  kidCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
+  creditText: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  creditSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, marginTop: 8, color: COLORS.textPrimary },
+  kidCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
   kidHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   kidName: { fontSize: 17, fontWeight: '600' },
-  kidClass: { fontSize: 13, color: '#666', backgroundColor: '#f0f0f0', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  noRide: { color: '#999', fontSize: 13, fontStyle: 'italic' },
+  kidClass: { fontSize: 13, color: COLORS.textSecondary, backgroundColor: '#f0f0f0', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  noRide: { color: COLORS.textMuted, fontSize: 13, fontStyle: 'italic' },
   rideRow: { borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 10 },
   rideType: { fontSize: 14, fontWeight: '500' },
-  rideStatus: { fontSize: 13, color: '#666', marginVertical: 4 },
+  rideStatus: { fontSize: 13, color: COLORS.textSecondary, marginVertical: 4 },
   quickActions: { flexDirection: 'row', gap: 8, marginTop: 6 },
   actionBtn: { backgroundColor: '#f0f0f0', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   actionText: { fontSize: 13, fontWeight: '500' },
   weekGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  dayBox: { flex: 1, backgroundColor: '#fff', padding: 12, marginHorizontal: 2, borderRadius: 8, alignItems: 'center', elevation: 1 },
-  todayBox: { backgroundColor: '#E8F5E9', borderWidth: 1, borderColor: '#2E7D32' },
-  dayLabel: { fontSize: 12, fontWeight: '600', color: '#666' },
-  todayLabel: { color: '#2E7D32' },
+  dayBox: { flex: 1, backgroundColor: COLORS.surface, padding: 12, marginHorizontal: 2, borderRadius: 8, alignItems: 'center', elevation: 1 },
+  todayBox: { backgroundColor: COLORS.greenBg, borderWidth: 1, borderColor: COLORS.green },
+  dayLabel: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
+  todayLabel: { color: COLORS.green },
   dayStatus: { fontSize: 18, marginTop: 6 },
-  bookBtn: { backgroundColor: '#2E7D32', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
+  bookBtn: { backgroundColor: COLORS.green, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
   bookBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   
   // Pickup Code Section
-  codeSection: { backgroundColor: '#FFF3E0', borderRadius: 10, padding: 12, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#FF9800' },
-  codeTitle: { fontSize: 14, fontWeight: '700', color: '#E65100', marginBottom: 4 },
-  codeHint: { fontSize: 11, color: '#666', marginBottom: 8, lineHeight: 16 },
-  currentCodeCard: { backgroundColor: '#fff', borderRadius: 8, padding: 10, marginBottom: 8, borderWidth: 1, borderColor: '#FFB300' },
-  currentCodeLabel: { fontSize: 11, color: '#999', marginBottom: 2 },
-  currentCode: { fontSize: 24, fontWeight: '800', color: '#E65100', marginBottom: 6 },
+  codeSection: { backgroundColor: COLORS.orangeBg, borderRadius: 10, padding: 12, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#FF9800' },
+  codeTitle: { fontSize: 14, fontWeight: '700', color: COLORS.orange, marginBottom: 4 },
+  codeHint: { fontSize: 11, color: COLORS.textSecondary, marginBottom: 8, lineHeight: 16 },
+  currentCodeCard: { backgroundColor: COLORS.surface, borderRadius: 8, padding: 10, marginBottom: 8, borderWidth: 1, borderColor: '#FFB300' },
+  currentCodeLabel: { fontSize: 11, color: COLORS.textMuted, marginBottom: 2 },
+  currentCode: { fontSize: 24, fontWeight: '800', color: COLORS.orange, marginBottom: 6 },
   codeInstruction: { fontSize: 11, color: '#555', lineHeight: 15, fontStyle: 'italic' },
-  noCode: { fontSize: 12, color: '#999', marginBottom: 8, fontStyle: 'italic' },
+  noCode: { fontSize: 12, color: COLORS.textMuted, marginBottom: 8, fontStyle: 'italic' },
   codeActions: { gap: 6 },
   randomCodeBtn: { backgroundColor: '#FF9800', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
   customCodeRow: { flexDirection: 'row', gap: 6 },
-  codeInput: { flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14 },
-  setCodeBtn: { backgroundColor: '#4CAF50', paddingHorizontal: 20, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  codeInput: { flex: 1, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14 },
+  setCodeBtn: { backgroundColor: COLORS.greenLight, paddingHorizontal: 20, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   btnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   center: { justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 15, color: '#666' },
+  loadingText: { marginTop: 12, fontSize: 15, color: COLORS.textSecondary },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#333', marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20, lineHeight: 20 },
-  addBtn: { backgroundColor: '#2E7D32', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8 },
+  emptyText: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
+  addBtn: { backgroundColor: COLORS.green, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12 },
   addBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

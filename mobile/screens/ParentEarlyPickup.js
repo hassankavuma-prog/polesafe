@@ -9,8 +9,10 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 
 export default function ParentEarlyPickup({ navigation, route }) {
+  const theme = getTheme();
   const childId = route?.params?.childId;
   const childName = route?.params?.childName || 'your child';
   const [ride, setRide] = useState(null);
@@ -187,7 +189,7 @@ export default function ParentEarlyPickup({ navigation, route }) {
         onPress={handleSendDriver}
         disabled={actionLoading !== null}
       >
-        <View style={[styles.optionIconWrap, { backgroundColor: '#E3F2FD' }]}>
+        <View style={[styles.optionIconWrap, { backgroundColor: COLORS.blueBg }]}>
           <Text style={styles.optionIcon}>🚗</Text>
         </View>
         <View style={styles.optionContent}>
@@ -212,7 +214,7 @@ export default function ParentEarlyPickup({ navigation, route }) {
         onPress={handleKeepAtSchool}
         disabled={actionLoading !== null}
       >
-        <View style={[styles.optionIconWrap, { backgroundColor: '#E8F5E9' }]}>
+        <View style={[styles.optionIconWrap, { backgroundColor: COLORS.greenBg }]}>
           <Text style={styles.optionIcon}>🏫</Text>
         </View>
         <View style={styles.optionContent}>
@@ -245,39 +247,39 @@ export default function ParentEarlyPickup({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas },
 
   // Header
   header: { alignItems: 'center', marginBottom: 20, marginTop: 8 },
-  headerAvatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#2E7D32', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  headerAvatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: COLORS.green, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
   headerAvatarText: { fontSize: 32, color: '#fff', fontWeight: '700' },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: '#333' },
-  headerSub: { fontSize: 14, color: '#999', marginTop: 2 },
+  headerTitle: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary },
+  headerSub: { fontSize: 14, color: COLORS.textMuted, marginTop: 2 },
 
   // Info
-  infoCard: { backgroundColor: '#E3F2FD', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  infoCard: { backgroundColor: COLORS.blueBg, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   infoIcon: { fontSize: 20, marginRight: 10 },
-  infoText: { flex: 1, fontSize: 13, color: '#333', lineHeight: 18 },
+  infoText: { flex: 1, fontSize: 13, color: COLORS.textPrimary, lineHeight: 18 },
 
   // Options
   optionCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12,
+    backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 12,
     flexDirection: 'row', alignItems: 'center', elevation: 2,
   },
   optionIconWrap: {
     width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#FFF3E0', justifyContent: 'center', alignItems: 'center', marginRight: 14,
+    backgroundColor: COLORS.orangeBg, justifyContent: 'center', alignItems: 'center', marginRight: 14,
   },
   optionIcon: { fontSize: 24 },
   optionContent: { flex: 1 },
-  optionTitle: { fontSize: 16, fontWeight: '700', color: '#333' },
-  optionDesc: { fontSize: 12, color: '#999', marginTop: 2 },
-  optionEffect: { fontSize: 11, color: '#C62828', marginTop: 4, fontWeight: '500' },
+  optionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+  optionDesc: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
+  optionEffect: { fontSize: 11, color: COLORS.red, marginTop: 4, fontWeight: '500' },
   optionArrow: { fontSize: 20, color: '#ccc' },
 
   // Ride Details
-  rideCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, elevation: 1 },
-  rideCardTitle: { fontSize: 14, fontWeight: '600', color: '#999', marginBottom: 8, textTransform: 'uppercase' },
-  rideDetail: { fontSize: 14, color: '#333', marginBottom: 4 },
+  rideCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, elevation: 1 },
+  rideCardTitle: { fontSize: 14, fontWeight: '600', color: COLORS.textMuted, marginBottom: 8, textTransform: 'uppercase' },
+  rideDetail: { fontSize: 14, color: COLORS.textPrimary, marginBottom: 4 },
 });

@@ -9,9 +9,11 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
-const BLUE = '#1565C0';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+const BLUE = COLORS.blue;
 
 export default function DriverRoute({ navigation }) {
+  const theme = getTheme();
   const [route, setRoute] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -151,11 +153,11 @@ export default function DriverRoute({ navigation }) {
   const getStatusBadge = (status) => {
     const config = {
       scheduled: { emoji: '⏳', color: '#9E9E9E', bg: '#F5F5F5' },
-      en_route: { emoji: '🚗', color: BLUE, bg: '#E3F2FD' },
-      picked_up: { emoji: '👧', color: '#E65100', bg: '#FFF3E0' },
-      dropped_off: { emoji: '📍', color: '#7B1FA2', bg: '#F3E5F5' },
-      gate_confirmed: { emoji: '✅', color: '#2E7D32', bg: '#E8F5E9' },
-      completed: { emoji: '✅', color: '#2E7D32', bg: '#E8F5E9' },
+      en_route: { emoji: '🚗', color: BLUE, bg: COLORS.blueBg },
+      picked_up: { emoji: '👧', color: COLORS.orange, bg: COLORS.orangeBg },
+      dropped_off: { emoji: '📍', color: '#7B1FA2', bg: COLORS.purpleBg },
+      gate_confirmed: { emoji: '✅', color: COLORS.green, bg: COLORS.greenBg },
+      completed: { emoji: '✅', color: COLORS.green, bg: COLORS.greenBg },
     };
     return config[status] || config.scheduled;
   };
@@ -356,11 +358,11 @@ function StopRow({ stop, index, isNext, isCompleted, getStatusBadge }) {
 function StatusBadgeInline({ status }) {
   const config = {
     scheduled: { emoji: '⏳', color: '#9E9E9E', bg: '#F5F5F5' },
-    en_route: { emoji: '🚗', color: BLUE, bg: '#E3F2FD' },
-    picked_up: { emoji: '👧', color: '#E65100', bg: '#FFF3E0' },
-    dropped_off: { emoji: '📍', color: '#7B1FA2', bg: '#F3E5F5' },
-    gate_confirmed: { emoji: '✅', color: '#2E7D32', bg: '#E8F5E9' },
-    completed: { emoji: '✅', color: '#2E7D32', bg: '#E8F5E9' },
+    en_route: { emoji: '🚗', color: BLUE, bg: COLORS.blueBg },
+    picked_up: { emoji: '👧', color: COLORS.orange, bg: COLORS.orangeBg },
+    dropped_off: { emoji: '📍', color: '#7B1FA2', bg: COLORS.purpleBg },
+    gate_confirmed: { emoji: '✅', color: COLORS.green, bg: COLORS.greenBg },
+    completed: { emoji: '✅', color: COLORS.green, bg: COLORS.greenBg },
   };
   const c = config[status] || config.scheduled;
   return (
@@ -373,17 +375,17 @@ function StatusBadgeInline({ status }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
-  loadingText: { marginTop: 12, color: '#666', fontSize: 14 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas },
+  loadingText: { marginTop: 12, color: COLORS.textSecondary, fontSize: 14 },
 
   // Header
-  headerCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 14, elevation: 2 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 12 },
+  headerCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 2 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12 },
   headerStats: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12 },
   headerStat: { alignItems: 'center' },
-  headerStatNum: { fontSize: 28, fontWeight: '700', color: '#2E7D32' },
-  headerStatLabel: { fontSize: 11, color: '#666', marginTop: 2 },
+  headerStatNum: { fontSize: 28, fontWeight: '700', color: COLORS.green },
+  headerStatLabel: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   progressBar: { height: 6, backgroundColor: '#f0f0f0', borderRadius: 3, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: BLUE, borderRadius: 3 },
 
@@ -393,52 +395,52 @@ const styles = StyleSheet.create({
   nextBtn: { backgroundColor: BLUE, padding: 18, borderRadius: 12, alignItems: 'center', marginBottom: 14, elevation: 2 },
   nextBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   btnDisabled: { opacity: 0.6 },
-  completeBanner: { backgroundColor: '#E8F5E9', padding: 18, borderRadius: 12, alignItems: 'center', marginBottom: 14, borderWidth: 2, borderColor: '#2E7D32' },
-  completeText: { fontSize: 18, fontWeight: '700', color: '#2E7D32' },
+  completeBanner: { backgroundColor: COLORS.greenBg, padding: 18, borderRadius: 12, alignItems: 'center', marginBottom: 14, borderWidth: 2, borderColor: COLORS.green },
+  completeText: { fontSize: 18, fontWeight: '700', color: COLORS.green },
 
   // Current Stop
   currentStopCard: {
-    backgroundColor: '#E3F2FD', borderRadius: 12, padding: 16, marginBottom: 14,
+    backgroundColor: COLORS.blueBg, borderRadius: 12, padding: 16, marginBottom: 14,
     borderLeftWidth: 4, borderLeftColor: BLUE,
   },
   currentLabel: { fontSize: 11, fontWeight: '700', color: BLUE, letterSpacing: 1, marginBottom: 4 },
-  currentName: { fontSize: 20, fontWeight: '700', color: '#333' },
-  currentTime: { fontSize: 14, color: '#666', marginTop: 2 },
+  currentName: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary },
+  currentTime: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
   currentBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginTop: 6 },
   currentBadgeText: { fontSize: 12, fontWeight: '600' },
 
   // Timeline
-  timelineCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, elevation: 1 },
-  timelineTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 12 },
-  emptyText: { fontSize: 14, color: '#999', fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 },
+  timelineCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, elevation: 1 },
+  timelineTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12 },
+  emptyText: { fontSize: 14, color: COLORS.textMuted, fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 },
   groupHeader: { fontSize: 14, fontWeight: '600', color: BLUE, marginBottom: 8, paddingTop: 4 },
 
   // Stop Row
   stopRow: { flexDirection: 'row', marginBottom: 8, paddingLeft: 4 },
-  stopRowNext: { backgroundColor: '#E3F2FD', borderRadius: 8, padding: 8, marginHorizontal: -8 },
+  stopRowNext: { backgroundColor: COLORS.blueBg, borderRadius: 8, padding: 8, marginHorizontal: -8 },
   timelineCol: { alignItems: 'center', width: 20, marginRight: 10 },
   timelineDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#e0e0e0', marginTop: 6 },
-  dotCompleted: { backgroundColor: '#2E7D32' },
+  dotCompleted: { backgroundColor: COLORS.green },
   dotNext: { backgroundColor: BLUE, width: 16, height: 16, borderRadius: 8, marginTop: 4 },
   timelineLine: { width: 2, flex: 1, backgroundColor: '#e0e0e0', marginTop: 2 },
-  lineCompleted: { backgroundColor: '#2E7D32' },
+  lineCompleted: { backgroundColor: COLORS.green },
   stopContent: { flex: 1 },
-  stopTime: { fontSize: 12, color: '#999', fontWeight: '500' },
-  stopName: { fontSize: 16, fontWeight: '600', color: '#333' },
-  stopSchool: { fontSize: 12, color: '#666', marginTop: 1 },
+  stopTime: { fontSize: 12, color: COLORS.textMuted, fontWeight: '500' },
+  stopName: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary },
+  stopSchool: { fontSize: 12, color: COLORS.textSecondary, marginTop: 1 },
   statusTag: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, marginTop: 4 },
   statusTagText: { fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
   
   // Driver Badge
-  badgeCard: { backgroundColor: '#E3F2FD', borderRadius: 12, padding: 14, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: BLUE },
+  badgeCard: { backgroundColor: COLORS.blueBg, borderRadius: 12, padding: 14, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: BLUE },
   badgeTitle: { fontSize: 13, fontWeight: '700', color: BLUE, marginBottom: 6 },
-  badgeId: { fontSize: 22, fontWeight: '800', color: '#1565C0', marginBottom: 4 },
-  badgeHint: { fontSize: 11, color: '#666', marginBottom: 4 },
-  badgeVerified: { fontSize: 11, fontWeight: '600', color: '#2E7D32', marginTop: 2 },
+  badgeId: { fontSize: 22, fontWeight: '800', color: COLORS.blue, marginBottom: 4 },
+  badgeHint: { fontSize: 11, color: COLORS.textSecondary, marginBottom: 4 },
+  badgeVerified: { fontSize: 11, fontWeight: '600', color: COLORS.green, marginTop: 2 },
   
   // Pickup Code in Stop
-  pickupCodeBox: { backgroundColor: '#FFF3E0', borderRadius: 6, padding: 8, marginTop: 6, borderLeftWidth: 2, borderLeftColor: '#FF9800' },
-  pickupCodeLabel: { fontSize: 12, fontWeight: '600', color: '#E65100' },
-  pickupCodeValue: { fontSize: 14, fontWeight: '800', color: '#E65100' },
-  pickupCodeHint: { fontSize: 10, color: '#666', marginTop: 2, fontStyle: 'italic' },
+  pickupCodeBox: { backgroundColor: COLORS.orangeBg, borderRadius: 6, padding: 8, marginTop: 6, borderLeftWidth: 2, borderLeftColor: '#FF9800' },
+  pickupCodeLabel: { fontSize: 12, fontWeight: '600', color: COLORS.orange },
+  pickupCodeValue: { fontSize: 14, fontWeight: '800', color: COLORS.orange },
+  pickupCodeHint: { fontSize: 10, color: COLORS.textSecondary, marginTop: 2, fontStyle: 'italic' },
 });

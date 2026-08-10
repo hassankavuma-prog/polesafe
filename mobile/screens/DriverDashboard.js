@@ -6,9 +6,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, A
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+import GlassCard from '../components/GlassCard';
+import PrimaryButton from '../components/PrimaryButton';
 const API_URL = API_BASE;
 
 export default function DriverDashboard({ navigation }) {
+  const theme = getTheme();
   const [route, setRoute] = useState(null);
   const [isAvailable, setIsAvailable] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -160,49 +164,49 @@ export default function DriverDashboard({ navigation }) {
 
 function getStatusColor(status) {
   const colors = {
-    scheduled: '#FFA726',
-    en_route: '#42A5F5',
+    scheduled: COLORS.orangeLight,
+    en_route: COLORS.blueLight,
     picked_up: '#66BB6A',
     dropped_off: '#AB47BC',
-    gate_confirmed: '#2E7D32',
+    gate_confirmed: COLORS.green,
     cancelled: '#EF5350',
-    completed: '#2E7D32',
+    completed: COLORS.green,
   };
   return colors[status] || '#999';
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  availableCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, elevation: 2 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  availableCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 16, elevation: 2 },
   toggleBtn: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 10, justifyContent: 'center' },
-  on: { backgroundColor: '#E8F5E9' },
-  off: { backgroundColor: '#FFEBEE' },
+  on: { backgroundColor: COLORS.greenBg },
+  off: { backgroundColor: COLORS.redBg },
   toggleIcon: { fontSize: 24, marginRight: 8 },
   toggleText: { fontSize: 16, fontWeight: '600' },
-  toggleHint: { fontSize: 12, color: '#999', textAlign: 'center', marginTop: 8 },
+  toggleHint: { fontSize: 12, color: COLORS.textMuted, textAlign: 'center', marginTop: 8 },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  statBox: { flex: 1, backgroundColor: '#fff', padding: 16, borderRadius: 12, alignItems: 'center', elevation: 1 },
-  statNumber: { fontSize: 28, fontWeight: '700', color: '#1565C0' },
-  statLabel: { fontSize: 12, color: '#666', marginTop: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: '#333' },
-  stopGroup: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
-  stopGroupTitle: { fontSize: 15, fontWeight: '600', marginBottom: 10, color: '#1565C0' },
+  statBox: { flex: 1, backgroundColor: COLORS.surface, padding: 16, borderRadius: 12, alignItems: 'center', elevation: 1 },
+  statNumber: { fontSize: 28, fontWeight: '700', color: COLORS.blue },
+  statLabel: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: COLORS.textPrimary },
+  stopGroup: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
+  stopGroupTitle: { fontSize: 15, fontWeight: '600', marginBottom: 10, color: COLORS.blue },
   stopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  stopNum: { fontSize: 14, fontWeight: '600', color: '#999', width: 24 },
+  stopNum: { fontSize: 14, fontWeight: '600', color: COLORS.textMuted, width: 24 },
   stopInfo: { flex: 1 },
   stopName: { fontSize: 15, fontWeight: '500' },
-  stopTime: { fontSize: 12, color: '#666' },
+  stopTime: { fontSize: 12, color: COLORS.textSecondary },
   statusDot: { width: 12, height: 12, borderRadius: 6 },
-  gapCard: { backgroundColor: '#E3F2FD', borderRadius: 12, padding: 16, marginBottom: 12 },
-  gapTitle: { fontSize: 15, fontWeight: '600', marginBottom: 8, color: '#1565C0' },
-  gapText: { fontSize: 13, color: '#333', marginBottom: 4 },
-  routeBtn: { backgroundColor: '#1565C0', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 8 },
+  gapCard: { backgroundColor: COLORS.blueBg, borderRadius: 12, padding: 16, marginBottom: 12 },
+  gapTitle: { fontSize: 15, fontWeight: '600', marginBottom: 8, color: COLORS.blue },
+  gapText: { fontSize: 13, color: COLORS.textPrimary, marginBottom: 4 },
+  routeBtn: { backgroundColor: COLORS.blue, padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 8 },
   routeBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  earningsBtn: { backgroundColor: '#fff', padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#1565C0' },
-  earningsBtnText: { color: '#1565C0', fontSize: 16, fontWeight: '600' },
+  earningsBtn: { backgroundColor: COLORS.surface, padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: COLORS.blue },
+  earningsBtnText: { color: COLORS.blue, fontSize: 16, fontWeight: '600' },
   center: { justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 15, color: '#666' },
+  loadingText: { marginTop: 12, fontSize: 15, color: COLORS.textSecondary },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#333', marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20, lineHeight: 20, paddingHorizontal: 20 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8 },
+  emptyText: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 20, lineHeight: 20, paddingHorizontal: 20 },
 });

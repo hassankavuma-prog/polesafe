@@ -9,9 +9,11 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 const UG_PHONE_REGEX = /^\+256\d{9}$/;
 
 export default function LoginScreen({ navigation }) {
+  const theme = getTheme();
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
   const [name, setName] = useState('');
@@ -331,7 +333,7 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.surface,
   },
   content: {
     flex: 1,
@@ -346,24 +348,24 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#2E7D32',
+    color: COLORS.green,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textSecondary,
     marginBottom: 40,
     textAlign: 'center',
   },
   errorBox: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: COLORS.redBg,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     width: '100%',
   },
   errorText: {
-    color: '#C62828',
+    color: COLORS.red,
     fontSize: 13,
     textAlign: 'center',
     fontWeight: '500',
@@ -375,22 +377,22 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.textPrimary,
     marginBottom: 8,
     alignSelf: 'flex-start',
   },
   hint: {
     fontSize: 13,
-    color: '#999',
+    color: COLORS.textMuted,
     marginBottom: 16,
     textAlign: 'center',
   },
   verifiedPhone: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#2E7D32',
+    color: COLORS.green,
     marginBottom: 20,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: COLORS.greenBg,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -414,7 +416,7 @@ const styles = StyleSheet.create({
   countryCodeText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.textPrimary,
   },
   input: {
     borderWidth: 1,
@@ -422,8 +424,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     fontSize: 16,
-    color: '#333',
-    backgroundColor: '#fafafa',
+    color: COLORS.textPrimary,
+    backgroundColor: COLORS.surfaceElevated,
   },
   phoneInput: {
     flex: 1,
@@ -438,7 +440,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   primaryBtn: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: COLORS.green,
     paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 12,
@@ -459,7 +461,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   linkText: {
-    color: '#2E7D32',
+    color: COLORS.green,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -476,7 +478,7 @@ const styles = StyleSheet.create({
   roleLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: COLORS.textSecondary,
     marginBottom: 10,
   },
   roleRow: {
@@ -493,15 +495,15 @@ const styles = StyleSheet.create({
     borderColor: '#f0f0f0',
   },
   roleBtnSelected: {
-    backgroundColor: '#E8F5E9',
-    borderColor: '#2E7D32',
+    backgroundColor: COLORS.greenBg,
+    borderColor: COLORS.green,
   },
   roleText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#666',
+    color: COLORS.textSecondary,
   },
   roleTextSelected: {
-    color: '#2E7D32',
+    color: COLORS.green,
   },
 });

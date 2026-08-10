@@ -9,6 +9,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 const VEHICLE_TYPES = [
   { id: 'car', label: '🚗 Car', desc: 'Private car' },
@@ -16,6 +17,7 @@ const VEHICLE_TYPES = [
 ];
 
 export default function ParentBooking({ navigation }) {
+  const theme = getTheme();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [kids, setKids] = useState([]);
@@ -349,48 +351,48 @@ export default function ParentBooking({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
-  loadingText: { marginTop: 12, color: '#666', fontSize: 14 },
-  section: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 4 },
-  sectionSub: { fontSize: 12, color: '#999', marginBottom: 12 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas },
+  loadingText: { marginTop: 12, color: COLORS.textSecondary, fontSize: 14 },
+  section: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 14, elevation: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
+  sectionSub: { fontSize: 12, color: COLORS.textMuted, marginBottom: 12 },
   dayGrid: { flexDirection: 'row', justifyContent: 'space-between' },
   dayBtn: {
     flex: 1, marginHorizontal: 3, paddingVertical: 14, borderRadius: 10,
     backgroundColor: '#f0f0f0', alignItems: 'center',
   },
-  dayBtnSelected: { backgroundColor: '#2E7D32' },
-  dayText: { fontSize: 13, fontWeight: '600', color: '#666' },
+  dayBtnSelected: { backgroundColor: COLORS.green },
+  dayText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
   dayTextSelected: { color: '#fff' },
-  dayCount: { fontSize: 12, color: '#2E7D32', fontWeight: '600', marginTop: 8, textAlign: 'center' },
+  dayCount: { fontSize: 12, color: COLORS.green, fontWeight: '600', marginTop: 8, textAlign: 'center' },
   timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, marginTop: 8 },
   timeArrow: { backgroundColor: '#f0f0f0', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  timeArrowText: { fontSize: 24, fontWeight: '600', color: '#2E7D32' },
-  timeDisplay: { backgroundColor: '#E8F5E9', paddingHorizontal: 32, paddingVertical: 12, borderRadius: 12 },
-  timeText: { fontSize: 28, fontWeight: '700', color: '#2E7D32' },
-  optionRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 10, marginBottom: 6, backgroundColor: '#fafafa', borderWidth: 1, borderColor: '#eee' },
-  optionRowSelected: { borderColor: '#2E7D32', backgroundColor: '#E8F5E9' },
+  timeArrowText: { fontSize: 24, fontWeight: '600', color: COLORS.green },
+  timeDisplay: { backgroundColor: COLORS.greenBg, paddingHorizontal: 32, paddingVertical: 12, borderRadius: 12 },
+  timeText: { fontSize: 28, fontWeight: '700', color: COLORS.green },
+  optionRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 10, marginBottom: 6, backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: '#eee' },
+  optionRowSelected: { borderColor: COLORS.green, backgroundColor: COLORS.greenBg },
   optionInfo: { flex: 1 },
-  optionName: { fontSize: 15, fontWeight: '600', color: '#333' },
-  optionSub: { fontSize: 12, color: '#999', marginTop: 2 },
+  optionName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  optionSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   checkMark: { fontSize: 18 },
   vehicleRow: { flexDirection: 'row', gap: 12 },
-  vehicleBtn: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#fafafa', borderWidth: 1, borderColor: '#eee', alignItems: 'center' },
-  vehicleBtnSelected: { borderColor: '#2E7D32', backgroundColor: '#E8F5E9' },
+  vehicleBtn: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: '#eee', alignItems: 'center' },
+  vehicleBtnSelected: { borderColor: COLORS.green, backgroundColor: COLORS.greenBg },
   vehicleLabel: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
-  vehicleLabelSelected: { color: '#2E7D32' },
-  vehicleDesc: { fontSize: 11, color: '#999' },
-  vehicleDescSelected: { color: '#666' },
-  emptyText: { fontSize: 13, color: '#999', fontStyle: 'italic', paddingVertical: 8, textAlign: 'center' },
-  addKidBtn: { backgroundColor: '#2E7D32', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, alignItems: 'center', marginTop: 12 },
+  vehicleLabelSelected: { color: COLORS.green },
+  vehicleDesc: { fontSize: 11, color: COLORS.textMuted },
+  vehicleDescSelected: { color: COLORS.textSecondary },
+  emptyText: { fontSize: 13, color: COLORS.textMuted, fontStyle: 'italic', paddingVertical: 8, textAlign: 'center' },
+  addKidBtn: { backgroundColor: COLORS.green, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, alignItems: 'center', marginTop: 12 },
   addKidBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  priceCard: { backgroundColor: '#FFF3E0', borderRadius: 12, padding: 16, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: '#FF9800' },
-  priceTitle: { fontSize: 14, fontWeight: '600', color: '#E65100', marginBottom: 8 },
-  pricePerTrip: { fontSize: 15, color: '#333', marginBottom: 4 },
-  priceTotal: { fontSize: 18, fontWeight: '700', color: '#2E7D32', marginBottom: 6 },
-  priceNote: { fontSize: 11, color: '#999', fontStyle: 'italic' },
-  bookBtn: { backgroundColor: '#2E7D32', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 4 },
+  priceCard: { backgroundColor: COLORS.orangeBg, borderRadius: 12, padding: 16, marginBottom: 14, borderLeftWidth: 4, borderLeftColor: '#FF9800' },
+  priceTitle: { fontSize: 14, fontWeight: '600', color: COLORS.orange, marginBottom: 8 },
+  pricePerTrip: { fontSize: 15, color: COLORS.textPrimary, marginBottom: 4 },
+  priceTotal: { fontSize: 18, fontWeight: '700', color: COLORS.green, marginBottom: 6 },
+  priceNote: { fontSize: 11, color: COLORS.textMuted, fontStyle: 'italic' },
+  bookBtn: { backgroundColor: COLORS.green, padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 4 },
   btnDisabled: { opacity: 0.5 },
   bookBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
 });

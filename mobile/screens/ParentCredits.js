@@ -9,8 +9,10 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 
 export default function ParentCredits({ navigation }) {
+  const theme = getTheme();
   const [balance, setBalance] = useState(0);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +123,7 @@ export default function ParentCredits({ navigation }) {
       </View>
       <Text style={[
         styles.historyAmount,
-        { color: (item.type === 'credit' || item.type === 'refund') ? '#2E7D32' : '#C62828' },
+        { color: (item.type === 'credit' || item.type === 'refund') ? COLORS.green : COLORS.red },
       ]}>
         {(item.type === 'credit' || item.type === 'refund') ? '+' : '-'}{formatCurrency(item.amount)} UGX
       </Text>
@@ -213,12 +215,12 @@ export default function ParentCredits({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas },
 
   // Balance
-  balanceCard: { backgroundColor: '#2E7D32', borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 16, elevation: 4 },
-  balanceLabel: { fontSize: 14, color: '#E8F5E9', fontWeight: '500', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
+  balanceCard: { backgroundColor: COLORS.green, borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 16, elevation: 4 },
+  balanceLabel: { fontSize: 14, color: COLORS.greenBg, fontWeight: '500', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
   balanceAmount: { fontSize: 48, fontWeight: '800', color: '#fff' },
   balanceCurrency: { fontSize: 14, color: '#A5D6A7', fontWeight: '600', marginBottom: 20 },
 
@@ -235,25 +237,25 @@ const styles = StyleSheet.create({
   noBalanceText: { fontSize: 12, color: '#A5D6A7', textAlign: 'center', lineHeight: 18 },
 
   // Info
-  infoCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, elevation: 1 },
-  infoTitle: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 10 },
+  infoCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 16, elevation: 1 },
+  infoTitle: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 10 },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 },
   infoBullet: { fontSize: 14, marginRight: 8 },
-  infoText: { flex: 1, fontSize: 13, color: '#666', lineHeight: 18 },
+  infoText: { flex: 1, fontSize: 13, color: COLORS.textSecondary, lineHeight: 18 },
 
   // Section
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: '#333' },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: COLORS.textPrimary },
 
   // History
-  historyCard: { backgroundColor: '#fff', borderRadius: 12, elevation: 1 },
+  historyCard: { backgroundColor: COLORS.surface, borderRadius: 12, elevation: 1 },
   historyRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   historyIcon: { fontSize: 18, marginRight: 10 },
   historyInfo: { flex: 1 },
-  historyReason: { fontSize: 14, fontWeight: '500', color: '#333' },
-  historyDate: { fontSize: 11, color: '#999', marginTop: 2 },
+  historyReason: { fontSize: 14, fontWeight: '500', color: COLORS.textPrimary },
+  historyDate: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
   historyAmount: { fontSize: 14, fontWeight: '700', marginLeft: 8 },
 
   // Empty
-  emptyCard: { backgroundColor: '#fff', borderRadius: 12, padding: 24, alignItems: 'center', elevation: 1 },
-  emptyText: { fontSize: 14, color: '#999' },
+  emptyCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 24, alignItems: 'center', elevation: 1 },
+  emptyText: { fontSize: 14, color: COLORS.textMuted },
 });

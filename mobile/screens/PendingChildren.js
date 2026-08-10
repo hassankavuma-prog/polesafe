@@ -5,8 +5,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 
 export default function PendingChildren({ navigation }) {
+  const theme = getTheme();
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -115,32 +117,32 @@ export default function PendingChildren({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
-  title: { fontSize: 22, fontWeight: '700', color: '#333', marginBottom: 4 },
-  subtitle: { fontSize: 13, color: '#999', marginBottom: 16 },
-  emptyCard: { backgroundColor: '#fff', borderRadius: 12, padding: 32, alignItems: 'center', elevation: 1, marginBottom: 16 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.canvas },
+  title: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
+  subtitle: { fontSize: 13, color: COLORS.textMuted, marginBottom: 16 },
+  emptyCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 32, alignItems: 'center', elevation: 1, marginBottom: 16 },
   emptyIcon: { fontSize: 40, marginBottom: 10 },
-  emptyText: { fontSize: 16, fontWeight: '600', color: '#333' },
-  emptySub: { fontSize: 12, color: '#999', marginTop: 4, textAlign: 'center' },
-  countBadge: { backgroundColor: '#1565C0', color: '#fff', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, fontSize: 13, fontWeight: '600', marginBottom: 12, alignSelf: 'flex-start', overflow: 'hidden' },
-  childCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
+  emptyText: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary },
+  emptySub: { fontSize: 12, color: COLORS.textMuted, marginTop: 4, textAlign: 'center' },
+  countBadge: { backgroundColor: COLORS.blue, color: '#fff', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, fontSize: 13, fontWeight: '600', marginBottom: 12, alignSelf: 'flex-start', overflow: 'hidden' },
+  childCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
   childHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#1565C0', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.blue, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   avatarText: { fontSize: 22, color: '#fff', fontWeight: '700' },
   childInfo: { flex: 1 },
-  childName: { fontSize: 18, fontWeight: '700', color: '#333' },
-  childClass: { fontSize: 13, color: '#999', marginTop: 2 },
-  parentInfo: { backgroundColor: '#F5F5F5', borderRadius: 8, padding: 12, marginBottom: 12 },
-  parentLabel: { fontSize: 11, color: '#999', textTransform: 'uppercase', marginBottom: 4 },
-  parentName: { fontSize: 14, fontWeight: '600', color: '#333' },
-  parentPhone: { fontSize: 13, color: '#666' },
+  childName: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  childClass: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
+  parentInfo: { backgroundColor: COLORS.canvas, borderRadius: 8, padding: 12, marginBottom: 12 },
+  parentLabel: { fontSize: 11, color: COLORS.textMuted, textTransform: 'uppercase', marginBottom: 4 },
+  parentName: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  parentPhone: { fontSize: 13, color: COLORS.textSecondary },
   actionRow: { flexDirection: 'row', gap: 10 },
-  approveBtn: { flex: 1, backgroundColor: '#E8F5E9', padding: 14, borderRadius: 10, alignItems: 'center' },
-  approveText: { fontSize: 15, fontWeight: '700', color: '#2E7D32' },
-  rejectBtn: { flex: 1, backgroundColor: '#FFEBEE', padding: 14, borderRadius: 10, alignItems: 'center' },
-  rejectText: { fontSize: 15, fontWeight: '700', color: '#C62828' },
-  infoCard: { backgroundColor: '#E3F2FD', borderRadius: 12, padding: 16, marginTop: 8 },
-  infoTitle: { fontSize: 14, fontWeight: '600', color: '#1565C0', marginBottom: 8 },
-  infoText: { fontSize: 13, color: '#333', lineHeight: 20 },
+  approveBtn: { flex: 1, backgroundColor: COLORS.greenBg, padding: 14, borderRadius: 10, alignItems: 'center' },
+  approveText: { fontSize: 15, fontWeight: '700', color: COLORS.green },
+  rejectBtn: { flex: 1, backgroundColor: COLORS.redBg, padding: 14, borderRadius: 10, alignItems: 'center' },
+  rejectText: { fontSize: 15, fontWeight: '700', color: COLORS.red },
+  infoCard: { backgroundColor: COLORS.blueBg, borderRadius: 12, padding: 16, marginTop: 8 },
+  infoTitle: { fontSize: 14, fontWeight: '600', color: COLORS.blue, marginBottom: 8 },
+  infoText: { fontSize: 13, color: COLORS.textPrimary, lineHeight: 20 },
 });

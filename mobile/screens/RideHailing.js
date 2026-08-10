@@ -9,6 +9,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
+import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 
 const VEHICLE_TYPES = [
   { id: 'car', emoji: '🚗', label: 'Car', desc: '4 seats, A/C', pricePerKm: 2500 },
@@ -24,6 +25,7 @@ const SAVED_PLACES = [
 ];
 
 export default function RideHailing({ navigation }) {
+  const theme = getTheme();
   const [searchText, setSearchText] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('car');
   const [availableDrivers, setAvailableDrivers] = useState([]);
@@ -255,7 +257,7 @@ export default function RideHailing({ navigation }) {
           >
             <View style={styles.driverRow}>
               {/* Avatar */}
-              <View style={[styles.driverAvatar, { backgroundColor: selectedDriver === driver._id ? '#2E7D32' : '#1565C0' }]}>
+              <View style={[styles.driverAvatar, { backgroundColor: selectedDriver === driver._id ? COLORS.green : COLORS.blue }]}>
                 <Text style={styles.driverAvatarText}>
                   {(driver.name || 'D').charAt(0)}
                 </Text>
@@ -318,71 +320,71 @@ export default function RideHailing({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
+  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
 
   // Search
   searchContainer: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface,
     borderRadius: 12, paddingHorizontal: 14, marginBottom: 14, elevation: 2,
   },
   searchIcon: { fontSize: 18, marginRight: 8 },
-  searchInput: { flex: 1, paddingVertical: 16, fontSize: 16, color: '#333' },
+  searchInput: { flex: 1, paddingVertical: 16, fontSize: 16, color: COLORS.textPrimary },
 
   // Saved Places
-  savedPlaces: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 14, elevation: 1 },
-  savedTitle: { fontSize: 14, fontWeight: '600', color: '#999', padding: 14, paddingBottom: 8, textTransform: 'uppercase' },
+  savedPlaces: { backgroundColor: COLORS.surface, borderRadius: 12, marginBottom: 14, elevation: 1 },
+  savedTitle: { fontSize: 14, fontWeight: '600', color: COLORS.textMuted, padding: 14, paddingBottom: 8, textTransform: 'uppercase' },
   placeRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  placeIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E8F5E9', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  placeIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.greenBg, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   placeEmoji: { fontSize: 18 },
   placeInfo: { flex: 1 },
-  placeName: { fontSize: 15, fontWeight: '600', color: '#333' },
-  placeAddress: { fontSize: 12, color: '#999', marginTop: 2 },
+  placeName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  placeAddress: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   placeArrow: { fontSize: 24, color: '#ccc' },
 
   // Section
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 10, marginTop: 4 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 10, marginTop: 4 },
 
   // Vehicles
   vehicleRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   vehicleBtn: {
-    flex: 1, padding: 12, borderRadius: 12, backgroundColor: '#fff',
+    flex: 1, padding: 12, borderRadius: 12, backgroundColor: COLORS.surface,
     alignItems: 'center', borderWidth: 2, borderColor: '#eee', elevation: 1,
   },
-  vehicleBtnSelected: { borderColor: '#2E7D32', backgroundColor: '#E8F5E9' },
+  vehicleBtnSelected: { borderColor: COLORS.green, backgroundColor: COLORS.greenBg },
   vehicleEmoji: { fontSize: 28, marginBottom: 4 },
-  vehicleLabel: { fontSize: 14, fontWeight: '600', color: '#333' },
-  vehicleLabelSelected: { color: '#2E7D32' },
-  vehicleDesc: { fontSize: 10, color: '#999', marginTop: 2 },
-  vehiclePrice: { fontSize: 11, color: '#2E7D32', fontWeight: '600', marginTop: 4 },
+  vehicleLabel: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  vehicleLabelSelected: { color: COLORS.green },
+  vehicleDesc: { fontSize: 10, color: COLORS.textMuted, marginTop: 2 },
+  vehiclePrice: { fontSize: 11, color: COLORS.green, fontWeight: '600', marginTop: 4 },
 
   // Empty
-  emptyCard: { alignItems: 'center', padding: 24, backgroundColor: '#fff', borderRadius: 12, marginBottom: 16 },
+  emptyCard: { alignItems: 'center', padding: 24, backgroundColor: COLORS.surface, borderRadius: 12, marginBottom: 16 },
   emptyEmoji: { fontSize: 48, marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#999', marginBottom: 12 },
-  retryBtn: { backgroundColor: '#2E7D32', paddingHorizontal: 24, paddingVertical: 8, borderRadius: 8 },
+  emptyText: { fontSize: 14, color: COLORS.textMuted, marginBottom: 12 },
+  retryBtn: { backgroundColor: COLORS.green, paddingHorizontal: 24, paddingVertical: 8, borderRadius: 8 },
   retryText: { color: '#fff', fontWeight: '600' },
 
   // Driver Card
-  driverCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2 },
-  driverCardSelected: { borderWidth: 2, borderColor: '#2E7D32' },
+  driverCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2 },
+  driverCardSelected: { borderWidth: 2, borderColor: COLORS.green },
   driverRow: { flexDirection: 'row', alignItems: 'center' },
   driverAvatar: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   driverAvatarText: { fontSize: 20, color: '#fff', fontWeight: '700' },
   driverInfo: { flex: 1 },
-  driverName: { fontSize: 15, fontWeight: '600', color: '#333' },
+  driverName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
   driverMeta: { flexDirection: 'row', gap: 12, marginTop: 2 },
   driverRating: { fontSize: 12, color: '#F57C00', fontWeight: '500' },
-  driverDistance: { fontSize: 12, color: '#666' },
-  driverVehicle: { fontSize: 11, color: '#999', marginTop: 2 },
+  driverDistance: { fontSize: 12, color: COLORS.textSecondary },
+  driverVehicle: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
   driverPriceBox: { alignItems: 'center', marginLeft: 8 },
-  driverPrice: { fontSize: 18, fontWeight: '700', color: '#333' },
-  driverPriceLabel: { fontSize: 10, color: '#999' },
-  driverEta: { fontSize: 11, color: '#2E7D32', fontWeight: '600', marginTop: 2 },
+  driverPrice: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  driverPriceLabel: { fontSize: 10, color: COLORS.textMuted },
+  driverEta: { fontSize: 11, color: COLORS.green, fontWeight: '600', marginTop: 2 },
   selectedBadge: { marginTop: 8, alignItems: 'center' },
-  selectedBadgeText: { fontSize: 12, color: '#2E7D32', fontWeight: '600' },
+  selectedBadgeText: { fontSize: 12, color: COLORS.green, fontWeight: '600' },
 
   // Request
-  requestBtn: { backgroundColor: '#2E7D32', padding: 18, borderRadius: 12, alignItems: 'center', elevation: 2 },
+  requestBtn: { backgroundColor: COLORS.green, padding: 18, borderRadius: 12, alignItems: 'center', elevation: 2 },
   btnDisabled: { opacity: 0.5 },
   requestBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
 });
