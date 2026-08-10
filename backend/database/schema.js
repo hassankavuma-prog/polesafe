@@ -37,6 +37,10 @@ const userSchema = new mongoose.Schema({
   bankBranch: { type: String },
   lastPayoutDate: { type: Date },          // Last Friday auto-payout date
 
+  // Push notification tokens
+  deviceToken: { type: String },                     // FCM/Expo push token
+  devicePlatform: { type: String, enum: ['ios', 'android', 'web'] }, // Device type
+
   // Notification preferences
   preferredChannel: {
     type: String,

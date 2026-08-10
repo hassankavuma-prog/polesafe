@@ -55,6 +55,14 @@ class NotificationService {
               results.email = await this.sendEmail(email, template, data);
             }
             break;
+          case 'app_push':
+            if (userId) {
+              results.app_push = await this.sendPush(userId, data);
+            } else {
+              console.warn('[Notifications] app_push skipped: no userId');
+              results.app_push = { success: false, error: 'No userId for push' };
+            }
+            break;
         }
       } catch (err) {
         console.warn(`[Notifications] ${channel} failed for ${phone}: ${err.message}`);
@@ -449,6 +457,47 @@ class NotificationService {
 
       default:
         return `<p>${data.message || 'PoleSafe notification'}</p>`;
+    }
+  }
+
+  // ============================================================
+  // PUSH — FCM / Expo push notifications
+  // ============================================================
+
+  /**
+   * Send a push notification to a user via their registered device
+   */
+  async sendPush(userId, notificationData) {
+    try {
+      const User = require('mongoose').model('User');
+      const user = await User.findById(userId).select('deviceToken devicePlatform');
+
+      if (!user || !user.deviceToken) {
+        console.log(`[Push] No device token for user ${userId}`);
+        return { success: false, error: 'No device token' };
+      }
+
+      const fcmService = require('./fcmService');
+
+      const result = await fcmService.sendPush({
+        token: user.deviceToken,
+        platform: user.devicePlatform || 'android',
+        title: notificationData.title || 'PoleSafe',
+        body: notificationData.body || notificationData.message || '',
+        data: {
+          type: notificationData.type || 'general',
+          rideId: notificationData.rideId || '',
+          tripId: notificationData.tripId || '',
+          childId: notificationData.childId || '',
+          bookingId: notificationData.bookingId || '',
+          ...(notificationData.data || {}),
+        },
+      });
+
+      return { success: true, result, channel: 'app_push' };
+    } catch (err) {
+      console.error(`[Push] Error sending to user ${userId}:`, err.message);
+      return { success: false, error: err.message };
     }
   }
 }
