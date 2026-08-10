@@ -164,7 +164,7 @@ export default function DriverEarnings({ navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: theme.canvas }]}>
+      <View style={[stw.center, { backgroundColor: theme.canvas }]}>
         <ActivityIndicator size="large" color={BLUE} />
         <Text style={{ marginTop: 12, color: COLORS.textSecondary, fontSize: 14 }}>Loading earnings...</Text>
       </View>

@@ -64,6 +64,36 @@ const userSchema = new mongoose.Schema({
   lastSelfieAt: { type: Date },  // When driver last took a verification selfie
   forceSelfieVerification: { type: Boolean, default: false },  // Admin can force next ride to require selfie
   completedRidesCount: { type: Number, default: 0 },  // Total completed rides (for new-driver check)
+
+  // Driver Reliability System (see docs/driver-reliability-system.md)
+  driverReliability: {
+    // Per-booking strike tracking
+    bookingStrikes: [{
+      bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+      strikes: { type: Number, default: 0 },
+      cleanStreak: { type: Number, default: 0 },
+      lastMissAt: { type: Date },
+      suspendedAt: { type: Date },
+      reinstatedAt: { type: Date },
+      suspended: { type: Boolean, default: false },
+    }],
+    // Global stats
+    totalMisses: { type: Number, default: 0 },
+    totalExcusedMisses: { type: Number, default: 0 },
+    totalSuspensions: { type: Number, default: 0 },
+    currentGlobalStreak: { type: Number, default: 0 },
+    longestStreak: { type: Number, default: 0 },
+    sickDaysUsed: { type: Number, default: 0 },
+    lastSickDayAt: { type: Date },
+    // Rating
+    rating: { type: Number, default: 4.5, min: 1, max: 5 },
+    ratingHistory: [{
+      rating: Number,
+      byParent: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      comment: String,
+      date: { type: Date, default: Date.now },
+    }],
+  },
 });
 
 // ============================================================
@@ -683,6 +713,32 @@ const withdrawalRequestSchema = new mongoose.Schema({
 withdrawalRequestSchema.index({ driverId: 1, status: 1 });
 withdrawalRequestSchema.index({ status: 1, requestedAt: 1 });
 
+// ============================================================
+// DRIVER NOTIFICATION — Notification delivery tracking
+// ============================================================
+const driverNotificationSchema = new mongoose.Schema({
+  driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+  rideId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ride' },
+  type: {
+    type: String,
+    enum: ['reminder_t60', 'reminder_t30', 'reassignment_alert',
+           'strike_warning', 'suspension', 'reinstatement',
+           'clean_streak_reset', 'favorite_driver_offer',
+           'favorite_declined', 'favorite_set', 'payout_friday'],
+  },
+  channel: { type: String, enum: ['push', 'whatsapp', 'sms', 'voice'] },
+  message: String,
+  delivered: { type: Boolean, default: false },
+  deliveryError: String,
+  sentAt: { type: Date, default: Date.now },
+  read: { type: Boolean, default: false },
+  readAt: { type: Date },
+});
+
+driverNotificationSchema.index({ driverId: 1, type: 1, sentAt: -1 });
+driverNotificationSchema.index({ bookingId: 1, type: 1 });
+
 // Export models
 module.exports = {
   User: mongoose.model('User', userSchema),
@@ -698,5 +754,6 @@ module.exports = {
   QuoteRequest: mongoose.model('QuoteRequest', quoteRequestSchema),
   FuelPrice: mongoose.model('FuelPrice', fuelPriceSchema),
   WithdrawalRequest: mongoose.model('WithdrawalRequest', withdrawalRequestSchema),
+  DriverNotification: mongoose.model('DriverNotification', driverNotificationSchema),
   Attendance: mongoose.model('Attendance', attendanceSchema),
 };
