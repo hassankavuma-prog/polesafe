@@ -62,7 +62,7 @@ export default function DriverDashboard({ navigation }) {
   return (
     <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       {/* Availability Toggle */}
-      <View style={styles.availableCard}>
+      <GlassCard style={styles.availableCard}>
         <TouchableOpacity
           style={[styles.toggleBtn, isAvailable ? styles.on : styles.off]}
           onPress={() => setIsAvailable(!isAvailable)}
@@ -77,22 +77,22 @@ export default function DriverDashboard({ navigation }) {
             ? 'Parents can book you for PoleSafe Ride trips'
             : 'Tap to accept ride requests between school runs'}
         </Text>
-      </View>
+      </GlassCard>
 
       {/* Quick Stats */}
       <View style={styles.statsRow}>
-        <View style={styles.statBox}>
+        <GlassCard style={styles.statBox}>
           <Text style={styles.statNumber}>{totalRides}</Text>
           <Text style={styles.statLabel}>AM Drop-offs</Text>
-        </View>
-        <View style={styles.statBox}>
+        </GlassCard>
+        <GlassCard style={styles.statBox}>
           <Text style={styles.statNumber}>{afternoonRides}</Text>
           <Text style={styles.statLabel}>PM Pickups</Text>
-        </View>
-        <View style={styles.statBox}>
+        </GlassCard>
+        <GlassCard style={styles.statBox}>
           <Text style={styles.statNumber}>{gapCount}</Text>
           <Text style={styles.statLabel}>Ride Gaps</Text>
-        </View>
+        </GlassCard>
       </View>
 
       {/* Today's Schedule */}

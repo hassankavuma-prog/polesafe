@@ -237,8 +237,8 @@ export default function ParentDashboard({ navigation }) {
               </View>
             </View>
           ))}
-        </View>
-      ))}
+          </GlassCard>
+        ))}
 
       {/* Weekly Schedule */}
       <Text style={styles.sectionTitle}>This Week</Text>
@@ -251,20 +251,18 @@ export default function ParentDashboard({ navigation }) {
           const hasRide = dayRides.length > 0;
           const isToday = new Date().toLocaleDateString('en-UG', { weekday: 'short' }) === day;
           return (
-            <View key={day} style={[styles.dayBox, isToday && styles.todayBox]}>
+            <GlassCard key={day} style={[styles.dayBox, isToday && styles.todayBox]}>
               <Text style={[styles.dayLabel, isToday && styles.todayLabel]}>{day}</Text>
               <Text style={styles.dayStatus}>
                 {hasRide ? '✅' : '—'}
               </Text>
-            </View>
+            </GlassCard>
           );
         })}
       </View>
 
       {/* Book New Ride */}
-      <TouchableOpacity style={styles.bookBtn} onPress={() => navigation.navigate('Booking')}>
-        <Text style={styles.bookBtnText}>+ Book New Ride</Text>
-      </TouchableOpacity>
+      <PrimaryButton title="+ Book New Ride" onPress={() => navigation.navigate('Booking')} variant="primary" />
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -291,7 +289,7 @@ const styles = StyleSheet.create({
   creditText: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
   creditSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, marginTop: 8, color: COLORS.textPrimary },
-  kidCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
+  kidCard: { padding: 16, marginBottom: 12 }, // layout only — GlassCard handles styling
   kidHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   kidName: { fontSize: 17, fontWeight: '600' },
   kidClass: { fontSize: 13, color: COLORS.textSecondary, backgroundColor: '#f0f0f0', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
@@ -303,13 +301,12 @@ const styles = StyleSheet.create({
   actionBtn: { backgroundColor: '#f0f0f0', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   actionText: { fontSize: 13, fontWeight: '500' },
   weekGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  dayBox: { flex: 1, backgroundColor: COLORS.surface, padding: 12, marginHorizontal: 2, borderRadius: 8, alignItems: 'center', elevation: 1 },
+  dayBox: { flex: 1, padding: 12, marginHorizontal: 2, alignItems: 'center' }, // layout only — GlassCard handles styling
   todayBox: { backgroundColor: COLORS.greenBg, borderWidth: 1, borderColor: COLORS.green },
   dayLabel: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
   todayLabel: { color: COLORS.green },
   dayStatus: { fontSize: 18, marginTop: 6 },
-  bookBtn: { backgroundColor: COLORS.green, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
-  bookBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+
   
   // Pickup Code Section
   codeSection: { backgroundColor: COLORS.orangeBg, borderRadius: 10, padding: 12, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#FF9800' },
@@ -331,6 +328,4 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8 },
   emptyText: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
-  addBtn: { backgroundColor: COLORS.green, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12 },
-  addBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
