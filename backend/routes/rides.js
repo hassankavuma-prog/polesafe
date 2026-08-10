@@ -18,7 +18,7 @@ const cancellationService = require('../services/cancellationService');
 router.get('/drivers', authMiddleware, async (req, res) => {
   try {
     const { vehicleType, lat, lng } = req.query;
-    const filter = { isAvailable: true };
+    const filter = { isApproved: true };
     if (vehicleType) filter.type = vehicleType;
 
     const vehicles = await Vehicle.find(filter).populate('driverId', 'name phone rating');

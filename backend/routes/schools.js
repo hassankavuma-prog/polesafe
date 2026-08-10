@@ -19,7 +19,7 @@ router.use(requireRole('school_admin', 'polesafe_admin'));
 // ============================================================
 router.get('/', async (req, res) => {
   try {
-    const schools = await School.find({ verificationStatus: 'approved' })
+    const schools = await School.find({ verificationStatus: 'verified' })
       .select('name location address phone');
     res.json({ schools });
   } catch (err) {

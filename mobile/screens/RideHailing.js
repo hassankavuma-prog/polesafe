@@ -14,7 +14,6 @@ import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 const VEHICLE_TYPES = [
   { id: 'car', emoji: '🚗', label: 'Car', desc: '4 seats, A/C', pricePerKm: 2500 },
   { id: 'boda', emoji: '🏍️', label: 'Boda', desc: '1 passenger, fast', pricePerKm: 1500 },
-  { id: 'tuk-tuk', emoji: '🛺', label: 'Tuk-Tuk', desc: '3 seats, open', pricePerKm: 2000 },
 ];
 
 const SAVED_PLACES = [

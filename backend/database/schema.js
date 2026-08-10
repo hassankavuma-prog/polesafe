@@ -130,7 +130,7 @@ const schoolSchema = new mongoose.Schema({
 // ============================================================
 const vehicleSchema = new mongoose.Schema({
   driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { type: String, enum: ['car', 'boda', 'tuk-tuk'], required: true },
+  type: { type: String, enum: ['car', 'boda'], required: true },
   registrationNumber: { type: String },
   capacity: { type: Number, default: 4 },
   hasCarSeat: { type: Boolean, default: false },
