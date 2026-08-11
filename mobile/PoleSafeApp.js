@@ -45,6 +45,7 @@ import CommunityBlog from './screens/CommunityBlog';
 import FeatureVoting from './screens/FeatureVoting';
 import NewPost from './screens/NewPost';
 import MultiKidDashboard from './screens/MultiKidDashboard';
+import FamilySharing from './screens/FamilySharing';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -248,6 +249,7 @@ export default function PoleSafeApp() {
           <Stack.Screen name="PostDetail" component={CommunityBoard} options={{ headerShown: true, title: 'Discussion', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
           <Stack.Screen name="BlogDetail" component={CommunityBlog} options={{ headerShown: true, title: 'Article', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
           <Stack.Screen name="MultiKidDashboard" component={MultiKidDashboard} options={{ headerShown: true, title: '👦 All Kids Rides', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
+          <Stack.Screen name="FamilySharing" component={FamilySharing} options={{ headerShown: true, title: '👨‍👩‍👧‍👦 Family Sharing', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
           <Stack.Screen name="NewPost" component={NewPost} options={{ headerShown: true, title: 'New Post', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
         </Stack.Navigator>
       </NavigationContainer>

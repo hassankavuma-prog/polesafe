@@ -369,4 +369,32 @@ router.get('/location/:rideId', authMiddleware, async (req, res) => {
   }
 });
 
+// ============================================================
+// PUT /api/rides/:id — Edit a ride (update time, location, days)
+// ============================================================
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { scheduledPickupTime, pickupLocation, dropoffLocation, days } = req.body;
+    const ride = await Ride.findById(req.params.id);
+    if (!ride) return res.status(404).json({ error: 'Ride not found' });
+
+    // Only allow editing pending/confirmed rides
+    if (!['pending', 'confirmed'].includes(ride.status)) {
+      return res.status(400).json({ error: 'Can only edit upcoming rides' });
+    }
+
+    if (scheduledPickupTime) ride.scheduledPickupTime = scheduledPickupTime;
+    if (pickupLocation) ride.pickupLocation = pickupLocation;
+    if (dropoffLocation) ride.dropoffLocation = dropoffLocation;
+    if (days) ride.days = days;
+    ride.updatedAt = new Date();
+
+    await ride.save();
+    res.json({ message: 'Ride updated successfully', ride });
+  } catch (err) {
+    console.error('Edit ride error:', err);
+    res.status(500).json({ error: 'Failed to update ride' });
+  }
+});
+
 module.exports = router;
