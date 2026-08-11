@@ -107,6 +107,7 @@ app.use('/api/trips', require('./routes/trips'));
 app.use('/api/quote-requests', require('./routes/quoteRequests'));
 app.use('/api/devices', require('./routes/devices'));
 app.use('/api/hamna', require('./routes/ai'));
+app.use('/api/pricing', require('./routes/pricing'));
 const { authMiddleware } = require('./middleware/auth');
 app.use('/api/admin', authMiddleware, require('./routes/admin'));
 app.use('/api/safety', require('./routes/safety'));
