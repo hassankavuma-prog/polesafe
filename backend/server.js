@@ -111,6 +111,7 @@ app.use('/api/pricing', require('./routes/pricing'));
 const { authMiddleware } = require('./middleware/auth');
 app.use('/api/admin', authMiddleware, require('./routes/admin'));
 app.use('/api/safety', require('./routes/safety'));
+app.use('/api/community', require('./routes/community'));
 
 // ============================================================
 // 📱 SMS Webhook — incoming SMS from basic phone parents

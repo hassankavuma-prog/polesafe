@@ -120,6 +120,7 @@ export default function LoginScreen({ navigation }) {
     { key: 'parent', label: '👨‍👩‍👧 Parent', color: '#2E7D32' },
     { key: 'driver', label: '🚗 Driver', color: '#1565C0' },
     { key: 'school', label: '🏫 School', color: '#E65100' },
+    { key: 'rider', label: '👥 Rider', color: '#7B1FA2' },
   ];
 
   const handleDevLogin = async (mockRole) => {

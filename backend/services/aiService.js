@@ -220,6 +220,179 @@ Respond as JSON:
     console.log(`[Hamna] Support ticket created: ${ticket._id} for user ${userId}`);
     return ticket._id;
   }
+
+  /**
+   * Moderate community content for the Safety Board, Blog, and comments
+   * Detects abuse, hate speech, spam, off-topic content
+   * Supports Luganda, Swahili, English, and other East African languages
+   *
+   * @param {object|string} content - The content to moderate (string or { title, body, role })
+   * @param {string} type - The type of content: 'post', 'comment', or 'blog'
+   * @returns {object} { status: 'approved'|'rejected'|'pending'|'flagged', reason, category }
+   */
+  async moderateCommunityContent(content, type = 'post') {
+    const text = typeof content === 'string' ? content : `${content.title || ''} ${content.body || content.description || ''}`;
+    const role = content.role || 'unknown';
+
+    const systemPrompt = `You are Hamna, PoleSafe's AI community moderator in Uganda. You review content posted by parents, teachers, drivers, and community members.
+
+Your job: Check if the content is safe, constructive, and on-topic. Content may be in English, Luganda, Swahili, or other Ugandan/East African languages.
+
+MODERATION RULES:
+1. BLOCK (rejected): Hate speech, personal attacks, threats, harassment, explicit content, spam, phishing
+2. FLAG (flagged): Heated/potentially toxic tone, targeting specific individuals indirectly, off-topic but not malicious
+3. APPROVE (approved): Constructive discussion, safety concerns, questions, suggestions, positive content
+
+CATEGORIZE the content type:
+- "route_safety" — Road safety, traffic, driver routes
+- "driver_behavior" — Driver conduct, professionalism
+- "school_policy" — School rules, admin decisions
+- "pickup_delay" — Late pickups, scheduling issues
+- "general" — General discussion
+- "parenting" — Parenting tips, child advice
+- "safety_tips" — Safety advice and recommendations
+- "teaching" — Teaching-related content
+- "polesafe_updates" — About PoleSafe platform
+- "community_voices" — Personal stories, community topics
+- "other" — Anything else
+
+Return ONLY valid JSON:
+{
+  "status": "approved|rejected|flagged|pending",
+  "reason": "Brief explanation in English",
+  "category": "category_id",
+  "confidence": 0.0-1.0,
+  "language": "en|lg|sw|other",
+  "containsAbuse": false,
+  "offensiveTermsFound": []
+}
+
+For content you're uncertain about (rare language, ambiguous tone), return status "pending" for manual review.
+
+Content role: ${role}
+Content type: ${type}`;
+
+    return await this._callLLM(systemPrompt, text);
+  }
+
+  /**
+   * Detect the language of a text
+   * Used for blog posts and community content
+   *
+   * @param {string} text - Text to analyze
+   * @returns {object} { language: 'en'|'lg'|'sw'|'other', confidence }
+   */
+  async detectLanguage(text) {
+    const systemPrompt = `Detect the primary language of the following text. Return ONLY valid JSON:
+{
+  "language": "en|lg|sw|run|ach|teo|lug|other",
+  "confidence": 0.0-1.0,
+  "languageName": "English|Luganda|Swahili|Runyankole|Acholi|Ateso|Lugbara|Other"
+}
+
+Language codes:
+- en: English
+- lg: Luganda
+- sw: Swahili
+- run: Runyankole/Rukiga
+- ach: Acholi
+- teo: Ateso
+- lug: Lugbara`;
+
+    return await this._callLLM(systemPrompt, text);
+  }
+
+  /**
+   * Analyze a feature suggestion and provide insight
+   *
+   * @param {object} suggestion - { title, description }
+   * @returns {string} - Hamna's analysis text
+   */
+  async analyzeFeatureSuggestion(suggestion) {
+    const systemPrompt = `You are Hamna, PoleSafe's product analyst. You evaluate feature suggestions from the community.
+
+Given a feature suggestion, provide a brief analysis covering:
+1. Value to the community (parents, drivers, schools, riders)
+2. Estimated complexity (simple/moderate/complex)
+3. Any similar features already in PoleSafe
+4. Potential impact on safety
+
+Keep your analysis to 2-3 sentences. Be constructive and direct.`;
+
+    const result = await this._callLLM(systemPrompt, 
+      `Title: ${suggestion.title}\nDescription: ${suggestion.description}`);
+    
+    return result.analysis || result.response || '';
+  }
+
+  /**
+   * Get trending topics from recent Safety Board discussions
+   *
+   * @param {Array} recentPosts - Array of { title, body, category } from last 24h
+   * @returns {object} { trends: [{ topic, urgency, mentions }], alert: boolean }
+   */
+  async detectTrends(recentPosts) {
+    if (!recentPosts || recentPosts.length === 0) {
+      return { trends: [], alert: false };
+    }
+
+    const systemPrompt = `You are Hamna, PoleSafe's community trend analyst. Review recent Safety Board posts and detect:
+1. Emerging safety concerns that need immediate attention
+2. Repeated mentions of the same issue (e.g., multiple parents complaining about the same driver)
+3. Topics gaining momentum
+
+Return ONLY valid JSON:
+{
+  "trends": [
+    {
+      "topic": "Brief topic description",
+      "urgency": "low|medium|high",
+      "mentions": number,
+      "summary": "One-line summary"
+    }
+  ],
+  "alert": true/false,
+  "alertReason": "If alert is true, why"
+}`;
+
+    const postsText = recentPosts.map((p, i) => 
+      `[${i + 1}] Category: ${p.category}\nTitle: ${p.title}\nBody: ${p.body.substring(0, 200)}`
+    ).join('\n---\n');
+
+    return await this._callLLM(systemPrompt, postsText);
+  }
+
+  /**
+   * Generate a summary of a long discussion thread
+   */
+  async summarizeThread(posts) {
+    const systemPrompt = `Summarize the following Safety Board discussion into 2-3 key points. Be concise and neutral. Return ONLY valid JSON:
+{
+  "summary": "2-3 sentence summary",
+  "keyPoints": ["point 1", "point 2"],
+  "sentiment": "positive|negative|neutral|mixed",
+  "resolution": "resolved|ongoing|escalated"
+}`;
+
+    const threadText = posts.map(p => `[${p.role || 'User'}]: ${p.body?.substring(0, 300) || ''}`).join('\n');
+    return await this._callLLM(systemPrompt, threadText);
+  }
+
+  /**
+   * Suggest a blog post topic based on recent Safety Board discussions
+   */
+  async suggestBlogTopic(recentDiscussions) {
+    const systemPrompt = `Based on recent Safety Board discussions, suggest a blog post topic that would help the PoleSafe community. Return ONLY valid JSON:
+{
+  "title": "Suggested blog title",
+  "category": "parenting|safety_tips|teaching|community_voices",
+  "rationale": "Why this topic matters now",
+  "suggestedTags": ["tag1", "tag2"]
+}`;
+
+    const discussions = recentDiscussions.map(d => d.title || d.body?.substring(0, 100)).filter(Boolean).join(', ');
+    return await this._callLLM(systemPrompt, discussions || 'No recent discussions');
+  }
 }
 
 module.exports = new AiService();

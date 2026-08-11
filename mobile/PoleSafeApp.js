@@ -39,6 +39,13 @@ import PendingChildren from './screens/PendingChildren';
 import AttendanceReport from './screens/AttendanceReport';
 import TeacherPickupVerify from './screens/TeacherPickupVerify';
 
+// Community screens
+import CommunityBoard from './screens/CommunityBoard';
+import CommunityBlog from './screens/CommunityBlog';
+import FeatureVoting from './screens/FeatureVoting';
+import NewPost from './screens/NewPost';
+import MultiKidDashboard from './screens/MultiKidDashboard';
+
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -78,6 +85,22 @@ function ParentTabs() {
         name="Credits"
         component={ParentCredits}
         options={{ tabBarLabel: '💰 Credits', title: '💰 My Credits' }}
+      />
+      {/* Community Tab */}
+      <Tab.Screen
+        name="CommunityBoard"
+        component={CommunityBoard}
+        options={{ tabBarLabel: '👥 Safety', title: '🛡️ Safety Board' }}
+      />
+      <Tab.Screen
+        name="Blog"
+        component={CommunityBlog}
+        options={{ tabBarLabel: '📝 Blog', title: '📝 Community Blog' }}
+      />
+      <Tab.Screen
+        name="Features"
+        component={FeatureVoting}
+        options={{ tabBarLabel: '💡 Ideas', title: '💡 Feature Voting' }}
       />
     </Tab.Navigator>
   );
@@ -145,6 +168,12 @@ function SchoolTabs() {
         name="Detention"
         component={SchoolDetention}
         options={{ tabBarLabel: '⏰ Late', title: 'Late Pickup' }}
+      />
+      {/* Community Tab */}
+      <Tab.Screen
+        name="SchoolCommunity"
+        component={CommunityBoard}
+        options={{ tabBarLabel: '👥 Safety', title: '🛡️ Safety Board' }}
       />
     </Tab.Navigator>
   );
@@ -215,6 +244,11 @@ export default function PoleSafeApp() {
           <Stack.Screen name="PendingChildren" component={PendingChildren} options={{ headerShown: true, title: '⏳ Pending Children', headerStyle: { backgroundColor: COLORS.orange }, headerTintColor: '#fff' }} />
           <Stack.Screen name="AttendanceReport" component={AttendanceReport} options={{ headerShown: true, title: '📊 Attendance', headerStyle: { backgroundColor: COLORS.orange }, headerTintColor: '#fff' }} />
           <Stack.Screen name="TeacherPickupVerify" component={TeacherPickupVerify} options={{ headerShown: true, title: 'Pickup Verification', headerStyle: { backgroundColor: COLORS.orange }, headerTintColor: '#fff' }} />
+          {/* Community screens */}
+          <Stack.Screen name="PostDetail" component={CommunityBoard} options={{ headerShown: true, title: 'Discussion', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
+          <Stack.Screen name="BlogDetail" component={CommunityBlog} options={{ headerShown: true, title: 'Article', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
+          <Stack.Screen name="MultiKidDashboard" component={MultiKidDashboard} options={{ headerShown: true, title: '👦 All Kids Rides', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
+          <Stack.Screen name="NewPost" component={NewPost} options={{ headerShown: true, title: 'New Post', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
