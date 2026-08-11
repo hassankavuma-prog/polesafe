@@ -2,11 +2,20 @@
 // From Home to School. And Beyond. 🚸🚗
 
 import React, { useState, useEffect } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+// Color palette (used across the app - must be defined before SplashScreen)
+const COLORS = {
+  green: '#2E7D32',
+  blue: '#1565C0',
+  orange: '#E65100',
+  textSecondary: '#666',
+};
 
 // Screens
 import LoginScreen from './screens/LoginScreen';
@@ -207,7 +216,6 @@ export default function PoleSafeApp() {
 
 // Simple splash/loading screen
 function SplashScreen() {
-  const { View, Text, ActivityIndicator, StyleSheet } = require('react-native');
   return (
     <View style={splash.container}>
       <Text style={splash.logo}>🚸 PoleSafe</Text>
