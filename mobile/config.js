@@ -1,3 +1,3 @@
-const API_BASE = 'https://api.polesafe.ug';
+const API_BASE = 'https://polesafe-api.onrender.com';
 export default API_BASE;
 export { API_BASE };

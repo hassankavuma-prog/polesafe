@@ -102,7 +102,7 @@ export default function SchoolDashboard({ navigation }) {
   return (
     <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       {/* School Name */}
-      <Text style={styles.schoolName}>{dashboard?.schoolId || 'St Mary's School'}</Text>
+      <Text style={styles.schoolName}>{dashboard?.schoolId || "St Mary's School"}</Text>
       <Text style={styles.dateText}>Today • {dashboard?.date || new Date().toISOString().split('T')[0]}</Text>
 
       {/* Attendance Stats */}

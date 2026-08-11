@@ -2,11 +2,14 @@
 // Handles voice reminders and checkpoint verification for seat belts
 // Two modes: Ride (10s voice nudge) and School (checkpoint gate)
 
+import * as Speech from 'expo-speech';
+
 let TtsModule = null;
 try {
-  TtsModule = require('react-native-tts').default;
+  // expo-speech is available via managed workflow
+  TtsModule = true;
 } catch {
-  // TTS not installed — voice fallback silently
+  // Voice fallback silently
 }
 
 class SeatBeltService {
@@ -21,13 +24,10 @@ class SeatBeltService {
   async init() {
     if (this.initialized) return;
     if (!TtsModule) {
-      console.warn('[SeatBelt] react-native-tts not available');
+      console.warn('[SeatBelt] expo-speech not available');
       return;
     }
     try {
-      await TtsModule.setDefaultRate(0.45);
-      await TtsModule.setDefaultPitch(1.0);
-      await TtsModule.setDefaultLanguage('en-US');
       this.initialized = true;
     } catch (err) {
       console.warn('[SeatBelt] TTS init failed:', err.message);
@@ -44,7 +44,7 @@ class SeatBeltService {
       return;
     }
     try {
-      await TtsModule.speak(text);
+      await Speech.speak(text, { rate: 0.45, pitch: 1.0, language: 'en-US' });
     } catch (err) {
       console.warn('[SeatBelt] Speak failed:', err.message);
     }
@@ -59,7 +59,7 @@ class SeatBeltService {
       this.timer = null;
     }
     if (TtsModule && this.initialized) {
-      try { await TtsModule.stop(); } catch {}
+      try { await Speech.stop(); } catch {}
     }
   }
 
