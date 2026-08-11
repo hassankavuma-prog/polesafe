@@ -39,7 +39,7 @@ router.get('/kids', async (req, res) => {
 // ============================================================
 router.post('/kids', validateAddKid, async (req, res) => {
   try {
-    const { name, class: className, schoolId, age, finishTime, medical } = req.body;
+    const { name, class: className, schoolId, age, finishTime, medical, safeWordPhoto } = req.body;
 
     const child = await Child.create({
       parentId: req.userId,
@@ -49,6 +49,7 @@ router.post('/kids', validateAddKid, async (req, res) => {
       age,
       finishTime,
       medical: medical || {},
+      safeWordPhoto: safeWordPhoto || undefined,
       requiresCarSeat: age && age < 6,
       status: 'pending', // Needs school approval
       registeredBy: 'parent',

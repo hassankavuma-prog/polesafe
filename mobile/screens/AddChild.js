@@ -4,11 +4,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
-  Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
+  Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import API_BASE from '../config';
-import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+import { COLORS, getTheme } from '../theme';
 
 export default function AddChild({ navigation }) {
   const theme = getTheme();
@@ -22,6 +23,25 @@ export default function AddChild({ navigation }) {
   const [schoolId, setSchoolId] = useState(null);
   const [age, setAge] = useState('');
   const [medicalNotes, setMedicalNotes] = useState('');
+  const [photo, setPhoto] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handlePhotoPick = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      return Alert.alert('Permission needed', 'Allow photo access to upload a child photo');
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+      base64: true,
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      setPhoto(result.assets[0].base64 ? `data:image/jpeg;base64,${result.assets[0].base64}` : result.assets[0].uri);
+    }
+  };
 
   useEffect(() => {
     loadSchools();
@@ -68,7 +88,7 @@ export default function AddChild({ navigation }) {
           class: className.trim(),
           schoolId,
           age: age ? parseInt(age) : undefined,
-          medicalConditions: medicalNotes.trim() || undefined,
+          safeWordPhoto: photo || undefined,
         }),
       });
 
@@ -189,6 +209,33 @@ export default function AddChild({ navigation }) {
             multiline
             numberOfLines={3}
           />
+        </View>
+
+        {/* Photo for Young Kids */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Photo Verification (for young kids)</Text>
+          <Text style={styles.helperText}>Take a photo so the driver can visually verify your child at pickup</Text>
+          <TouchableOpacity
+            style={styles.photoBtn}
+            onPress={handlePhotoPick}
+            disabled={loading || uploadingPhoto}
+          >
+            {uploadingPhoto ? (
+              <ActivityIndicator color="#fff" />
+            ) : photo ? (
+              <Text style={styles.photoBtnText}>📸 Change Photo</Text>
+            ) : (
+              <Text style={styles.photoBtnText}>📷 Take or Pick Photo</Text>
+            )}
+          </TouchableOpacity>
+          {photo && (
+            <View style={styles.photoPreview}>
+              <Image source={{ uri: photo }} style={styles.photoImage} />
+              <TouchableOpacity onPress={() => setPhoto(null)}>
+                <Text style={styles.removePhoto}>✕ Remove</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Submit Button */}
