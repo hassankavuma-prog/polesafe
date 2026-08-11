@@ -1,10 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const Parent = require('../models/Parent');
-const Driver = require('../models/Driver');
-const School = require('../models/School');
+const { User, Child } = require('../database/schema');
 const OTP = require('../models/OTP');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'polesafe-dev-secret-change-in-production';
@@ -13,25 +10,16 @@ const OTP_EXPIRY_MINUTES = 10;
 
 // Helper: find or create user record
 async function findOrCreateUser(phone, role) {
-  const ModelMap = {
-    parent: Parent,
-    driver: Driver,
-    school: School,
-    rider: Parent, // riders stored as parent records with isRider flag
-  };
-  const Model = ModelMap[role] || Parent;
-  
-  let user = await Model.findOne({ phone });
+  let user = await User.findOne({ phone });
   if (!user) {
-    if (role === 'rider') {
-      user = await Model.create({ phone, isRider: true });
-    } else if (role === 'school') {
-      user = await Model.create({ phone, schoolName: 'Unregistered' });
-    } else if (role === 'driver') {
-      user = await Model.create({ phone, name: 'Unregistered', vehicleType: 'boda' });
-    } else {
-      user = await Model.create({ phone });
-    }
+    user = await User.create({
+      phone,
+      role: role === 'rider' ? 'parent' : role,
+      name: role === 'school' ? 'Unregistered School' : 'New User',
+      hasSmartphone: true,
+      preferredLanguage: 'en',
+      isRider: role === 'rider' || false,
+    });
   }
   return user;
 }
@@ -66,24 +54,19 @@ router.post('/send-otp', async (req, res) => {
 
     // Generate OTP
     const code = OTP.generateCode();
-    const otp = await OTP.create({
+    await OTP.create({
       phone,
       code,
       role,
       expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
     });
 
-    // For dev: log OTP to console and return in response
     console.log(`[DEV] OTP for ${phone} (${role}): ${code}`);
-    
-    // In production, send via Africa's Talking SMS
-    // await sendSMS(phone, `Your PoleSafe code is: ${code}`);
 
     res.json({
       message: 'OTP sent successfully',
-      // DEV ONLY — remove in production
       devCode: code,
-      phone: phone.replace(/\d(?=\d{4})/g, '*'), // mask: 07*****123
+      phone: phone.replace(/\d(?=\d{4})/g, '*'),
     });
   } catch (err) {
     console.error('Send OTP error:', err);
@@ -100,7 +83,6 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'Phone, code, and role are required' });
     }
 
-    // Find valid OTP
     const otp = await OTP.findOne({ phone, code, verified: false, role })
       .sort({ createdAt: -1 });
 
@@ -113,7 +95,6 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(401).json({ error: 'Code has expired. Request a new one.' });
     }
 
-    // Check attempts
     if (otp.attempts >= 5) {
       await OTP.deleteOne({ _id: otp._id });
       return res.status(429).json({ error: 'Too many attempts. Request a new code.' });
@@ -123,45 +104,33 @@ router.post('/verify-otp', async (req, res) => {
     otp.verified = true;
     await otp.save();
 
-    // Find or create user
     const user = await findOrCreateUser(phone, role);
 
-    // Generate JWT
     const token = jwt.sign(
       { 
         userId: user._id.toString(),
         phone: user.phone,
-        role,
-        modelType: role === 'rider' ? 'parent' : role,
+        role: role === 'rider' ? 'rider' : user.role,
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY }
     );
 
-    // Build user profile response
     const profile = {
       token,
       user: {
         id: user._id,
         phone: user.phone,
-        role,
-        name: user.name || user.schoolName || '',
+        role: role === 'rider' ? 'rider' : user.role,
+        name: user.name || '',
+        isRider: role === 'rider' || false,
       },
     };
 
-    // Add role-specific data
+    // Get kids for parent/rider
     if (role === 'parent' || role === 'rider') {
-      profile.user.isRider = user.isRider || false;
-      const kids = await (require('../models/Kid')).find({ parentId: user._id }).lean() || [];
-      profile.user.kids = kids;
-    }
-    if (role === 'driver') {
-      profile.user.vehicleType = user.vehicleType;
-      profile.user.verified = user.verified || false;
-    }
-    if (role === 'school') {
-      profile.user.schoolName = user.schoolName;
-      profile.user.verified = user.verified || false;
+      const kids = await Child.find({ parentId: user._id }).lean();
+      profile.user.kids = kids || [];
     }
 
     res.json(profile);
@@ -180,14 +149,11 @@ router.post('/refresh', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    
-    // Refresh token
     const newToken = jwt.sign(
       {
         userId: decoded.userId,
         phone: decoded.phone,
         role: decoded.role,
-        modelType: decoded.modelType,
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY }
@@ -199,7 +165,7 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-// GET /api/auth/dev-otps — DEV ONLY: list recent OTPs for testing
+// GET /api/auth/dev-otps — DEV ONLY
 router.get('/dev-otps', async (req, res) => {
   try {
     const otps = await OTP.find({ verified: false })

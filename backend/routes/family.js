@@ -6,7 +6,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const { FamilyLink } = require('../models/Family');
 const { Child, User } = require('../database/schema');
-const authMiddleware = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 // Generate a 6-character join code
 function generateCode() {

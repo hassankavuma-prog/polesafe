@@ -4,7 +4,18 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const { authMiddleware, optionalAuth } = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
+// optionalAuth: attach user if token present, don't reject if missing
+const optionalAuth = (req, res, next) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return next();
+  try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'polesafe-dev-secret-change-in-production');
+    req.user = decoded;
+  } catch (e) { /* token invalid, continue without user */ }
+  next();
+};
 const { CommunityPost, Comment, BlogPost, FeatureSuggestion, UserReputation } = require('../models/Community');
 const aiService = require('../services/aiService');
 
