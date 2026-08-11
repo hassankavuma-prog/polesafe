@@ -70,9 +70,7 @@
       }
     },
     "owner": "musaayi",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/98b4f44f-96a1-4d05-9050-8a140c800839"
     }
