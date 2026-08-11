@@ -1,330 +1,289 @@
-// PoleSafe — Safety & Pickup Word System
-// Permanent pickup word like "Mango" — kid remembers it all term
-// + Driver badge + Teacher classroom verification
-
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
-
-const User = mongoose.model('User');
-const Child = mongoose.model('Child');
-const Ride = mongoose.model('Ride');
-const School = mongoose.model('School');
+const User = require('../models/User');
+const Parent = require('../models/Parent');
+const Driver = require('../models/Driver');
+const School = require('../models/School');
 
 // ============================================================
-// 50 EASY WORDS FOR KIDS — set once, never change
-// All are 3-8 letters, easy for a P.1 kid to remember
+// SOS/Emergency Alert System
 // ============================================================
-const PICKUP_WORDS = [
-  'Mango', 'Sunflower', 'Giraffe', 'Rocket', 'Dolphin',
-  'Panda', 'Star', 'Elephant', 'Castle', 'Rainbow',
-  'Tiger', 'Butterfly', 'Moon', 'Dragon', 'Bubble',
-  'Penguin', 'Lion', 'Robot', 'Candy', 'Puzzle',
-  'Kangaroo', 'Pirate', 'Mermaid', 'Honey', 'Ocean',
-  'Pancake', 'Parrot', 'Jungle', 'Magic', 'Noodle',
-  'Piano', 'Banana', 'Koala', 'Ladybug', 'Pumpkin',
-  'Snowman', 'Wizard', 'Coconut', 'Daisy', 'Falcon',
-  'Jelly', 'Lollipop', 'Monster', 'Pepper', 'Racoon',
-  'Sapphire', 'Tornado', 'Zebra', 'Comet', 'Feather',
-];
 
-function getRandomWord() {
-  return PICKUP_WORDS[Math.floor(Math.random() * PICKUP_WORDS.length)];
-}
-
-// Middleware: require auth
-const requireAuth = (req, res, next) => {
-  if (!req.userId) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-  next();
-};
-
-// ============================================================
-// POST /api/safety/set-pickup-word — Parent sets/change the word
-// One word, permanent — kid remembers it all term
-// ============================================================
-router.post('/set-pickup-word', requireAuth, async (req, res) => {
+// POST /api/safety/sos — Trigger an SOS alert
+router.post('/sos', async (req, res) => {
   try {
-    const { childId, word } = req.body;
+    const { userId, userRole, kidId, rideId, location, message } = req.body;
     
-    if (!childId || !word) {
-      return res.status(400).json({ error: 'childId and word are required' });
-    }
-    
-    const clean = word.trim();
-    if (clean.length < 2 || clean.length > 16) {
-      return res.status(400).json({ error: 'Word must be 2-16 characters' });
+    if (!userId || !userRole) {
+      return res.status(400).json({ error: 'User ID and role required' });
     }
 
-    // Verify this child belongs to this parent
-    const child = await Child.findOne({ _id: childId, parentId: req.userId });
-    if (!child) {
-      return res.status(404).json({ error: 'Child not found' });
+    const sosAlert = {
+      userId,
+      userRole,
+      kidId: kidId || null,
+      rideId: rideId || null,
+      location: location || null,
+      message: message || 'Emergency!',
+      timestamp: new Date(),
+      status: 'active', // active → acknowledged → resolved
+      notified: [], // users notified
+    };
+
+    // Store in a simple in-memory array (use DB in production)
+    if (!global.sosAlerts) global.sosAlerts = [];
+    global.sosAlerts.push(sosAlert);
+
+    console.log(`🚨 SOS ALERT from ${userRole} ${userId}: ${message}`);
+
+    // Find relevant contacts based on role
+    let contacts = [];
+
+    if (userRole === 'parent' && kidId) {
+      // Notify drivers assigned to this kid's route
+      const kid = await (require('../models/Kid')).findById(kidId);
+      if (kid) {
+        const rides = await (require('../models/Ride')).find({ 
+          kidId, 
+          status: { $in: ['pending', 'confirmed', 'in_progress'] } 
+        }).populate('driverId');
+        rides.forEach(ride => {
+          if (ride.driverId) {
+            contacts.push({
+              userId: ride.driverId._id,
+              role: 'driver',
+              phone: ride.driverId.phone,
+            });
+          }
+        });
+      }
     }
 
-    // Set word permanently (not daily) — stays until parent changes it
-    child.pickupCode = clean;
-    await child.save();
+    if (userRole === 'driver' && rideId) {
+      // Notify parent of the kid on this ride
+      const ride = await (require('../models/Ride')).findById(rideId).populate('kidId');
+      if (ride && ride.kidId) {
+        const parent = await Parent.findById(ride.kidId.parentId);
+        if (parent) {
+          contacts.push({
+            userId: parent._id,
+            role: 'parent',
+            phone: parent.phone,
+          });
+        }
+      }
+    }
+
+    if (userRole === 'school') {
+      // Notify all parents with kids at this school
+      const kids = await (require('../models/Kid')).find({ school: kidId || null });
+      for (const kid of kids) {
+        const parent = await Parent.findById(kid.parentId);
+        if (parent && !contacts.find(c => c.userId === parent._id.toString())) {
+          contacts.push({
+            userId: parent._id,
+            role: 'parent',
+            phone: parent.phone,
+          });
+        }
+      }
+      // Also notify drivers with routes to this school
+      const schoolRides = await (require('../models/Ride')).find({
+        school: kidId || null,
+        status: { $in: ['pending', 'confirmed', 'in_progress'] },
+      }).populate('driverId');
+      schoolRides.forEach(ride => {
+        if (ride.driverId && !contacts.find(c => c.userId === ride.driverId._id.toString())) {
+          contacts.push({
+            userId: ride.driverId._id,
+            role: 'driver',
+            phone: ride.driverId.phone,
+          });
+        }
+      });
+    }
+
+    sosAlert.contacts = contacts;
+    
+    // In production: send push notifications + SMS to all contacts
+    // await sendPushNotification(contacts, sosAlert);
+    // await sendSMSAlert(contacts, sosAlert);
 
     res.json({
-      message: `✅ Pickup word set to "${clean}"! Tell your child: the PoleSafe driver will say this word every pickup.`,
-      word: clean,
-      childId,
-      tip: 'The word stays the same every day. If your child tells someone the word, change it anytime here.',
+      success: true,
+      alert: sosAlert,
+      contactsNotified: contacts.length,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('SOS error:', err);
+    res.status(500).json({ error: 'Failed to process SOS alert' });
   }
 });
 
-// ============================================================
-// POST /api/safety/generate-pickup-word — Generate random word
-// Picks from 50 easy words like Mango, Giraffe, Star...
-// ============================================================
-router.post('/generate-pickup-word', requireAuth, async (req, res) => {
+// GET /api/safety/sos/active — Get active SOS alerts
+router.get('/sos/active', async (req, res) => {
   try {
-    const { childId } = req.body;
+    const alerts = (global.sosAlerts || [])
+      .filter(a => a.status === 'active')
+      .sort((a, b) => b.timestamp - a.timestamp);
+    res.json(alerts);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch alerts' });
+  }
+});
 
-    const child = await Child.findOne({ _id: childId, parentId: req.userId });
-    if (!child) {
-      return res.status(404).json({ error: 'Child not found' });
+// POST /api/safety/sos/acknowledge — Acknowledge an SOS alert
+router.post('/sos/acknowledge', async (req, res) => {
+  try {
+    const { alertIndex, userId } = req.body;
+    if (!global.sosAlerts || !global.sosAlerts[alertIndex]) {
+      return res.status(404).json({ error: 'Alert not found' });
     }
 
-    const word = getRandomWord();
-    child.pickupCode = word;
-    await child.save();
-
-    res.json({
-      message: `🎲 Your child's pickup word is "${word}"!`,
-      word,
-      childId,
-      tip: `Tell your child: "The PoleSafe driver will say ${word} at pickup. If they don't say ${word}, don't get in."`,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================================
-// GET /api/safety/child-word/:childId — Get word for driver
-// Driver sees the word before pickup
-// ============================================================
-router.get('/child-word/:childId', requireAuth, async (req, res) => {
-  try {
-    // Find today's ride for this child with this driver
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const ride = await Ride.findOne({
-      driverId: req.userId,
-      childId: req.params.childId,
-      scheduledPickupTime: { $gte: today, $lt: tomorrow },
-    }).populate('childId', 'pickupCode name class');
-
-    if (!ride) {
-      return res.status(404).json({ error: 'No ride found for this child today' });
+    const alert = global.sosAlerts[alertIndex];
+    if (!alert.notified.includes(userId)) {
+      alert.notified.push(userId);
     }
-
-    const word = ride.childId?.pickupCode;
-
-    res.json({
-      childName: ride.childId?.name,
-      childClass: ride.childId?.class,
-      hasWord: !!word,
-      word: word || null,
-      instruction: word
-        ? `🔐 Say "${word}" to this child at pickup. The child knows: if you don't say the word, they don't get in.`
-        : '⚠️ No pickup word set yet. Ask the parent to set one.',
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================================
-// POST /api/safety/confirm-word-pickup — Driver confirms they said the word
-// ============================================================
-router.post('/confirm-word-pickup', requireAuth, async (req, res) => {
-  try {
-    const { rideId } = req.body;
+    alert.status = 'acknowledged';
     
-    await Ride.findByIdAndUpdate(rideId, {
-      pickupCodeUsed: true,
-      status: 'picked_up',
-    });
-
-    res.json({ message: '✅ Pickup confirmed — driver said the word, child is safe' });
+    res.json({ success: true, alert });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to acknowledge alert' });
+  }
+});
+
+// POST /api/safety/sos/resolve — Mark SOS as resolved
+router.post('/sos/resolve', async (req, res) => {
+  try {
+    const { alertIndex } = req.body;
+    if (!global.sosAlerts || !global.sosAlerts[alertIndex]) {
+      return res.status(404).json({ error: 'Alert not found' });
+    }
+
+    global.sosAlerts[alertIndex].status = 'resolved';
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to resolve alert' });
   }
 });
 
 // ============================================================
-// GET /api/safety/driver-badge/:driverId — Driver's PoleSafe ID (for teachers)
+// Driver Verification
 // ============================================================
-router.get('/driver-badge/:driverId', async (req, res) => {
-  try {
-    const driver = await User.findOne({
-      _id: req.params.driverId,
-      role: 'driver',
-    }).select('name driverIdNumber driverPhotoUrl isDriverIdVerified phone').lean();
 
+// POST /api/safety/driver/verify — Admin approves a driver
+router.post('/driver/verify', async (req, res) => {
+  try {
+    const { driverId, approved, adminNotes } = req.body;
+    
+    const driver = await Driver.findById(driverId);
     if (!driver) {
       return res.status(404).json({ error: 'Driver not found' });
     }
 
-    if (!driver.isDriverIdVerified) {
-      return res.json({
-        driverName: driver.name,
-        driverIdNumber: driver.driverIdNumber || 'Not assigned',
-        isVerified: false,
-        warning: '⚠️ This driver has NOT been verified by PoleSafe. Contact PoleSafe admin.',
-      });
-    }
+    driver.verified = approved;
+    driver.verificationNotes = adminNotes || '';
+    driver.verifiedAt = new Date();
+    driver.verifiedBy = req.body.adminId || 'system';
+    await driver.save();
 
     res.json({
-      driverName: driver.name,
-      driverIdNumber: driver.driverIdNumber,
-      photoUrl: driver.driverPhotoUrl,
-      isVerified: true,
-      status: '✅ Verified PoleSafe Driver',
+      success: true,
+      driver: {
+        id: driver._id,
+        name: driver.name,
+        phone: driver.phone,
+        verified: driver.verified,
+      },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to verify driver' });
+  }
+});
+
+// GET /api/safety/driver/pending — List unverified drivers
+router.get('/driver/pending', async (req, res) => {
+  try {
+    const drivers = await Driver.find({ verified: false })
+      .select('-password')
+      .sort({ createdAt: -1 });
+    res.json(drivers);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch pending drivers' });
   }
 });
 
 // ============================================================
-// GET /api/safety/verify-for-classroom — Teacher verifies driver + word
-// Shows teacher: driver name, ID, photo + child name, class, pickup word
+// School Verification
 // ============================================================
-router.get('/verify-for-classroom', async (req, res) => {
+
+// POST /api/safety/school/verify — Admin approves a school
+router.post('/school/verify', async (req, res) => {
   try {
-    const { schoolId, driverId, childId } = req.query;
-
-    if (!schoolId || !driverId || !childId) {
-      return res.status(400).json({ error: 'schoolId, driverId, and childId are required' });
+    const { schoolId, approved, adminNotes } = req.body;
+    
+    const school = await School.findById(schoolId);
+    if (!school) {
+      return res.status(404).json({ error: 'School not found' });
     }
 
-    const driver = await User.findOne({ _id: driverId, role: 'driver' }).lean();
-    if (!driver) {
-      return res.json({ verified: false, message: '❌ No driver found with this ID' });
-    }
-
-    const child = await Child.findOne({ _id: childId, schoolId }).lean();
-    if (!child) {
-      return res.json({ verified: false, message: '❌ No child found at this school with this ID' });
-    }
-
-    // Find today's ride for this driver + child
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const ride = await Ride.findOne({
-      driverId,
-      childId,
-      schoolId,
-      type: 'school_afternoon',
-      scheduledPickupTime: { $gte: today, $lt: tomorrow },
-    }).lean();
-
-    if (!ride) {
-      return res.json({
-        verified: false,
-        message: `❌ ${driver.name} is NOT assigned to pick up ${child.name} today.`,
-        driverName: driver.name,
-        childName: child.name,
-      });
-    }
+    school.verified = approved;
+    school.verificationNotes = adminNotes || '';
+    school.verifiedAt = new Date();
+    await school.save();
 
     res.json({
-      verified: true,
-      message: `✅ ${driver.name} (${driver.driverIdNumber || 'N/A'}) is authorized for ${child.name} (${child.class}). Word: ${child.pickupCode || 'Not set'}`,
-      driverName: driver.name,
-      driverIdNumber: driver.driverIdNumber,
-      driverPhotoUrl: driver.driverPhotoUrl,
-      childName: child.name,
-      childClass: child.class,
-      pickupWord: child.pickupCode || null,
-      driverVerified: driver.isDriverIdVerified,
-      rideId: ride._id,
+      success: true,
+      school: {
+        id: school._id,
+        name: school.schoolName,
+        phone: school.phone,
+        verified: school.verified,
+      },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to verify school' });
+  }
+});
+
+// GET /api/safety/school/pending — List unverified schools
+router.get('/school/pending', async (req, res) => {
+  try {
+    const schools = await School.find({ verified: false })
+      .select('-password')
+      .sort({ createdAt: -1 });
+    res.json(schools);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch pending schools' });
   }
 });
 
 // ============================================================
-// POST /api/safety/classroom-handover — Teacher releases child to driver
+// Safe Zones (Geo-fencing)
 // ============================================================
-router.post('/classroom-handover', requireAuth, async (req, res) => {
+
+// POST /api/safety/zone — Create a safe zone
+router.post('/zone', async (req, res) => {
   try {
-    const { rideId, teacherName } = req.body;
-
-    const ride = await Ride.findByIdAndUpdate(rideId, {
-      classroomPickupStatus: 'verified_by_teacher',
-      driverVerifiedAt: new Date(),
-    }, { new: true });
-
-    if (!ride) {
-      return res.status(404).json({ error: 'Ride not found' });
-    }
-
-    res.json({
-      message: `✅ ${teacherName || 'Teacher'} released child — safe handover to PoleSafe driver!`,
-      classroomPickupStatus: 'verified_by_teacher',
-      rideId,
-    });
+    const { name, type, coordinates, radius, schoolId } = req.body;
+    // Safe zones: school premises, home areas, no-go zones
+    // Stored in DB in production, in-memory for now
+    if (!global.safeZones) global.safeZones = [];
+    
+    const zone = {
+      id: global.safeZones.length,
+      name,
+      type: type || 'school', // school, home, restricted
+      coordinates,
+      radius: radius || 100, // meters
+      schoolId: schoolId || null,
+      createdAt: new Date(),
+    };
+    global.safeZones.push(zone);
+    
+    res.json({ success: true, zone });
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================================
-// GET /api/safety/teacher-pickups/:schoolId — All afternoon pickups today
-// ============================================================
-router.get('/teacher-pickups/:schoolId', requireAuth, async (req, res) => {
-  try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const pickups = await Ride.find({
-      schoolId: req.params.schoolId,
-      type: 'school_afternoon',
-      scheduledPickupTime: { $gte: today, $lt: tomorrow },
-    })
-      .populate('childId', 'name class pickupCode')
-      .populate('driverId', 'name driverIdNumber driverPhotoUrl')
-      .sort({ scheduledPickupTime: 1 })
-      .lean();
-
-    const formatted = pickups.map(p => ({
-      rideId: p._id,
-      childName: p.childId?.name || 'Unknown',
-      childClass: p.childId?.class || 'N/A',
-      driverName: p.driverId?.name || 'Unassigned',
-      driverIdNumber: p.driverId?.driverIdNumber || 'N/A',
-      classroomStatus: p.classroomPickupStatus || 'pending',
-      scheduledTime: p.scheduledPickupTime,
-      pickupWord: p.childId?.pickupCode || null,
-    }));
-
-    res.json({
-      total: formatted.length,
-      pickups: formatted,
-      pending: formatted.filter(p => p.classroomStatus === 'pending').length,
-      verified: formatted.filter(p => p.classroomStatus === 'verified_by_teacher').length,
-      completed: formatted.filter(p => p.classroomStatus === 'completed').length,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to create zone' });
   }
 });
 

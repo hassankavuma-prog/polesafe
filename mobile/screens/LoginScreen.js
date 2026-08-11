@@ -1,599 +1,425 @@
-// PoleSafe Mobile — Login Screen
-// Phone number login with SMS PIN verification
-
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity,
-  Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import API_BASE from '../config';
-import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
-const UG_PHONE_REGEX = /^\+256\d{9}$/;
+const API_URL = Platform.OS === 'android'
+  ? 'http://10.0.2.2:3001' // Android emulator → host machine
+  : 'http://localhost:3001';
+
+const ROLE_BADGES = {
+  parent: { label: 'Parent', color: '#4CAF50', icon: '👨‍👧‍👦' },
+  driver: { label: 'Driver', color: '#FF9800', icon: '🚗' },
+  school: { label: 'School', color: '#2196F3', icon: '🏫' },
+  rider: { label: 'Rider', color: '#7B1FA2', icon: '🛵' },
+};
 
 export default function LoginScreen({ navigation }) {
-  const theme = getTheme();
   const [phone, setPhone] = useState('');
-  const [pin, setPin] = useState('');
-  const [name, setName] = useState('');
-  const [role, setRole] = useState('parent');
-  const [step, setStep] = useState('phone'); // 'phone' | 'pin' | 'register'
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [step, setStep] = useState('role'); // role → phone → otp → done
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [devCode, setDevCode] = useState(null);
+  const [maskedPhone, setMaskedPhone] = useState('');
+  const otpRefs = [useRef(null), useRef(null), useRef(null), useRef(null), useRef(null), useRef(null)];
 
   const formatPhone = (text) => {
-    // Auto-prepend +256 if user types a 0 or 7xxxx
-    let cleaned = text.replace(/[^0-9+]/g, '');
-    if (cleaned.startsWith('0') && cleaned.length <= 10) {
-      cleaned = '+256' + cleaned.substring(1);
-    } else if (cleaned.startsWith('7') && cleaned.length <= 9) {
-      cleaned = '+256' + cleaned;
-    } else if (!cleaned.startsWith('+')) {
-      cleaned = '+' + cleaned;
+    // Only digits, max 10 (Ugandan: 07XXXXXXXX)
+    const digits = text.replace(/\D/g, '').slice(0, 10);
+    if (digits.length > 6) {
+      return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+    } else if (digits.length > 3) {
+      return `${digits.slice(0, 3)} ${digits.slice(3)}`;
     }
-    return cleaned;
+    return digits;
   };
 
-  const handleSendPin = async () => {
-    setError('');
-
-    if (!UG_PHONE_REGEX.test(phone)) {
-      setError('Enter a valid Ugandan number (+2567XXXXXXXX)');
+  const handleSendOTP = async () => {
+    const rawPhone = phone.replace(/\s/g, '');
+    if (rawPhone.length < 10) {
+      Alert.alert('Error', 'Enter a valid Ugandan phone number (07XXXXXXXX)');
+      return;
+    }
+    if (!selectedRole) {
+      Alert.alert('Error', 'Select who you are first');
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
+      const res = await fetch(`${API_URL}/api/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone: rawPhone, role: selectedRole }),
       });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        // Check if user doesn't exist
-        if (res.status === 404 || errData.message?.includes('not found')) {
-          setStep('register');
-          return;
-        }
-        throw new Error(errData.message || 'Failed to send PIN');
-      }
-
-      setStep('pin');
-    } catch (err) {
-      setError(err.message || 'Network error. Check your connection.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyPin = async () => {
-    setError('');
-
-    if (!pin || pin.length < 4) {
-      setError('Enter the PIN you received via SMS');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, pin }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || 'Invalid PIN');
-      }
-
       const data = await res.json();
 
-      // Store auth data
-      if (data.token) {
-        await AsyncStorage.setItem('polesafe_token', data.token);
-        if (data.role) await AsyncStorage.setItem('polesafe_role', data.role);
-        if (data.schoolId) await AsyncStorage.setItem('polesafe_school_id', String(data.schoolId));
+      if (res.ok) {
+        setDevCode(data.devCode);
+        setMaskedPhone(data.phone);
+        setStep('otp');
+        Alert.alert(
+          'OTP Sent',
+          `Code sent to ${data.phone}\n\nDev code: ${data.devCode}`
+        );
+      } else {
+        Alert.alert('Error', data.error || 'Failed to send code');
       }
-
-      // Navigation will be handled by PoleSafeApp's auth state change
-      // The app re-renders and moves to the correct tab navigator
-      Alert.alert('Welcome!', `Logged in as ${data.role || 'user'}`);
-
     } catch (err) {
-      setError(err.message || 'Verification failed');
+      Alert.alert('Error', 'Network error. Make sure the backend is running.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResendPin = () => {
-    setPin('');
-    handleSendPin();
-  };
+  const handleVerifyOTP = async () => {
+    const code = otp.join('');
+    if (code.length !== 6) {
+      Alert.alert('Error', 'Enter the full 6-digit code');
+      return;
+    }
 
-  // Dev Mode — Skip Login (for testing)
-  const devRoles = [
-    { key: 'parent', label: '👨‍👩‍👧 Parent', color: '#2E7D32' },
-    { key: 'driver', label: '🚗 Driver', color: '#1565C0' },
-    { key: 'school', label: '🏫 School', color: '#E65100' },
-    { key: 'rider', label: '👥 Rider', color: '#7B1FA2' },
-  ];
-
-  const handleDevLogin = async (mockRole) => {
     setLoading(true);
     try {
-      await AsyncStorage.setItem('polesafe_token', 'dev-mock-token-' + mockRole);
-      await AsyncStorage.setItem('polesafe_role', mockRole);
-      if (mockRole === 'school') {
-        await AsyncStorage.setItem('polesafe_school_id', '1');
+      const rawPhone = phone.replace(/\s/g, '');
+      const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: rawPhone, code, role: selectedRole }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        await AsyncStorage.setItem('token', data.token);
+        await AsyncStorage.setItem('userRole', data.user.role);
+        await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+        setStep('done');
+      } else {
+        Alert.alert('Error', data.error || 'Invalid code');
+        setOtp(['', '', '', '', '', '']);
+        otpRefs[0].current?.focus();
       }
-      if (mockRole === 'driver') {
-        await AsyncStorage.setItem('polesafe_driver_id', '1');
-      }
-      Alert.alert('🔧 Dev Mode', `Skipping login as mock ${mockRole}...`);
-    } catch (e) {
-      console.log('Dev login error:', e);
-      Alert.alert('Error', 'Failed to start dev mode');
+    } catch (err) {
+      Alert.alert('Error', 'Network error. Try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleOtpChange = (text, index) => {
+    const newOtp = [...otp];
+    newOtp[index] = text.replace(/[^0-9]/g, '');
+    setOtp(newOtp);
+
+    // Auto-advance to next field
+    if (text && index < 5) {
+      otpRefs[index + 1].current?.focus();
+    }
+  };
+
+  const handleOtpKeyPress = (key, index) => {
+    if (key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs[index - 1].current?.focus();
+    }
+  };
+
+  const handleDevMode = async (role) => {
+    const mockToken = `dev-token-${role}-${Date.now()}`;
+    await AsyncStorage.setItem('token', mockToken);
+    await AsyncStorage.setItem('userRole', role);
+    await AsyncStorage.setItem('userData', JSON.stringify({
+      id: `dev-${role}`,
+      phone: '0000000000',
+      role,
+      name: `Dev ${ROLE_BADGES[role]?.label || role} User`,
+      isRider: role === 'rider',
+      kids: [],
+    }));
+    setStep('done');
+  };
+
+  if (step === 'done') {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Text style={styles.successIcon}>✅</Text>
+        <Text style={styles.successText}>Logged in!</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, {backgroundColor: theme.canvas}]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Logo */}
-        <Text style={styles.logo}>🚸</Text>
-        <Text style={styles.title}>PoleSafe</Text>
-        <Text style={styles.subtitle}>From Home to School. And Beyond.</Text>
+        <View style={styles.logoSection}>
+          <Text style={styles.logo}>🚸</Text>
+          <Text style={styles.title}>PoleSafe</Text>
+          <Text style={styles.subtitle}>School Transport Safety</Text>
+        </View>
 
-        {/* Error */}
-        {error ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
-        {/* Step 1: Phone Input */}
-        {step === 'phone' && (
-          <View style={styles.form}>
-            <Text style={styles.label}>Phone Number</Text>
-            <View style={styles.phoneInputRow}>
-              <View style={styles.countryCode}>
-                <Text style={styles.countryCodeText}>🇺🇬 +256</Text>
-              </View>
-              <TextInput
-                style={[styles.input, styles.phoneInput]}
-                placeholder="7XXXXXXXX"
-                placeholderTextColor="#aaa"
-                keyboardType="phone-pad"
-                value={phone.replace('+256', '')}
-                onChangeText={(text) => {
-                  const cleaned = text.replace(/[^0-9]/g, '').slice(0, 9);
-                  setPhone('+256' + cleaned);
-                  setError('');
-                }}
-                maxLength={9}
-                editable={!loading}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[styles.primaryBtn, loading && styles.btnDisabled]}
-              onPress={handleSendPin}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryBtnText}>Send PIN</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkBtn}
-              onPress={() => setStep('register')}
-            >
-              <Text style={styles.linkText}>New here? Create Account</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkBtn}
-            >
-              <Text style={styles.linkText}>Forgot PIN?</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Step 2: Register */}
-        {step === 'register' && (
-          <View style={styles.form}>
-            <Text style={styles.verifiedPhone}>📱 {phone}</Text>
-            <Text style={styles.label}>Create Your Account</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              placeholderTextColor="#aaa"
-              value={name}
-              onChangeText={(text) => { setName(text); setError(''); }}
-              editable={!loading}
-            />
-
-            <View style={styles.roleSelector}>
-              <Text style={styles.roleLabel}>I am a:</Text>
-              <View style={styles.roleRow}>
-                {['parent', 'driver', 'school'].map((r) => (
-                  <TouchableOpacity
-                    key={r}
-                    style={[
-                      styles.roleBtn,
-                      role === r && styles.roleBtnSelected,
-                    ]}
-                    onPress={() => setRole(r)}
-                  >
-                    <Text
-                      style={[
-                        styles.roleText,
-                        role === r && styles.roleTextSelected,
-                      ]}
-                    >
-                      {r.charAt(0).toUpperCase() + r.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[styles.primaryBtn, loading && styles.btnDisabled]}
-              onPress={async () => {
-                if (!name.trim()) {
-                  setError('Please enter your name');
-                  return;
-                }
-                setLoading(true);
-                try {
-                  const res = await fetch(`${API_BASE}/api/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, name, role }),
-                  });
-                  if (!res.ok) {
-                    const errData = await res.json();
-                    throw new Error(errData.message || 'Registration failed');
-                  }
-                  setStep('pin');
-                } catch (err) {
-                  setError(err.message || 'Registration failed');
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryBtnText}>Create Account</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkBtn}
-              onPress={() => { setStep('phone'); setName(''); setError(''); }}
-            >
-              <Text style={styles.linkText}>← Back to login</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Step 3: PIN Verification */}
-        {step === 'pin' && (
-          <View style={styles.form}>
-            <Text style={styles.verifiedPhone}>
-              📱 {phone}
-            </Text>
-            <Text style={styles.label}>Enter PIN</Text>
-            <Text style={styles.hint}>
-              We sent a verification code to your phone
-            </Text>
-
-            <TextInput
-              style={[styles.input, styles.pinInput]}
-              placeholder="_ _ _ _ _ _"
-              placeholderTextColor="#ccc"
-              keyboardType="number-pad"
-              value={pin}
-              onChangeText={(text) => {
-                const cleaned = text.replace(/[^0-9]/g, '').slice(0, 6);
-                setPin(cleaned);
-                setError('');
-              }}
-              maxLength={6}
-              editable={!loading}
-              secureTextEntry
-            />
-
-            <TouchableOpacity
-              style={[styles.primaryBtn, loading && styles.btnDisabled]}
-              onPress={handleVerifyPin}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryBtnText}>Verify PIN</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkBtn}
-              onPress={handleResendPin}
-              disabled={loading}
-            >
-              <Text style={styles.linkText}>Resend PIN</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkBtn}
-              onPress={() => { setStep('phone'); setPin(''); setError(''); }}
-            >
-              <Text style={styles.linkText}>← Change phone number</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Footer */}
-        {/* Dev Mode — Skip Login */}
-        <View style={styles.devModeSection}>
-          <View style={styles.devModeDivider} />
-          <Text style={styles.devModeTitle}>🔧 Dev Mode</Text>
-          <Text style={styles.devModeDesc}>Skip login and test as:</Text>
-          <View style={styles.devRow}>
-            {devRoles.map((r) => (
+        {/* Role Selection */}
+        {step === 'role' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Who are you?</Text>
+            {Object.entries(ROLE_BADGES).map(([key, badge]) => (
               <TouchableOpacity
-                key={r.key}
-                style={[styles.devBtn, { borderColor: r.color }]}
-                onPress={() => handleDevLogin(r.key)}
-                disabled={loading}
+                key={key}
+                style={[
+                  styles.roleCard,
+                  selectedRole === key && { borderColor: badge.color, backgroundColor: badge.color + '15' },
+                ]}
+                onPress={() => { setSelectedRole(key); setStep('phone'); }}
               >
-                <Text style={[styles.devBtnText, { color: r.color }]}>{r.label}</Text>
+                <Text style={styles.roleIcon}>{badge.icon}</Text>
+                <View style={styles.roleInfo}>
+                  <Text style={styles.roleLabel}>{badge.label}</Text>
+                  <Text style={styles.roleDesc}>
+                    {key === 'parent' ? 'Track your kids and book rides' :
+                     key === 'driver' ? 'Drive for PoleSafe' :
+                     key === 'school' ? 'Manage school transport' :
+                     'Book rides and join the community'}
+                  </Text>
+                </View>
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        )}
 
-        {/* Footer */}
-        <Text style={styles.footer}>PoleSafe © {new Date().getFullYear()}</Text>
-      </View>
+        {/* Phone Input */}
+        {step === 'phone' && (
+          <View style={styles.section}>
+            <View style={styles.selectedRoleBadge}>
+              <Text style={styles.badgeText}>
+                {ROLE_BADGES[selectedRole]?.icon} {ROLE_BADGES[selectedRole]?.label}
+              </Text>
+              <TouchableOpacity onPress={() => setStep('role')}>
+                <Text style={styles.changeLink}>Change</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.sectionTitle}>Enter your phone number</Text>
+            <TextInput
+              style={styles.input}
+              value={phone}
+              onChangeText={(t) => setPhone(formatPhone(t))}
+              placeholder="07XX XXX XXX"
+              keyboardType="phone-pad"
+              maxLength={12}
+              autoFocus
+            />
+            <Text style={styles.hint}>
+              We'll send a verification code via SMS
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.primaryButton, loading && styles.buttonDisabled]}
+              onPress={handleSendOTP}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Send Code</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* OTP Entry */}
+        {step === 'otp' && (
+          <View style={styles.section}>
+            <View style={styles.selectedRoleBadge}>
+              <Text style={styles.badgeText}>
+                {ROLE_BADGES[selectedRole]?.icon} {ROLE_BADGES[selectedRole]?.label}
+              </Text>
+              <TouchableOpacity onPress={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); }}>
+                <Text style={styles.changeLink}>Back</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.sectionTitle}>Enter verification code</Text>
+            <Text style={styles.phoneDisplay}>
+              Code sent to {maskedPhone}
+            </Text>
+
+            <View style={styles.otpContainer}>
+              {otp.map((digit, i) => (
+                <TextInput
+                  key={i}
+                  ref={otpRefs[i]}
+                  style={[
+                    styles.otpInput,
+                    digit ? styles.otpInputFilled : null,
+                  ]}
+                  value={digit}
+                  onChangeText={(t) => handleOtpChange(t, i)}
+                  onKeyPress={({ nativeEvent }) => handleOtpKeyPress(nativeEvent.key, i)}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  selectTextOnFocus
+                />
+              ))}
+            </View>
+
+            {devCode && (
+              <Text style={styles.devHint}>
+                DEV: {devCode}
+              </Text>
+            )}
+
+            <TouchableOpacity
+              style={[styles.primaryButton, loading && styles.buttonDisabled]}
+              onPress={handleVerifyOTP}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Verify & Login</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.resendButton} onPress={handleSendOTP} disabled={loading}>
+              <Text style={styles.resendText}>Resend code</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Dev Mode (always at bottom) */}
+        {step !== 'otp' && (
+          <View style={styles.devSection}>
+            <Text style={styles.devTitle}>⚡ Dev Mode</Text>
+            <Text style={styles.devSubtitle}>Skip phone auth for testing</Text>
+            <View style={styles.devButtons}>
+              {Object.entries(ROLE_BADGES).map(([key, badge]) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.devButton, { backgroundColor: badge.color }]}
+                  onPress={() => handleDevMode(key)}
+                >
+                  <Text style={styles.devButtonText}>
+                    {badge.icon} {badge.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  logo: {
-    fontSize: 72,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: COLORS.green,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 40,
-    textAlign: 'center',
-  },
-  errorBox: {
-    backgroundColor: COLORS.redBg,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    width: '100%',
-  },
-  errorText: {
-    color: COLORS.red,
-    fontSize: 13,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  form: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 8,
-    alignSelf: 'flex-start',
-  },
-  hint: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  verifiedPhone: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.green,
-    marginBottom: 20,
-    backgroundColor: COLORS.greenBg,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  phoneInputRow: {
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  center: { justifyContent: 'center', alignItems: 'center' },
+  scrollContent: { paddingBottom: 40 },
+  // Logo
+  logoSection: { alignItems: 'center', marginTop: 60, marginBottom: 30 },
+  logo: { fontSize: 64 },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#333', marginTop: 8 },
+  subtitle: { fontSize: 14, color: '#666', marginTop: 4 },
+  // Sections
+  section: { paddingHorizontal: 24, marginBottom: 24 },
+  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 16 },
+  // Role cards
+  roleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-    width: '100%',
-  },
-  countryCode: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    borderTopLeftRadius: 10,
-    borderBottomLeftRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRightWidth: 0,
-  },
-  countryCodeText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    backgroundColor: COLORS.surfaceElevated,
-  },
-  phoneInput: {
-    flex: 1,
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-  },
-  pinInput: {
-    width: '100%',
-    textAlign: 'center',
-    fontSize: 28,
-    letterSpacing: 12,
-    marginBottom: 24,
-  },
-  primaryBtn: {
-    backgroundColor: COLORS.green,
-    paddingVertical: 16,
-    paddingHorizontal: 40,
+    backgroundColor: '#fff',
     borderRadius: 12,
-    width: '100%',
-    alignItems: 'center',
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
     elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
-  btnDisabled: {
-    opacity: 0.6,
+  roleIcon: { fontSize: 28, marginRight: 16 },
+  roleInfo: { flex: 1 },
+  roleLabel: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 2 },
+  roleDesc: { fontSize: 12, color: '#666' },
+  // Phone input
+  input: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  primaryBtnText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  linkBtn: {
-    marginTop: 16,
-    padding: 8,
-  },
-  linkText: {
-    color: COLORS.green,
-    fontSize: 14,
+  hint: { fontSize: 12, color: '#999', textAlign: 'center', marginBottom: 20 },
+  // OTP
+  otpContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 24, gap: 8 },
+  otpInput: {
+    width: 48,
+    height: 56,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    textAlign: 'center',
+    fontSize: 24,
     fontWeight: '600',
+    color: '#333',
   },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    fontSize: 12,
-    color: '#bbb',
-  },
-  // Dev Mode styles
-  devModeSection: {
-    width: '100%',
-    marginTop: 20,
-    marginBottom: 60,
+  otpInputFilled: { borderColor: '#4CAF50' },
+  phoneDisplay: { textAlign: 'center', fontSize: 14, color: '#666', marginBottom: 24 },
+  devHint: { textAlign: 'center', fontSize: 12, color: '#999', marginBottom: 12 },
+  // Buttons
+  primaryButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
-  },
-  devModeDivider: {
-    width: '80%',
-    height: 1,
-    backgroundColor: '#ddd',
-    marginBottom: 16,
-  },
-  devModeTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#888',
-    marginBottom: 4,
-  },
-  devModeDesc: {
-    fontSize: 12,
-    color: '#aaa',
     marginBottom: 12,
   },
-  devRow: {
+  primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonDisabled: { opacity: 0.6 },
+  resendButton: { alignItems: 'center', padding: 8 },
+  resendText: { color: '#4CAF50', fontSize: 14 },
+  // Selected role badge
+  selectedRoleBadge: {
     flexDirection: 'row',
-    gap: 10,
-    width: '100%',
-  },
-  devBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fafafa',
-  },
-  devBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  roleSelector: {
-    width: '100%',
-    marginBottom: 20,
-  },
-  roleLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: 10,
-  },
-  roleRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  roleBtn: {
-    flex: 1,
-    paddingVertical: 12,
+    backgroundColor: '#e8f5e9',
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#f0f0f0',
+    padding: 8,
+    marginBottom: 16,
   },
-  roleBtnSelected: {
-    backgroundColor: COLORS.greenBg,
-    borderColor: COLORS.green,
+  badgeText: { fontSize: 14, fontWeight: '600', color: '#333' },
+  changeLink: { fontSize: 14, color: '#4CAF50' },
+  // Dev mode
+  devSection: { paddingHorizontal: 24, marginTop: 32 },
+  devTitle: { fontSize: 14, fontWeight: '600', color: '#999', textAlign: 'center' },
+  devSubtitle: { fontSize: 12, color: '#bbb', textAlign: 'center', marginBottom: 12 },
+  devButtons: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
+  devButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  roleText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  roleTextSelected: {
-    color: COLORS.green,
-  },
+  devButtonText: { color: '#fff', fontSize: 13, fontWeight: '500' },
+  // Success
+  successIcon: { fontSize: 64, marginBottom: 16 },
+  successText: { fontSize: 20, color: '#4CAF50', fontWeight: '600' },
 });

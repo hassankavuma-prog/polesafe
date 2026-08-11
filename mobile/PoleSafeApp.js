@@ -195,8 +195,8 @@ export default function PoleSafeApp() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = await AsyncStorage.getItem('polesafe_token');
-        const role = await AsyncStorage.getItem('polesafe_role');
+        const token = await AsyncStorage.getItem('token');
+        const role = await AsyncStorage.getItem('userRole');
         if (token !== tokenRef.current) {
           setUserToken(token);
           setUserRole(role);

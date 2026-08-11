@@ -1,340 +1,220 @@
-// PoleSafe — Auth Routes
-// Registration, login, SMS PIN verification for basic phone users
-
 const express = require('express');
 const router = express.Router();
-const { User } = require('../database/schema');
-const { authMiddleware, generateToken, generatePinToken } = require('../middleware/auth');
-const {
-  validateRegister,
-  validateLogin,
-} = require('../middleware/validation');
-const smsService = require('../services/smsService');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const Parent = require('../models/Parent');
+const Driver = require('../models/Driver');
+const School = require('../models/School');
+const OTP = require('../models/OTP');
 
-// ============================================================
-// POST /api/auth/register — Create new account
-// ============================================================
-router.post('/register', validateRegister, async (req, res) => {
-  try {
-    const { phone, name, role, hasSmartphone } = req.body;
+const JWT_SECRET = process.env.JWT_SECRET || 'polesafe-dev-secret-change-in-production';
+const JWT_EXPIRY = '7d';
+const OTP_EXPIRY_MINUTES = 10;
 
-    // Validate phone number
-    if (!phone || !phone.match(/^\+?256\d{9}$/)) {
-      return res.status(400).json({ error: 'Valid Ugandan phone number required (+256...)' });
-    }
-
-    // Check if already registered
-    const existing = await User.findOne({ phone });
-    if (existing) {
-      return res.status(409).json({ error: 'Phone number already registered. Please login.' });
-    }
-
-    // Create user
-    const user = await User.create({
-      phone,
-      name,
-      role,
-      hasSmartphone: hasSmartphone !== false,
-      isVerified: false,
-    });
-
-    // If basic phone user, set PIN for SMS login
-    if (!user.hasSmartphone) {
-      const pin = generatePinToken();
-      user.pin = pin;
-      await user.save();
-
-      // Send PIN via SMS
-      await smsService.send({
-        to: phone,
-        message: `Welcome to PoleSafe! 🚸 Your PIN is: ${pin}. Keep it safe. Reply HELP for how to book rides. -PoleSafe`,
-      });
-
-      return res.status(201).json({
-        message: 'Account created! Check SMS for your PIN.',
-        phone,
-        smsSent: true,
-      });
-    }
-
-    // Smartphone user — return JWT
-    const token = generateToken(user);
-    res.status(201).json({
-      message: 'Account created successfully',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        phone: user.phone,
-        role: user.role,
-      },
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================================
-// POST /api/auth/login — Login via phone + PIN or password
-// ============================================================
-router.post('/login', validateLogin, async (req, res) => {
-  try {
-    const { phone, pin } = req.body;
-    const bcrypt = require('bcryptjs');
-
-    const user = await User.findOne({ phone });
-    if (!user) {
-      return res.status(404).json({ error: 'No account with this phone number' });
-    }
-
-    // If PIN provided, verify it (for admin users and basic phone users)
-    if (pin) {
-      // Check if PIN is hashed (bcrypt) or plain text (legacy)
-      let validPin = false;
-      
-      if (user.pin && user.pin.startsWith('$2')) {
-        // Hashed PIN (bcrypt)
-        validPin = await bcrypt.compare(pin, user.pin);
-      } else {
-        // Plain text PIN (legacy)
-        validPin = user.pin === pin;
-      }
-
-      if (!validPin) {
-        return res.status(401).json({ error: 'Invalid PIN. Try again.' });
-      }
-
-      const token = generateToken(user);
-      return res.json({
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          phone: user.phone,
-          role: user.role,
-          polesafeAdminRole: user.polesafeAdminRole,
-        },
-      });
-    }
-
-    // For smartphone users without PIN — send PIN via SMS
-    const newPin = generatePinToken();
-    user.pin = newPin;
-    await user.save();
-
-    await smsService.send({
-      to: phone,
-      message: `PoleSafe login code: ${newPin}. Valid for 5 minutes. -PoleSafe`,
-    });
-
-    res.json({ message: 'PIN sent via SMS', requiresPin: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================================
-// POST /api/auth/verify — Verify PIN (alias for login with PIN)
-// Called by mobile app after receiving SMS with PIN
-// ============================================================
-router.post('/verify', async (req, res) => {
-  // Forward to login handler logic
-  try {
-    const { phone, pin } = req.body;
-    const bcrypt = require('bcryptjs');
-
-    const user = await User.findOne({ phone });
-    if (!user) {
-      return res.status(404).json({ error: 'No account with this phone number' });
-    }
-
-    let validPin = false;
-    if (user.pin && user.pin.startsWith('$2')) {
-      validPin = await bcrypt.compare(pin, user.pin);
+// Helper: find or create user record
+async function findOrCreateUser(phone, role) {
+  const ModelMap = {
+    parent: Parent,
+    driver: Driver,
+    school: School,
+    rider: Parent, // riders stored as parent records with isRider flag
+  };
+  const Model = ModelMap[role] || Parent;
+  
+  let user = await Model.findOne({ phone });
+  if (!user) {
+    if (role === 'rider') {
+      user = await Model.create({ phone, isRider: true });
+    } else if (role === 'school') {
+      user = await Model.create({ phone, schoolName: 'Unregistered' });
+    } else if (role === 'driver') {
+      user = await Model.create({ phone, name: 'Unregistered', vehicleType: 'boda' });
     } else {
-      validPin = user.pin === pin;
+      user = await Model.create({ phone });
     }
-
-    if (!validPin) {
-      return res.status(401).json({ error: 'Invalid PIN. Try again.' });
-    }
-
-    const token = generateToken(user);
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        phone: user.phone,
-        role: user.role,
-      },
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
-});
+  return user;
+}
 
-// ============================================================
-// GET /api/auth/me — Get current user profile
-// ============================================================
-router.get('/me', authMiddleware, async (req, res) => {
-  res.json({
-    user: req.user,
-  });
-});
-
-// ============================================================
-// POST /api/auth/sms-login — SMS command authentication
-// Called by SMS gateway when a basic phone user sends a command
-// ============================================================
-router.post('/sms-login', async (req, res) => {
+// POST /api/auth/send-otp
+router.post('/send-otp', async (req, res) => {
   try {
-    const { from, text } = req.body;
-
-    const parsed = smsService.parseCommand(from, text);
-    const user = await User.findOne({ phone: from });
-
-    if (!user) {
-      // Unknown user — send registration prompt
-      const reply = `Welcome to PoleSafe! To register, send: REGISTER <your name> <parent/driver/school>. Example: REGISTER Hassan parent. -PoleSafe`;
-      return res.json({ reply });
-    }
-
-    // Process the command
-    let reply;
-    switch (parsed.command) {
-      case 'BOOK':
-        reply = smsService.generateReply({ command: 'BOOK', args: parsed.args, user });
-        break;
-      case 'CANCEL':
-        reply = smsService.generateReply({ command: 'CANCEL', args: parsed.args, user });
-        break;
-      case 'WHERE':
-        reply = smsService.generateReply({ command: 'WHERE', args: parsed.args, user });
-        break;
-      case 'SICK':
-        reply = smsService.generateReply({ command: 'SICK', args: parsed.args, user });
-        break;
-      case 'HELP':
-        reply = smsService.generateReply({ command: 'HELP', user });
-        break;
-      case 'REGISTER':
-        // Handle registration via SMS
-        const name = parsed.args.join(' ');
-        user.name = name;
-        const pin = generatePinToken();
-        user.pin = pin;
-        await user.save();
-        reply = `✅ Registered ${name}! Your PIN: ${pin}. Book a ride: BOOK <name> <class> <school> <time>. -PoleSafe`;
-        break;
-      default:
-        reply = `PoleSafe: Unknown command. Send HELP for options. -PoleSafe`;
-    }
-
-    res.json({ reply });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/auth/change-pin — Change PIN (authenticated)
-router.post('/change-pin', authMiddleware, async (req, res) => {
-  try {
-    const { newPin } = req.body;
-    if (!newPin || newPin.length < 4) {
-      return res.status(400).json({ error: 'PIN must be at least 4 characters' });
+    const { phone, role } = req.body;
+    
+    if (!phone || !role) {
+      return res.status(400).json({ error: 'Phone and role are required' });
     }
     
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    
-    user.pin = newPin;
-    await user.save();
-    
-    res.json({ message: 'PIN changed successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================================
-// POST /api/auth/forgot-pin — Send SMS reset code
-// ============================================================
-router.post('/forgot-pin', async (req, res) => {
-  try {
-    const { phone } = req.body;
-    if (!phone || !phone.match(/^\+?256\d{9}$/)) {
-      return res.status(400).json({ error: 'Valid Ugandan phone number required (+256...)' });
+    const validRoles = ['parent', 'driver', 'school', 'rider'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
     }
 
-    const user = await User.findOne({ phone });
-    if (!user) {
-      return res.status(404).json({ error: 'No account with this phone number' });
+    // Rate limit: 1 OTP per 60 seconds per phone
+    const recentOTP = await OTP.findOne({ phone, verified: false })
+      .sort({ createdAt: -1 });
+    if (recentOTP && !recentOTP.isExpired()) {
+      const secondsSinceLast = (new Date() - recentOTP.createdAt) / 1000;
+      if (secondsSinceLast < 60) {
+        const waitSeconds = Math.ceil(60 - secondsSinceLast);
+        return res.status(429).json({ 
+          error: `Please wait ${waitSeconds} seconds before requesting another code`,
+          waitSeconds,
+        });
+      }
     }
 
-    // Generate 6-digit reset code
-    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-    user.pinResetCode = resetCode;
-    user.pinResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min expiry
-    await user.save();
-
-    // Send reset code via SMS
-    await smsService.send({
-      to: phone,
-      message: `PoleSafe PIN reset code: ${resetCode}. Valid for 10 minutes. If you didn't request this, ignore. -PoleSafe`,
-    });
-
-    res.json({ message: 'Reset code sent via SMS', phone });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================================
-// POST /api/auth/reset-pin — Verify reset code + set new PIN
-// ============================================================
-router.post('/reset-pin', async (req, res) => {
-  try {
-    const { phone, code, newPin } = req.body;
-
-    if (!phone || !code || !newPin) {
-      return res.status(400).json({ error: 'Phone, code, and new PIN are required' });
-    }
-    if (newPin.length < 4) {
-      return res.status(400).json({ error: 'PIN must be at least 4 characters' });
-    }
-
-    const user = await User.findOne({
+    // Generate OTP
+    const code = OTP.generateCode();
+    const otp = await OTP.create({
       phone,
-      pinResetCode: code,
-      pinResetExpires: { $gt: new Date() },
+      code,
+      role,
+      expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
     });
 
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid or expired reset code. Request a new one.' });
-    }
-
-    // Set new PIN and clear reset fields
-    user.pin = newPin;
-    user.pinResetCode = undefined;
-    user.pinResetExpires = undefined;
-    await user.save();
-
-    // Generate token so user is logged in after reset
-    const token = generateToken(user);
+    // For dev: log OTP to console and return in response
+    console.log(`[DEV] OTP for ${phone} (${role}): ${code}`);
+    
+    // In production, send via Africa's Talking SMS
+    // await sendSMS(phone, `Your PoleSafe code is: ${code}`);
 
     res.json({
-      message: 'PIN reset successful',
+      message: 'OTP sent successfully',
+      // DEV ONLY — remove in production
+      devCode: code,
+      phone: phone.replace(/\d(?=\d{4})/g, '*'), // mask: 07*****123
+    });
+  } catch (err) {
+    console.error('Send OTP error:', err);
+    res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+// POST /api/auth/verify-otp
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const { phone, code, role } = req.body;
+    
+    if (!phone || !code || !role) {
+      return res.status(400).json({ error: 'Phone, code, and role are required' });
+    }
+
+    // Find valid OTP
+    const otp = await OTP.findOne({ phone, code, verified: false, role })
+      .sort({ createdAt: -1 });
+
+    if (!otp) {
+      return res.status(401).json({ error: 'Invalid or expired code' });
+    }
+
+    if (otp.isExpired()) {
+      await OTP.deleteOne({ _id: otp._id });
+      return res.status(401).json({ error: 'Code has expired. Request a new one.' });
+    }
+
+    // Check attempts
+    if (otp.attempts >= 5) {
+      await OTP.deleteOne({ _id: otp._id });
+      return res.status(429).json({ error: 'Too many attempts. Request a new code.' });
+    }
+
+    otp.attempts += 1;
+    otp.verified = true;
+    await otp.save();
+
+    // Find or create user
+    const user = await findOrCreateUser(phone, role);
+
+    // Generate JWT
+    const token = jwt.sign(
+      { 
+        userId: user._id.toString(),
+        phone: user.phone,
+        role,
+        modelType: role === 'rider' ? 'parent' : role,
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    );
+
+    // Build user profile response
+    const profile = {
       token,
       user: {
         id: user._id,
-        name: user.name,
         phone: user.phone,
-        role: user.role,
+        role,
+        name: user.name || user.schoolName || '',
       },
-    });
+    };
+
+    // Add role-specific data
+    if (role === 'parent' || role === 'rider') {
+      profile.user.isRider = user.isRider || false;
+      const kids = await (require('../models/Kid')).find({ parentId: user._id }).lean() || [];
+      profile.user.kids = kids;
+    }
+    if (role === 'driver') {
+      profile.user.vehicleType = user.vehicleType;
+      profile.user.verified = user.verified || false;
+    }
+    if (role === 'school') {
+      profile.user.schoolName = user.schoolName;
+      profile.user.verified = user.verified || false;
+    }
+
+    res.json(profile);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Verify OTP error:', err);
+    res.status(500).json({ error: 'Failed to verify OTP' });
+  }
+});
+
+// POST /api/auth/refresh
+router.post('/refresh', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ error: 'Token required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // Refresh token
+    const newToken = jwt.sign(
+      {
+        userId: decoded.userId,
+        phone: decoded.phone,
+        role: decoded.role,
+        modelType: decoded.modelType,
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    );
+
+    res.json({ token: newToken });
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+});
+
+// GET /api/auth/dev-otps — DEV ONLY: list recent OTPs for testing
+router.get('/dev-otps', async (req, res) => {
+  try {
+    const otps = await OTP.find({ verified: false })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean();
+    res.json(otps.map(o => ({
+      phone: o.phone,
+      code: o.code,
+      role: o.role,
+      expiresAt: o.expiresAt,
+      attempts: o.attempts,
+    })));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch OTPs' });
   }
 });
 
