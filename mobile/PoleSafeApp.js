@@ -205,15 +205,15 @@ export default function PoleSafeApp() {
             )
           )}
           {/* Shared screens that can be accessed from any role */}
-          <Stack.Screen name="TrackRide" component={ParentTrack} />
-          <Stack.Screen name="SickDay" component={ParentSickDay} />
-          <Stack.Screen name="EarlyPickup" component={ParentEarlyPickup} />
+          <Stack.Screen name="TrackRide" component={ParentTrack} options={{ headerShown: true, title: '🚗 Live Tracking', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
+          <Stack.Screen name="SickDay" component={ParentSickDay} options={{ headerShown: true, title: '🤒 Report Sick Day', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
+          <Stack.Screen name="EarlyPickup" component={ParentEarlyPickup} options={{ headerShown: true, title: '⏰ Early Pickup', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
           {/* Parent-only screens */}
-          <Stack.Screen name="AddChild" component={AddChild} />
-          <Stack.Screen name="Settings" component={Settings} />
+          <Stack.Screen name="AddChild" component={AddChild} options={{ headerShown: true, title: '👶 Register Child', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
+          <Stack.Screen name="Settings" component={Settings} options={{ headerShown: true, title: '⚙️ Settings', headerStyle: { backgroundColor: COLORS.green }, headerTintColor: '#fff' }} />
           {/* School-only screens */}
-          <Stack.Screen name="PendingChildren" component={PendingChildren} />
-          <Stack.Screen name="AttendanceReport" component={AttendanceReport} />
+          <Stack.Screen name="PendingChildren" component={PendingChildren} options={{ headerShown: true, title: '⏳ Pending Children', headerStyle: { backgroundColor: COLORS.orange }, headerTintColor: '#fff' }} />
+          <Stack.Screen name="AttendanceReport" component={AttendanceReport} options={{ headerShown: true, title: '📊 Attendance', headerStyle: { backgroundColor: COLORS.orange }, headerTintColor: '#fff' }} />
           <Stack.Screen name="TeacherPickupVerify" component={TeacherPickupVerify} options={{ headerShown: true, title: 'Pickup Verification', headerStyle: { backgroundColor: COLORS.orange }, headerTintColor: '#fff' }} />
         </Stack.Navigator>
       </NavigationContainer>
