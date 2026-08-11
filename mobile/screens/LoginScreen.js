@@ -115,6 +115,33 @@ export default function LoginScreen({ navigation }) {
     handleSendPin();
   };
 
+  // Dev Mode — Skip Login (for testing)
+  const devRoles = [
+    { key: 'parent', label: '👨‍👩‍👧 Parent', color: '#2E7D32' },
+    { key: 'driver', label: '🚗 Driver', color: '#1565C0' },
+    { key: 'school', label: '🏫 School', color: '#E65100' },
+  ];
+
+  const handleDevLogin = async (mockRole) => {
+    setLoading(true);
+    try {
+      await AsyncStorage.setItem('polesafe_token', 'dev-mock-token-' + mockRole);
+      await AsyncStorage.setItem('polesafe_role', mockRole);
+      if (mockRole === 'school') {
+        await AsyncStorage.setItem('polesafe_school_id', '1');
+      }
+      if (mockRole === 'driver') {
+        await AsyncStorage.setItem('polesafe_driver_id', '1');
+      }
+      Alert.alert('🔧 Dev Mode', `Skipping login as mock ${mockRole}...`);
+    } catch (e) {
+      console.log('Dev login error:', e);
+      Alert.alert('Error', 'Failed to start dev mode');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, {backgroundColor: theme.canvas}]}
@@ -324,6 +351,26 @@ export default function LoginScreen({ navigation }) {
         )}
 
         {/* Footer */}
+        {/* Dev Mode — Skip Login */}
+        <View style={styles.devModeSection}>
+          <View style={styles.devModeDivider} />
+          <Text style={styles.devModeTitle}>🔧 Dev Mode</Text>
+          <Text style={styles.devModeDesc}>Skip login and test as:</Text>
+          <View style={styles.devRow}>
+            {devRoles.map((r) => (
+              <TouchableOpacity
+                key={r.key}
+                style={[styles.devBtn, { borderColor: r.color }]}
+                onPress={() => handleDevLogin(r.key)}
+                disabled={loading}
+              >
+                <Text style={[styles.devBtnText, { color: r.color }]}>{r.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Footer */}
         <Text style={styles.footer}>PoleSafe © {new Date().getFullYear()}</Text>
       </View>
     </KeyboardAvoidingView>
@@ -470,6 +517,48 @@ const styles = StyleSheet.create({
     bottom: 30,
     fontSize: 12,
     color: '#bbb',
+  },
+  // Dev Mode styles
+  devModeSection: {
+    width: '100%',
+    marginTop: 20,
+    marginBottom: 60,
+    alignItems: 'center',
+  },
+  devModeDivider: {
+    width: '80%',
+    height: 1,
+    backgroundColor: '#ddd',
+    marginBottom: 16,
+  },
+  devModeTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#888',
+    marginBottom: 4,
+  },
+  devModeDesc: {
+    fontSize: 12,
+    color: '#aaa',
+    marginBottom: 12,
+  },
+  devRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  devBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+  },
+  devBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   roleSelector: {
     width: '100%',

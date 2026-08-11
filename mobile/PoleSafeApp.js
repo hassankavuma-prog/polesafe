@@ -1,7 +1,7 @@
 // PoleSafe Mobile App — React Native Entry Point
 // From Home to School. And Beyond. 🚸🚗
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -157,23 +157,30 @@ export default function PoleSafeApp() {
   const [isLoading, setIsLoading] = useState(true);
   const [userToken, setUserToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const tokenRef = useRef(userToken);
+
+  // Keep ref in sync with state
+  tokenRef.current = userToken;
 
   useEffect(() => {
-    // Check for stored token on app launch
-    const bootstrap = async () => {
+    const checkAuth = async () => {
       try {
         const token = await AsyncStorage.getItem('polesafe_token');
         const role = await AsyncStorage.getItem('polesafe_role');
-        if (token) {
+        if (token !== tokenRef.current) {
           setUserToken(token);
           setUserRole(role);
         }
       } catch (e) {
-        console.log('Error loading token:', e);
+        console.log('Auth check error:', e);
       }
       setIsLoading(false);
     };
-    bootstrap();
+
+    checkAuth();
+    // Poll every 1s to detect auth changes from Dev Mode / real login
+    const interval = setInterval(checkAuth, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   if (isLoading) {
