@@ -6,12 +6,11 @@ const makeIncidentNumber = () => `INC-${Date.now().toString(36).toUpperCase()}`;
 
 const hasAdminAccess = (role) => ['polesafe_admin', 'school_admin'].includes(role);
 const hasDispatcherAccess = (role) => ['polesafe_admin', 'school_admin', 'dispatcher', 'ops_dispatcher'].includes(role);
-const hasVerifiedUnmaskAccess = (req, incident) => {
+const hasVerifiedUnmaskAccess = (req) => {
   const role = req.userRole || req.user?.role || req.body.userRole || req.query.userRole;
   if (!hasDispatcherAccess(role)) return false;
   if (req.user?.verifiedSafetyOps === true || req.user?.safetyOpsVerified === true) return true;
-  if (req.body?.verified === true || req.query?.verified === 'true') return true;
-  return !!incident?.privacyMasked;
+  return req.body?.verified === true || req.query?.verified === 'true';
 };
 
 const redactIncident = (incident, { unmask = false } = {}) => {
@@ -222,7 +221,7 @@ router.get('/dispatcher/dashboard', async (req, res) => {
 
     res.json({
       stats: { active, triaged, resolved },
-      incidents: incidents.map(maskIncident),
+      incidents: incidents.map((incident) => redactIncident(incident)),
       privacyMode: 'masked',
       allowedActions: ['acknowledge', 'assign', 'escalate', 'resolve', 'mark_false_alarm'],
     });
@@ -284,7 +283,7 @@ router.post('/incidents/:id/unmask', async (req, res) => {
     const { userId, userRole, note, verified } = req.body;
     const incident = await SafetyIncident.findById(req.params.id);
     if (!incident) return res.status(404).json({ error: 'Incident not found' });
-    if (!hasVerifiedUnmaskAccess(req, incident)) {
+    if (!hasVerifiedUnmaskAccess(req)) {
       return res.status(403).json({ error: 'Verified dispatcher access required to unmask incident data' });
     }
 
@@ -318,7 +317,7 @@ router.get('/incidents/:id', async (req, res) => {
   try {
     const incident = await SafetyIncident.findById(req.params.id).lean();
     if (!incident) return res.status(404).json({ error: 'Incident not found' });
-    const unmask = hasVerifiedUnmaskAccess(req, incident) && (req.query.unmask === 'true' || req.query.unmask === '1' || req.query.unmask === true);
+    const unmask = hasVerifiedUnmaskAccess(req) && (req.query.unmask === 'true' || req.query.unmask === '1' || req.query.unmask === true);
     await auditSafetyAccess({ action: unmask ? 'incident_view_unmasked' : 'incident_view_masked', actorId: req.userId || req.body.userId || req.query.userId || 'unknown', actorRole: req.userRole || req.body.userRole || req.query.userRole || 'unknown', incidentId: incident._id, note: unmask ? 'unmask requested' : 'masked view', metadata: { unmask } });
     res.json({ incident: redactIncident(incident, { unmask }) });
   } catch (err) {
