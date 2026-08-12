@@ -278,6 +278,25 @@ router.patch('/incidents/:id/mask', async (req, res) => {
 });
 
 
+
+router.post('/incidents/:id/mask', async (req, res) => {
+  try {
+    const { userId, userRole, note } = req.body;
+    const incident = await SafetyIncident.findById(req.params.id);
+    if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    if (!hasDispatcherAccess(userRole || req.userRole || req.user?.role)) {
+      return res.status(403).json({ error: 'Dispatcher access required to mask incident data' });
+    }
+    incident.privacyMasked = true;
+    incident.auditTrail.push({ action: 'incident_re_masked', actorId: userId || 'unknown', actorRole: userRole || 'unknown', note: note || 'Masked from dispatcher console', timestamp: new Date() });
+    await incident.save();
+    await logIncidentAudit({ action: 'incident_re_masked', actorId: userId || 'unknown', actorRole: userRole || 'unknown', incidentId: incident._id, note: note || 'Masked from dispatcher console' });
+    res.json({ success: true, incident: redactIncident(incident.toObject()) });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mask incident' });
+  }
+});
+
 router.post('/incidents/:id/unmask', async (req, res) => {
   try {
     const { userId, userRole, note, verified } = req.body;

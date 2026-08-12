@@ -119,7 +119,6 @@ function IncidentCard({
 export default function SafetyOpsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [allowed, setAllowed] = useState(true);
   const [stats, setStats] = useState({ active: 0, triaged: 0, resolved: 0 });
   const [incidents, setIncidents] = useState<SafetyIncident[]>([]);
   const [selected, setSelected] = useState<SafetyIncident | null>(null);
@@ -140,7 +139,6 @@ export default function SafetyOpsPage() {
       try {
         await loadDashboard();
       } catch (e: any) {
-        setAllowed(false);
         setError(e?.message || 'Unable to load dispatcher dashboard');
       } finally {
         setLoading(false);

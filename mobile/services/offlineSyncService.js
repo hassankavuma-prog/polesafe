@@ -111,6 +111,7 @@ async function recordFailure(item, errorMessage) {
 }
 
 async function postJson(path, body, token) {
+  if (!API_BASE) throw new Error('API base not configured');
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API_BASE}${path}`, {
