@@ -25,7 +25,7 @@ router.use(requireRole('parent'));
 // ============================================================
 router.get('/kids', async (req, res) => {
   try {
-    const kids = await Child.find({ parentId: req.userId, isActive: true })
+    const kids = await Child.find({ parentId: req.userId || req.user?._id, isActive: true })
       .populate('schoolId', 'name')
       .lean();
     res.json({ kids });
@@ -144,7 +144,7 @@ router.post('/book', validateBooking, async (req, res) => {
 router.get('/rides', async (req, res) => {
   try {
     const { status, limit } = req.query;
-    const filter = { parentId: req.userId };
+    const filter = { parentId: req.userId || req.user?._id };
     if (status) filter.status = status;
 
     const rides = await Ride.find(filter)
@@ -173,7 +173,7 @@ router.get('/rides/:id', async (req, res) => {
     if (!ride) return res.status(404).json({ error: 'Ride not found' });
 
     // Verify this parent owns this ride
-    if (ride.parentId?.toString() !== req.userId.toString()) {
+    if (ride.parentId?.toString() !== String(req.userId || req.user?._id)) {
       return res.status(403).json({ error: 'Not your ride' });
     }
 
@@ -193,7 +193,7 @@ router.post('/sick-day', validateSickDay, async (req, res) => {
     const daysOff = req.body.daysOff || days || 1;
 
     const child = await Child.findById(childId);
-    if (!child || child.parentId.toString() !== req.userId.toString()) {
+    if (!child || child.parentId.toString() !== String(req.userId || req.user?._id)) {
       return res.status(403).json({ error: 'Not your child' });
     }
 
