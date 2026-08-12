@@ -493,7 +493,9 @@ export default function PoleSafeApp() {
             />
           ))}
         </Stack.Navigator>
-      </NavigationContainer>
+          {/* Dev Test Controller (only visible in __DEV__ mode) */}
+          {__DEV__ && <DevTestController />}
+        </NavigationContainer>
     </SafeAreaProvider>
   );
 }
