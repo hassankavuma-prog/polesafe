@@ -34,6 +34,7 @@ import DriverPickupVerify from './screens/DriverPickupVerify';
 import SchoolDashboard from './screens/SchoolDashboard';
 import SchoolBroadcast from './screens/SchoolBroadcast';
 import SchoolGateCheck from './screens/SchoolGateCheck';
+import StudentRosterScreen from './screens/school/StudentRosterScreen';
 import SchoolDetention from './screens/SchoolDetention';
 import RideHailing from './screens/RideHailing';
 import AddChild from './screens/AddChild';
@@ -303,6 +304,16 @@ function SchoolTabs() {
           tabBarIcon: ({ focused }) => <TabIcon emoji="🛡️" focused={focused} />,
           ...defaultHeaderStyles(BRAND.teal),
           title: 'Safety Board',
+        }}
+      />
+      <Tab.Screen
+        name="StudentRoster"
+        component={StudentRosterScreen}
+        options={{
+          tabBarLabel: 'Roster',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
+          ...defaultHeaderStyles(BRAND.teal),
+          title: 'Student Roster',
         }}
       />
     </Tab.Navigator>

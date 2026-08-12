@@ -177,6 +177,23 @@ export default function SchoolDashboard({ navigation }) {
         </View>
       </View>
 
+      {/* Fleet Quick Stats */}
+      <Text style={styles.sectionTitle}>Fleet Status</Text>
+      <View style={styles.statsGrid}>
+        <View style={[styles.statBox, { backgroundColor: '#E8F5E9' }]}>
+          <Text style={[styles.statNum, { color: '#2E7D32' }]}>8/10</Text>
+          <Text style={styles.statLabel}>🚌 Active Buses</Text>
+        </View>
+        <View style={[styles.statBox, { backgroundColor: '#E3F2FD' }]}>
+          <Text style={[styles.statNum, { color: '#1565C0' }]}>96%</Text>
+          <Text style={styles.statLabel}>📊 On-Time Rate</Text>
+        </View>
+        <View style={[styles.statBox, { backgroundColor: '#E8F5E9' }]}>
+          <Text style={[styles.statNum, { color: '#2E7D32' }]}>0</Text>
+          <Text style={styles.statLabel}>🛡️ Alerts</Text>
+        </View>
+      </View>
+
       {/* Total Enrolled */}
       <GlassCard style={styles.totalCard}>
         <Text style={styles.totalNum}>{att.total || att.arrived + att.onRoute + att.missing || 52}</Text>
