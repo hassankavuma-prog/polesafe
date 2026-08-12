@@ -196,7 +196,7 @@ router.post('/sos/resolve', async (req, res) => {
 router.get('/incidents', async (req, res) => {
   try {
     const incidents = await SafetyIncident.find().sort({ createdAt: -1 }).limit(100).lean();
-    res.json({ incidents: incidents.map(maskIncident) });
+    res.json({ incidents: incidents.map((incident) => redactIncident(incident)) });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch incidents' });
   }
