@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   role: {
     type: String,
-    enum: ['parent', 'driver', 'school_admin', 'polesafe_admin'],
+    enum: ['parent', 'driver', 'school_admin', 'polesafe_admin', 'dispatcher', 'ops_dispatcher'],
     required: true,
   },
   polesafeAdminRole: { type: String, enum: ['owner', 'support'] },  // Only for polesafe_admin role
