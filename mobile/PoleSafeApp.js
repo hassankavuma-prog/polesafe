@@ -394,7 +394,10 @@ function BackButton({ navigation }) {
 }
 
 // ─── Root App ─────────────────────────────────────────
+import { useMoMoPrompt } from './components/MoMoPromptModal';
+
 export default function PoleSafeApp() {
+  const { modal: momoModal } = useMoMoPrompt();
   const [isLoading, setIsLoading] = useState(true);
   const [userToken, setUserToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
@@ -495,6 +498,8 @@ export default function PoleSafeApp() {
         </Stack.Navigator>
           {/* Dev Test Controller (only visible in __DEV__ mode) */}
           {__DEV__ && <DevTestController />}
+          {/* MoMo Prompt Simulator */}
+          {momoModal}
         </NavigationContainer>
     </SafeAreaProvider>
   );

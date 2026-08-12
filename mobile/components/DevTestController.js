@@ -19,6 +19,7 @@ import {
   simulateTripCompletion,
   stopSimulation,
 } from '../services/rideSocketService';
+import { triggerMoMoPrompt } from './MoMoPromptModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -145,6 +146,16 @@ export default function DevTestController() {
     setGpsActive(false);
   };
 
+  const handleSimulatePayment = () => {
+    triggerMoMoPrompt({
+      provider: 'mtn',
+      phone: '+256 77 123 4567',
+      amountUGX: 12000,
+      reference: `PS-${Date.now()}`,
+    });
+    addLog('USER_ACTION', 'Triggered MoMo payment simulation');
+  };
+
   const handleFullDemo = () => {
     setSimulating(true);
     addLog('USER_ACTION', 'Starting full demo flow...');
@@ -229,6 +240,10 @@ export default function DevTestController() {
                 <TouchableOpacity style={styles.actionBtn} onPress={handleSimulateComplete}>
                   <Text style={styles.actionEmoji}>🏁</Text>
                   <Text style={styles.actionLabel}>Simulate Trip{'\n'}Completion</Text>
+                </TouchableOpacity>
+                                <TouchableOpacity style={styles.actionBtn} onPress={handleSimulatePayment}>
+                  <Text style={styles.actionEmoji}>💳</Text>
+                  <Text style={styles.actionLabel}>Simulate{'}MoMo Payment'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#1D4ED8' }]} onPress={handleFullDemo}>
                   <Text style={styles.actionEmoji}>🎬</Text>
