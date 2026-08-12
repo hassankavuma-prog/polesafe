@@ -306,6 +306,9 @@ router.post('/incidents/:id/re-mask', async (req, res) => {
     const { userId, userRole, note } = req.body;
     const incident = await SafetyIncident.findById(req.params.id);
     if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    if (!hasDispatcherAccess(userRole || req.userRole || req.user?.role)) {
+      return res.status(403).json({ error: 'Dispatcher access required to re-mask incident data' });
+    }
 
     incident.privacyMasked = true;
     incident.auditTrail.push({ action: 'incident_re_masked', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
