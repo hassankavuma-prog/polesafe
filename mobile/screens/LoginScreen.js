@@ -1,5 +1,5 @@
 // PoleSafe Login v3 — Premium First Impression
-// Clean, modern, role-based onboarding
+// Fixed: dev mode has confirmation dialog (no accidental role locks)
 // From Home to School. And Beyond. 🚸
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -57,13 +57,11 @@ export default function LoginScreen({ navigation }) {
       await AsyncStorage.setItem('userRole', data.role || selectedRole);
       await AsyncStorage.setItem('userName', data.name || name);
     } catch (err) {
-      // Dev Mode — login without backend
       if (email.includes('@') && password.length > 2) {
         await AsyncStorage.setItem('polesafe_token', 'dev-token');
         await AsyncStorage.setItem('token', 'dev-token');
         await AsyncStorage.setItem('userRole', selectedRole);
         await AsyncStorage.setItem('userName', email.split('@')[0]);
-        // App reloads via auth polling
       } else {
         Alert.alert('Login Error', err.message || 'Check your credentials');
       }
@@ -82,23 +80,15 @@ export default function LoginScreen({ navigation }) {
       const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
-          password,
-          phone: phone.trim(),
-          role: selectedRole,
-        }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), password, phone: phone.trim(), role: selectedRole }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Registration failed');
-
       await AsyncStorage.setItem('polesafe_token', data.token);
       await AsyncStorage.setItem('token', data.token);
       await AsyncStorage.setItem('userRole', data.role || selectedRole);
       await AsyncStorage.setItem('userName', data.name || name);
     } catch (err) {
-      // Dev Mode
       if (name.trim() && email.includes('@')) {
         await AsyncStorage.setItem('polesafe_token', 'dev-token');
         await AsyncStorage.setItem('token', 'dev-token');
@@ -112,32 +102,49 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  // ─── Dev Mode Login ────────────────────────────────
-  const devLogin = async (role) => {
-    await AsyncStorage.setItem('polesafe_token', 'dev-token');
-    await AsyncStorage.setItem('token', 'dev-token');
-    await AsyncStorage.setItem('userRole', role);
-    await AsyncStorage.setItem('userName', `Dev ${role.charAt(0).toUpperCase() + role.slice(1)}`);
+  // ─── Dev Mode Login with confirmation ─────────────
+  const handleDevLogin = (role) => {
+    const roleObj = ROLES.find(r => r.id === role);
+    Alert.alert(
+      `🚀 Skip as ${roleObj?.label}?`,
+      `You'll enter ${roleObj?.label} mode. ${roleObj?.desc || ''}\n\nYou can clear app data to switch roles later.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: `Continue as ${roleObj?.label}`,
+          onPress: async () => {
+            await AsyncStorage.setItem('polesafe_token', 'dev-token');
+            await AsyncStorage.setItem('token', 'dev-token');
+            await AsyncStorage.setItem('userRole', role);
+            await AsyncStorage.setItem('userName', `Dev ${roleObj?.label}`);
+          },
+        },
+      ]
+    );
+  };
+
+  // ─── Sign-in with role confirmation ───────────────
+  const handleSubmit = () => {
+    const roleObj = ROLES.find(r => r.id === selectedRole);
+    Alert.alert(
+      `Sign In as ${roleObj?.label}?`,
+      `You're signing in as ${roleObj?.emoji} ${roleObj?.label}. Make sure this is the right role.\n\nWrong role? Tap Cancel then select a different one above.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Continue', onPress: showRegister ? handleRegister : handleLogin },
+      ]
+    );
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <StatusBar style="dark" />
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          
+
           {/* Logo Area */}
           <View style={styles.logoArea}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoEmoji}>🚸</Text>
-            </View>
+            <View style={styles.logoCircle}><Text style={styles.logoEmoji}>🚸</Text></View>
             <Text style={styles.appName}>PoleSafe</Text>
             <Text style={styles.tagline}>From Home to School. And Beyond.</Text>
           </View>
@@ -148,89 +155,59 @@ export default function LoginScreen({ navigation }) {
             {ROLES.map(role => (
               <TouchableOpacity
                 key={role.id}
-                style={[
-                  styles.roleCard,
-                  selectedRole === role.id && { borderColor: role.color, backgroundColor: role.color + '12' },
-                ]}
+                style={[styles.roleCard, selectedRole === role.id && { borderColor: role.color, backgroundColor: role.color + '12' }]}
                 onPress={() => setSelectedRole(role.id)}
                 activeOpacity={0.7}
               >
                 <Text style={styles.roleEmoji}>{role.emoji}</Text>
-                <Text style={[
-                  styles.roleLabel,
-                  selectedRole === role.id && { color: role.color },
-                ]}>{role.label}</Text>
+                <Text style={[styles.roleLabel, selectedRole === role.id && { color: role.color }]}>{role.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Role Confirmation Badge */}
+          {selectedRole && (
+            <View style={styles.roleConfirmBadge}>
+              <Text style={styles.roleConfirmText}>
+                {ROLES.find(r => r.id === selectedRole)?.emoji} Role: {ROLES.find(r => r.id === selectedRole)?.label}
+              </Text>
+              <TouchableOpacity onPress={() => setSelectedRole('parent')}>
+                <Text style={styles.roleReset}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Form */}
           {showRegister && (
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>FULL NAME</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. John Mugisha"
-                placeholderTextColor="#9CA3AF"
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-              />
+              <TextInput style={styles.input} placeholder="e.g. John Mugisha" placeholderTextColor="#9CA3AF" value={name} onChangeText={setName} autoCapitalize="words" />
             </View>
           )}
-
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>{showRegister ? 'EMAIL' : 'EMAIL OR PHONE'}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="you@example.com"
-              placeholderTextColor="#9CA3AF"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+            <TextInput style={styles.input} placeholder="you@example.com" placeholderTextColor="#9CA3AF" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
           </View>
-
           {showRegister && (
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>PHONE (OPTIONAL)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. +256 700 000 000"
-                placeholderTextColor="#9CA3AF"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-              />
+              <TextInput style={styles.input} placeholder="e.g. +256 700 000 000" placeholderTextColor="#9CA3AF" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
             </View>
           )}
-
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>PASSWORD</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your password"
-              placeholderTextColor="#9CA3AF"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+            <TextInput style={styles.input} placeholder="Enter your password" placeholderTextColor="#9CA3AF" value={password} onChangeText={setPassword} secureTextEntry />
           </View>
 
           {/* Submit Button */}
           <TouchableOpacity
             style={[styles.submitBtn, { backgroundColor: ROLES.find(r => r.id === selectedRole)?.color || BRAND.primary }]}
-            onPress={showRegister ? handleRegister : handleLogin}
+            onPress={handleSubmit}
             disabled={loading}
             activeOpacity={0.8}
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.submitText}>
-                {showRegister ? 'Create Account' : 'Sign In'} {ROLES.find(r => r.id === selectedRole)?.emoji}
-              </Text>
+            {loading ? <ActivityIndicator color="#fff" /> : (
+              <Text style={styles.submitText}>{showRegister ? 'Create Account' : 'Sign In'} {ROLES.find(r => r.id === selectedRole)?.emoji}</Text>
             )}
           </TouchableOpacity>
 
@@ -241,26 +218,31 @@ export default function LoginScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
 
-          {/* Divider */}
+          {/* Dev Mode */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>DEVELOPER MODE</Text>
+            <Text style={styles.dividerText}>⚡ QUICK START ⚡</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Dev Mode Buttons */}
           <View style={styles.devGrid}>
             {ROLES.map(role => (
               <TouchableOpacity
                 key={`dev-${role.id}`}
                 style={[styles.devBtn, { backgroundColor: role.color + '18', borderColor: role.color + '40' }]}
-                onPress={() => devLogin(role.id)}
+                onPress={() => handleDevLogin(role.id)}
+                activeOpacity={0.7}
               >
                 <Text style={styles.devEmoji}>{role.emoji}</Text>
                 <Text style={[styles.devLabel, { color: role.color }]}>Skip as {role.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Clear Data Note */}
+          <Text style={styles.clearNote}>
+            To switch roles later, go to App Settings → Clear Data or reinstall
+          </Text>
 
           <View style={{ height: 40 }} />
         </Animated.View>
@@ -271,152 +253,35 @@ export default function LoginScreen({ navigation }) {
 
 // ─── Styles ──────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F0F2F5',
-  },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  content: {
-    padding: 24,
-    paddingTop: 60,
-  },
-
-  // Logo
-  logoArea: {
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(46, 125, 50, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
+  container: { flex: 1, backgroundColor: '#F0F2F5' },
+  scroll: { flexGrow: 1, justifyContent: 'center' },
+  content: { padding: 24, paddingTop: 60 },
+  logoArea: { alignItems: 'center', marginBottom: 28 },
+  logoCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(46, 125, 50, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   logoEmoji: { fontSize: 40 },
-  appName: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#111827',
-    letterSpacing: -0.5,
-  },
-  tagline: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-
-  // Section Label
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-
-  // Role Selector
-  roleGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
-  },
-  roleCard: {
-    width: '48%',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: '#fff',
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-  },
+  appName: { fontSize: 32, fontWeight: '800', color: '#111827', letterSpacing: -0.5 },
+  tagline: { fontSize: 14, color: '#6B7280', marginTop: 4 },
+  sectionLabel: { fontSize: 12, fontWeight: '700', color: '#9CA3AF', letterSpacing: 0.5, marginBottom: 8 },
+  roleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  roleCard: { width: '48%', paddingVertical: 14, paddingHorizontal: 12, borderRadius: BORDER_RADIUS.md, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#E5E7EB', alignItems: 'center' },
   roleEmoji: { fontSize: 24, marginBottom: 4 },
   roleLabel: { fontSize: 13, fontWeight: '700', color: '#111827' },
-
-  // Form
-  inputGroup: {
-    marginBottom: 14,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6B7280',
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: BORDER_RADIUS.sm,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#111827',
-  },
-
-  // Submit
-  submitBtn: {
-    paddingVertical: 16,
-    borderRadius: BORDER_RADIUS.md,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  submitText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-
-  // Toggle
-  toggleMode: {
-    alignItems: 'center',
-    paddingVertical: 14,
-  },
-  toggleText: {
-    fontSize: 13,
-    color: BRAND.secondary,
-    fontWeight: '600',
-  },
-
-  // Divider
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#D1D5DB',
-  },
-  dividerText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    marginHorizontal: 12,
-    letterSpacing: 0.5,
-  },
-
-  // Dev Mode
-  devGrid: {
-    gap: 6,
-  },
-  devBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: BORDER_RADIUS.sm,
-    borderWidth: 1,
-  },
+  roleConfirmBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0FDF4', borderRadius: BORDER_RADIUS.sm, paddingVertical: 8, paddingHorizontal: 14, marginBottom: 16, borderWidth: 1, borderColor: '#BBF7D0' },
+  roleConfirmText: { fontSize: 13, fontWeight: '600', color: BRAND.primary },
+  roleReset: { fontSize: 16, color: '#9CA3AF', marginLeft: 8, fontWeight: '700' },
+  inputGroup: { marginBottom: 14 },
+  inputLabel: { fontSize: 11, fontWeight: '700', color: '#6B7280', letterSpacing: 0.5, marginBottom: 6 },
+  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: BORDER_RADIUS.sm, paddingHorizontal: 14, paddingVertical: 14, fontSize: 16, color: '#111827' },
+  submitBtn: { paddingVertical: 16, borderRadius: BORDER_RADIUS.md, alignItems: 'center', marginTop: 4 },
+  submitText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  toggleMode: { alignItems: 'center', paddingVertical: 14 },
+  toggleText: { fontSize: 13, color: BRAND.secondary, fontWeight: '600' },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#D1D5DB' },
+  dividerText: { fontSize: 11, fontWeight: '700', color: '#9CA3AF', marginHorizontal: 12, letterSpacing: 0.5 },
+  devGrid: { gap: 6 },
+  devBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: BORDER_RADIUS.sm, borderWidth: 1 },
   devEmoji: { fontSize: 18, marginRight: 10 },
   devLabel: { fontSize: 14, fontWeight: '600' },
+  clearNote: { textAlign: 'center', fontSize: 11, color: '#9CA3AF', marginTop: 12, fontStyle: 'italic' },
 });
