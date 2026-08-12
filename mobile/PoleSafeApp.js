@@ -48,6 +48,7 @@ import NewPost from './screens/NewPost';
 import MultiKidDashboard from './screens/MultiKidDashboard';
 import FamilySharing from './screens/FamilySharing';
 import DriverComplianceHub from './screens/DriverComplianceHub';
+import UgandaRideRequest from './screens/UgandaRideRequest';
 import HamnaChatScreen from './screens/HamnaChatScreen';
 
 const Stack = createStackNavigator();
@@ -372,6 +373,7 @@ const SHARED_SCREENS = [
   ['FamilySharing', FamilySharing, { title: 'Family Sharing', color: BRAND.primary }],
   ['DriverPickupVerify', DriverPickupVerify, { title: 'Verify Pickup', color: BRAND.secondary }],
   ['DriverComplianceHub', DriverComplianceHub, { title: 'Safety & Credentials', color: BRAND.secondary }],
+  ['UgandaRideRequest', UgandaRideRequest, { title: 'Book Transport', color: BRAND.primary }],
   ['HamnaChat', HamnaChatScreen, { title: 'Hamna AI', color: BRAND.primary }],
 ];
 
