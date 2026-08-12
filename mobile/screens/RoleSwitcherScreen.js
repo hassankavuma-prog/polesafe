@@ -18,15 +18,19 @@ export default function RoleSwitcherScreen({ navigation, route }) {
   useEffect(() => {
     (async () => {
       const role = (await AsyncStorage.getItem('userRole')) || 'parent';
-      const roles = JSON.parse((await AsyncStorage.getItem('userRoles')) || '["parent"]');
+      const rolesRaw = await AsyncStorage.getItem('userRoles');
+      const roles = rolesRaw ? JSON.parse(rolesRaw) : [role];
       setCurrentRole(role);
-      setAvailableRoles(Array.isArray(roles) ? roles : [role]);
+      setAvailableRoles(Array.isArray(roles) ? Array.from(new Set([role, ...roles])) : [role]);
     })();
   }, []);
 
   const activate = async (role) => {
     await AsyncStorage.setItem('userRole', role);
     await AsyncStorage.setItem('roleScope', role);
+    const existing = JSON.parse((await AsyncStorage.getItem('userRoles')) || '[]');
+    const merged = Array.from(new Set([...(Array.isArray(existing) ? existing : []), role]));
+    await AsyncStorage.setItem('userRoles', JSON.stringify(merged));
     navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
   };
 
@@ -48,8 +52,11 @@ export default function RoleSwitcherScreen({ navigation, route }) {
           </TouchableOpacity>
         );
       })}
-      <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Need a new role?', 'You can start a driver or school-admin application from settings or support.')}>
+      <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Need a new role?', 'Use the Driver Compliance Hub to start driver onboarding, or school support to request admin access.')}>
         <Text style={styles.linkText}>Need another role?</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Parent can drive too', 'If you already have a parent account, complete driver verification to add driver mode to the same account.')}>
+        <Text style={styles.linkText}>Parent wants to drive? Add driver mode</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );

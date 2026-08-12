@@ -482,6 +482,7 @@ export default function PoleSafeApp() {
     return () => clearInterval(interval);
   }, [checkAuth]);
 
+
   if (isLoading) return <SplashScreen />;
 
   // ─── Get main screen based on role ───────────────
