@@ -390,4 +390,14 @@ router.get('/verified-drivers', requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/driver-status/:id — Driver verification status
+router.get('/driver-status/:id', requireAdmin, async (req, res) => {
+  try {
+    const status = await driverVettingService.getVerificationStatus(req.params.id);
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

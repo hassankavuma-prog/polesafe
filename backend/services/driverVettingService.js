@@ -286,7 +286,9 @@ class DriverVettingService {
     if (!user) throw new Error('Driver not found');
 
     return {
+      driverId: user._id,
       status: user.verificationStatus || 'not_submitted',
+      isVerified: !!user.isVerified,
       docs: user.verificationDocs || {},
       notes: user.verificationNotes || '',
       submittedAt: user.verificationSubmittedAt,

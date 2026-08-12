@@ -3,7 +3,7 @@
 // No auto-scanner, no background check APIs — just clean doc management
 // From Home to School. And Beyond. 🚸
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Alert, ActivityIndicator, RefreshControl,
@@ -15,7 +15,7 @@ import API_BASE from '../config';
 import { BRAND, STATUS, BORDER_RADIUS, SPACING } from '../theme';
 import GlassCard from '../components/GlassCard';
 import HapticFeedback from '../utils/hapticFeedback';
-import { submitForReview, getVerificationStatus, VERIFICATION_STATUS } from '../services/driverVerificationService';
+import { getVerificationStatus, VERIFICATION_STATUS, submitForReview } from '../services/driverVerificationService';
 
 // ─── Document Status ──────────────────────────────────
 const STATUS_META = {
@@ -92,12 +92,13 @@ export default function DriverComplianceHub({ navigation }) {
   const loadVerification = async () => {
     try {
       const status = await getVerificationStatus();
-      if (status?.docs && Object.keys(status.docs).length) {
-        setDocuments(prev => ({
-          ...prev,
-          driversLicense: { ...prev.driversLicense, status: status.status === VERIFICATION_STATUS.APPROVED ? 'verified' : (status.status === VERIFICATION_STATUS.PENDING ? 'pending' : prev.driversLicense.status) },
-          vehicleRegistration: { ...prev.vehicleRegistration, status: status.status === VERIFICATION_STATUS.APPROVED ? 'verified' : prev.vehicleRegistration.status },
-        }));
+      const nextStatus = status?.status;
+      if (nextStatus === VERIFICATION_STATUS.APPROVED) {
+        setDocuments(prev => Object.fromEntries(Object.entries(prev).map(([k, v]) => [k, { ...v, status: 'verified' }] )));
+      } else if (nextStatus === VERIFICATION_STATUS.PENDING) {
+        setDocuments(prev => Object.fromEntries(Object.entries(prev).map(([k, v]) => [k, { ...v, status: v.status === 'missing' ? 'missing' : 'pending' }] )));
+      } else if (nextStatus === VERIFICATION_STATUS.REJECTED) {
+        setDocuments(prev => Object.fromEntries(Object.entries(prev).map(([k, v]) => [k, { ...v, status: v.status === 'verified' ? 'verified' : 'missing' }] )));
       }
     } catch {}
   };
@@ -131,7 +132,7 @@ export default function DriverComplianceHub({ navigation }) {
                 setUploading(docKey);
                 // Simulate upload
                 setTimeout(() => {
-                  const payload = { status: 'pending', uploadedAt: new Date().toISOString() };
+                  const payload = { status: 'pending', uploadedAt: new Date().toISOString(), source: 'camera' };
                   setDocuments(prev => ({
                     ...prev,
                     [docKey]: { ...prev[docKey], status: 'pending' },
@@ -159,7 +160,7 @@ export default function DriverComplianceHub({ navigation }) {
               if (!result.canceled) {
                 setUploading(docKey);
                 setTimeout(() => {
-                  const payload = { status: 'pending', uploadedAt: new Date().toISOString() };
+                  const payload = { status: 'pending', uploadedAt: new Date().toISOString(), source: 'camera' };
                   setDocuments(prev => ({
                     ...prev,
                     [docKey]: { ...prev[docKey], status: 'pending' },
@@ -181,8 +182,12 @@ export default function DriverComplianceHub({ navigation }) {
 
   const submitDriverDocuments = async (docKey, payload) => {
     try {
-      await submitForReview(await AsyncStorage.getItem('polesafe_user_id'), { [docKey]: payload });
-    } catch (err) {}
+      const driverId = await AsyncStorage.getItem('polesafe_user_id');
+      await submitForReview(driverId, { [docKey]: payload });
+      await loadVerification();
+    } catch (err) {
+      Alert.alert('Upload failed', err.message || 'Could not submit document for review.');
+    }
   };
 
   const getDocByKey = (key) => documents[key];

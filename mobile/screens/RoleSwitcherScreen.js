@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import API_BASE from '../config';
-import { isApproved as checkDriverVerified, getVerificationStatus, VERIFICATION_STATUS } from '../services/driverVerificationService';
+import { getVerificationStatus, VERIFICATION_STATUS } from '../services/driverVerificationService';
 
 const ROLES = [
   { key: 'parent', label: 'Parent / Family', icon: '🏠', desc: 'Book, track, credits, schedules' },
@@ -40,15 +39,8 @@ export default function RoleSwitcherScreen({ navigation, route }) {
     const pending = Array.from(new Set([...(pendingRoles || []), 'driver']));
     setPendingRoles(pending);
     await AsyncStorage.setItem('pendingRoles', JSON.stringify(pending));
-    try {
-      const token = await AsyncStorage.getItem('polesafe_token');
-      await fetch(`${API_BASE}/api/driver/submit-documents`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docs: { requestType: 'role-switch', from: currentRole } }),
-      });
-    } catch {}
-    Alert.alert('Driver access requested', 'Your account stays the same. Driver mode will open after documents are submitted and approved.');
+    navigation.navigate('DriverComplianceHub');
+    Alert.alert('Driver access requested', 'Submit your documents in the Driver Compliance Hub. Driver mode stays locked until approval.');
   };
 
   const activate = async (role) => {
