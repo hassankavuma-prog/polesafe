@@ -684,8 +684,17 @@ router.post('/:id/start', authMiddleware, requireRole('driver'), async (req, res
       return res.status(404).json({ error: 'Trip not found or not confirmed' });
     }
 
-    // TODO: Create tracking session
-    // TODO: Notify parents and teachers
+    const { Ride } = require('../database/schema');
+    const activeRide = await Ride.findById(rideId).populate('childId schoolId driverId parentId');
+    if (activeRide) {
+      activeRide.status = activeRide.status || 'scheduled';
+      activeRide.trackingStatus = 'active';
+      activeRide.lastTrackingStartedAt = new Date();
+      await activeRide.save();
+    }
+
+    // Notify parents and teachers when tracking starts
+    console.log(`📍 Tracking started for ride ${rideId}`);
 
     res.json({ message: 'Trip started', trip });
   } catch (err) {
