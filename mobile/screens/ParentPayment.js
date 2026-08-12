@@ -41,6 +41,7 @@ export default function ParentPayment({ navigation, route }) {
     try {
       await AsyncStorage.setItem('polesafe_payment', JSON.stringify({ network, phone }));
     } catch {}
+  }
 
   const loadPayments = async () => {
     try {

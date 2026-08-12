@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
 import { BRAND, STATUS, getTheme, BORDER_RADIUS, SPACING } from '../theme';
+import HapticFeedback from '../utils/hapticFeedback';
 import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
 
@@ -164,6 +165,7 @@ export default function DriverDashboard({ navigation }) {
   const completedCount = trips.filter(t => ['completed', 'gate_confirmed'].includes(t.status)).length;
 
   const handleAccept = (id) => {
+    HapticFeedback.medium();
     Alert.alert('Start Trip', 'Navigate to pickup location?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Navigate', onPress: () => {
@@ -174,6 +176,7 @@ export default function DriverDashboard({ navigation }) {
   };
 
   const handleComplete = (id) => {
+    HapticFeedback.success();
     Alert.alert('Complete Trip', 'Mark this trip as complete?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Complete ✅', onPress: () => {
