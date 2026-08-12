@@ -1,331 +1,857 @@
-// PoleSafe Mobile — Parent Dashboard
-// Main home screen for parents showing weekly schedule, quick actions, and credits
+// PoleSafe Parent Dashboard v3 — Redesigned
+// Safety-first, kid-focused, better than Uber + Lyft
+// From Home to School. And Beyond. 🚸
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Alert, TextInput, ActivityIndicator,
+  RefreshControl, TextInput, ActivityIndicator, Animated, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import API_BASE from '../config';
-import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+import { BRAND, STATUS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
 import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
+import StatusBadge from '../components/StatusBadge';
 const API_URL = API_BASE;
 
+// ─── Helpers ──────────────────────────────────────────
+function getStatusMeta(status) {
+  const map = {
+    scheduled: { label: 'Scheduled', emoji: '⏳', color: STATUS.neutral, bg: '#F5F5F5' },
+    en_route: { label: 'Driver En Route', emoji: '🚗', color: STATUS.info, bg: '#E3F2FD' },
+    picked_up: { label: 'Picked Up', emoji: '👧', color: STATUS.inTransit, bg: '#E8EAF6' },
+    dropped_off: { label: 'Dropped Off', emoji: '📍', color: STATUS.info, bg: '#E3F2FD' },
+    gate_confirmed: { label: 'At School ✅', emoji: '✅', color: STATUS.safe, bg: '#E8F5E9' },
+    completed: { label: 'Completed', emoji: '✅', color: STATUS.safe, bg: '#E8F5E9' },
+    cancelled: { label: 'Cancelled', emoji: '❌', color: STATUS.neutral, bg: '#F5F5F5' },
+    missed: { label: 'Missed', emoji: '😤', color: STATUS.danger, bg: '#FFEBEE' },
+    sick_day: { label: 'Sick Day', emoji: '🩺', color: STATUS.sick, bg: '#F3E5F5' },
+    arrived_home: { label: 'Home 🏠', emoji: '🏠', color: STATUS.safe, bg: '#E8F5E9' },
+  };
+  return map[status] || { label: status, emoji: '⏳', color: STATUS.neutral, bg: '#F5F5F5' };
+}
+
+function formatTime(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString('en-UG', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ─── Kid Card Component ───────────────────────────────
+function KidCard({ kid, rides, navigation, refresh }) {
+  const kidRides = rides.filter(r => r.childId?._id === kid._id);
+  const activeRide = kidRides.find(r => ['scheduled', 'en_route', 'picked_up'].includes(r.status));
+  const status = activeRide ? activeRide.status : 'completed';
+  const meta = getStatusMeta(status);
+  const [showCodeSection, setShowCodeSection] = useState(false);
+  const [customCode, setCustomCode] = useState('');
+
+  const handleSetWord = async () => {
+    if (!customCode.trim()) return;
+    try {
+      const token = await AsyncStorage.getItem('polesafe_token');
+      await fetch(`${API_URL}/api/safety/set-pickup-word`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ childId: kid._id, word: customCode.trim() }),
+      });
+      setCustomCode('');
+      refresh();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const handleRandomWord = async () => {
+    try {
+      const token = await AsyncStorage.getItem('polesafe_token');
+      const res = await fetch(`${API_URL}/api/safety/generate-pickup-word`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ childId: kid._id }),
+      });
+      const data = await res.json();
+      refresh();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  return (
+    <GlassCard elevated style={styles.kidCard}>
+      {/* Kid Header — Always visible */}
+      <TouchableOpacity onPress={() => setShowCodeSection(!showCodeSection)} activeOpacity={0.7}>
+        <View style={styles.kidHeader}>
+          <View style={styles.kidInfoRow}>
+            <View style={[styles.avatarCircle, { backgroundColor: meta.bg }]}>
+              <Text style={styles.avatarText}>{kid.name?.charAt(0) || '👶'}</Text>
+            </View>
+            <View style={styles.kidMeta}>
+              <Text style={styles.kidName}>{kid.name}</Text>
+              <Text style={styles.kidClass}>{kid.class || kid.grade || 'Student'}</Text>
+            </View>
+          </View>
+          <StatusBadge status={status} />
+        </View>
+      </TouchableOpacity>
+
+      {/* Active Ride — The main event */}
+      {activeRide ? (
+        <View style={styles.activeRide}>
+          <View style={styles.rideInfoBar}>
+            <Text style={styles.rideEmoji}>{meta.emoji}</Text>
+            <View style={styles.rideInfoText}>
+              <Text style={styles.rideStatusLabel}>{meta.label}</Text>
+              {activeRide.scheduledPickupTime && (
+                <Text style={styles.rideTime}>
+                  {formatTime(activeRide.scheduledPickupTime)}
+                  {activeRide.driverId?.name ? ` · ${activeRide.driverId.name}` : ''}
+                </Text>
+              )}
+            </View>
+          </View>
+          
+          {/* Quick Actions for Active Ride */}
+          <View style={styles.rideActions}>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.actionPrimary]}
+              onPress={() => navigation.navigate('TrackRide', { rideId: activeRide._id })}
+            >
+              <Text style={styles.actionPrimaryText}>📍 Track Live</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate('SickDay', { childId: kid._id, childName: kid.name })}
+            >
+              <Text style={styles.actionText}>🩺 Sick</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate('EarlyPickup', { childId: kid._id, childName: kid.name })}
+            >
+              <Text style={styles.actionText}>🏃 Early</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        /* No active ride — show Book CTA */
+        <View style={styles.noRideSection}>
+          <Text style={styles.noRideText}>
+            {kidRides.length === 0 ? 'No rides scheduled' : 'All rides completed for today'}
+          </Text>
+          <TouchableOpacity
+            style={styles.bookQuickBtn}
+            onPress={() => navigation.navigate('Booking', { childId: kid._id })}
+          >
+            <Text style={styles.bookQuickText}>+ Book Ride</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Pickup Code Section — Collapsible */}
+      {showCodeSection && (
+        <View style={styles.codeSection}>
+          <View style={styles.codeDivider} />
+          <Text style={styles.codeSectionTitle}>🔐 Pickup Word</Text>
+          <Text style={styles.codeHint}>
+            One word the driver says at EVERY pickup. If they don't say it, your child doesn't get in.
+          </Text>
+          
+          {kid.pickupCode ? (
+            <View style={styles.currentCodeBox}>
+              <Text style={styles.currentCodeLabel}>Current word:</Text>
+              <Text style={styles.currentCode}>{kid.pickupCode}</Text>
+              <Text style={styles.codeReminder}>
+                Tell {kid.name}: "Driver must say "{kid.pickupCode}" before you get in. Every time."
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.noCodeWarning}>⚠️ No pickup word set — add one now!</Text>
+          )}
+
+          <View style={styles.codeActions}>
+            <TouchableOpacity style={styles.randomWordBtn} onPress={handleRandomWord}>
+              <Text style={styles.randomWordText}>🎲 Generate Word</Text>
+            </TouchableOpacity>
+            <View style={styles.customWordRow}>
+              <TextInput
+                style={styles.wordInput}
+                placeholder="Custom word (e.g. Mango)"
+                placeholderTextColor="#9CA3AF"
+                maxLength={16}
+                value={customCode}
+                onChangeText={setCustomCode}
+              />
+              <TouchableOpacity style={styles.setWordBtn} onPress={handleSetWord}>
+                <Text style={styles.setWordText}>Set</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+    </GlassCard>
+  );
+}
+
+// ─── Main Dashboard ───────────────────────────────────
 export default function ParentDashboard({ navigation }) {
   const theme = getTheme();
+  const insets = useSafeAreaInsets();
   const [kids, setKids] = useState([]);
   const [rides, setRides] = useState([]);
   const [creditBalance, setCreditBalance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState('school'); // 'school' | 'ride'
-  const [customCodes, setCustomCodes] = useState({}); // Store custom code inputs per child
+  const [mode, setMode] = useState('school');
 
   const loadData = async () => {
     try {
       const token = await AsyncStorage.getItem('polesafe_token');
       const headers = { Authorization: `Bearer ${token}` };
-
       const [kidsRes, ridesRes, creditsRes] = await Promise.all([
         fetch(`${API_URL}/api/parents/kids`, { headers }),
-        fetch(`${API_URL}/api/parents/rides?limit=10`, { headers }),
+        fetch(`${API_URL}/api/parents/rides?limit=20`, { headers }),
         fetch(`${API_URL}/api/credits`, { headers }),
       ]);
-
       const kidsData = await kidsRes.json();
       const ridesData = await ridesRes.json();
       const creditsData = await creditsRes.json();
-
       setKids(kidsData.kids || []);
       setRides(ridesData.rides || []);
       setCreditBalance(creditsData.balance || 0);
     } catch (err) {
-      console.log('Error loading dashboard:', err);
+      console.log('Dashboard load error:', err);
     }
   };
 
   useEffect(() => { setLoading(true); loadData().finally(() => setLoading(false)); }, []);
   const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
 
-  // Today's rides
-  const today = new Date().toLocaleDateString('en-UG', { weekday: 'short' });
+  const activeRides = rides.filter(r => ['scheduled', 'en_route', 'picked_up'].includes(r.status));
   const todayRides = rides.filter(r => {
     if (!r.scheduledPickupTime) return false;
-    const rideDay = new Date(r.scheduledPickupTime).toLocaleDateString('en-UG', { weekday: 'short' });
-    return rideDay === today;
+    const d = new Date(r.scheduledPickupTime);
+    const today = new Date();
+    return d.toDateString() === today.toDateString();
   });
 
+  // ─── Loading State ────────────────────────────────
   if (loading && !refreshing) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#2E7D32" />
+      <View style={[styles.container, styles.center, { backgroundColor: theme.canvas }]}>
+        <View style={styles.splashPulse}>
+          <Text style={styles.splashIcon}>🚸</Text>
+        </View>
         <Text style={styles.loadingText}>Loading your dashboard...</Text>
+        <View style={styles.skeletonRow}>
+          {[1, 2, 3].map(i => (
+            <View key={i} style={styles.skeletonCard}>
+              <View style={styles.skeletonLine} />
+              <View style={[styles.skeletonLine, { width: '60%' }]} />
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
 
-  if (!loading && kids.length === 0 && rides.length === 0) {
+  // ─── Empty State ──────────────────────────────────
+  if (!loading && kids.length === 0) {
     return (
-      <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-        <View style={[styles.container, styles.center, { paddingTop: 60 }]}>
-          <Text style={styles.emptyIcon}>🚸</Text>
+      <ScrollView style={[styles.container, { backgroundColor: theme.canvas }]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <View style={[styles.container, styles.center, { paddingTop: 80 }]}>
+          <View style={styles.emptyIconWrap}>
+            <Text style={styles.emptyIcon}>🚸</Text>
+          </View>
           <Text style={styles.emptyTitle}>Welcome to PoleSafe!</Text>
-          <Text style={styles.emptyText}>Add your child to get started with school transport.</Text>
-          <PrimaryButton title="+ Add Child" onPress={() => navigation.navigate('AddChild')} variant="primary" />
+          <Text style={styles.emptyDesc}>
+            Your child's safety starts here.{'\n'}Add your kids to get started.
+          </Text>
+          <PrimaryButton title="+ Add Your First Child" onPress={() => navigation.navigate('AddChild')} />
+          <TouchableOpacity style={styles.exploreBtn} onPress={() => navigation.navigate('RideHailing')}>
+            <Text style={styles.exploreText}>Or try PoleSafe Ride 🚗</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     );
   }
 
+  // ─── Main Dashboard ───────────────────────────────
   return (
-    <ScrollView style={[styles.container, {backgroundColor: theme.canvas}]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-      {/* Mode Toggle */}
-      <View style={styles.modeToggle}>
-        <TouchableOpacity
-          style={[styles.modeBtn, mode === 'school' && styles.modeActive]}
-          onPress={() => setMode('school')}
-        >
-          <Text style={[styles.modeText, mode === 'school' && styles.modeTextActive]}>🚸 School Mode</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.modeBtn, mode === 'ride' && styles.modeActive]}
-          onPress={() => {
-            setMode('ride');
-            navigation.navigate('RideHailing');
-          }}
-        >
-          <Text style={[styles.modeText, mode === 'ride' && styles.modeTextActive]}>🚗 Ride Mode</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Credit Balance */}
-      {creditBalance > 0 && (
-        <TouchableOpacity style={styles.creditBanner} onPress={() => navigation.navigate('Credits')}>
-          <Text style={styles.creditText}>💰 You have {creditBalance.toLocaleString()} UGX in credits</Text>
-          <Text style={styles.creditSub}>Tap to use for next term or PoleSafe Ride</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Kids Cards */}
-      <Text style={styles.sectionTitle}>Your Kids</Text>
-      {kids.map(kid => (
-          <GlassCard key={kid._id} style={styles.kidCard}>
-          <View style={styles.kidHeader}>
-            <Text style={styles.kidName}>{kid.name}</Text>
-            <Text style={styles.kidClass}>{kid.class}</Text>
-          </View>
-
-          {/* Pickup Word Section — Permanent word like "Mango", set once, kid remembers */}
-          <View style={styles.codeSection}>
-            <Text style={styles.codeTitle}>🔐 Pickup Word <Text style={styles.wordPermanent}>(Permanent)</Text></Text>
-            <Text style={styles.codeHint}>
-              One word your child will remember all term. The driver says this word at EVERY pickup. If they don't, your child doesn't get in.
-            </Text>
-            
-            {kid.pickupCode ? (
-              <View style={styles.currentCodeCard}>
-                <Text style={styles.currentCodeLabel}>Pickup Word:</Text>
-                <Text style={styles.currentCode}>{kid.pickupCode}</Text>
-                <Text style={styles.codeInstruction}>
-                  Tell your child: "The driver will say "{kid.pickupCode}" at pickup. If they don't say {kid.pickupCode}, don't get in." It's the same word every day so you won't forget!
-                </Text>
-              </View>
-            ) : (
-              <Text style={styles.noCode}>⚠️ No pickup word set yet</Text>
-            )}
-
-            <View style={styles.codeActions}>
-              <TouchableOpacity 
-                style={styles.randomCodeBtn} 
-                onPress={async () => {
-                  try {
-                    const token = await AsyncStorage.getItem('polesafe_token');
-                    const res = await fetch(`${API_URL}/api/safety/generate-pickup-word`, {
-                      method: 'POST',
-                      headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({ childId: kid._id }),
-                    });
-                    const data = await res.json();
-                    Alert.alert('🎲 Pickup Word Generated', `Your child's word is: ${data.word}\n\nTell ${kid.name}: \"The driver will say ${data.word}. If they don't, don't get in!\" This word stays the same every day.`);
-                    loadData();
-                  } catch (err) {
-                    Alert.alert('Error', err.message);
-                  }
-                }}
-              >
-                <Text style={styles.btnText}>🎲 Random Word</Text>
-              </TouchableOpacity>
-              
-              <View style={styles.customCodeRow}>
-                <TextInput
-                  style={styles.codeInput}
-                  placeholder="Custom word (e.g. Mango)"
-                  placeholderTextColor="#aaa"
-                  maxLength={16}
-                  value={customCodes[kid._id] || ''}
-                  onChangeText={(text) => setCustomCodes({...customCodes, [kid._id]: text})}
-                />
-                <TouchableOpacity 
-                  style={styles.setCodeBtn} 
-                  onPress={async () => {
-                    const word = customCodes[kid._id];
-                    if (!word || word.trim() === '') {
-                      Alert.alert('Error', 'Please enter a word');
-                      return;
-                    }
-                    try {
-                      const token = await AsyncStorage.getItem('polesafe_token');
-                      const res = await fetch(`${API_URL}/api/safety/set-pickup-word`, {
-                        method: 'POST',
-                        headers: {
-                          Authorization: `Bearer ${token}`,
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ childId: kid._id, word: word.trim() }),
-                      });
-                      const data = await res.json();
-                      Alert.alert('✅ Word Set', `From now on, the driver will say "${word.trim()}" at every pickup. Tell ${kid.name} so they know!`);
-                      setCustomCodes({...customCodes, [kid._id]: ''});
-                      loadData();
-                    } catch (err) {
-                      Alert.alert('Error', err.message);
-                    }
-                  }}
-                >
-                  <Text style={styles.btnText}>Set Word</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* Today's ride status */}
-          {todayRides.filter(r => r.childId?._id === kid._id).length === 0 ? (
-            <Text style={styles.noRide}>No rides scheduled today</Text>
-          ) : todayRides.filter(r => r.childId?._id === kid._id).map(ride => (
-            <View key={ride._id} style={styles.rideRow}>
-              <Text style={styles.rideType}>
-                {ride.type === 'school_morning' ? '🌅 Morning drop-off' : '🌇 Afternoon pickup'}
-              </Text>
-              <Text style={styles.rideStatus}>{getStatusEmoji(ride.status)} {ride.status.replace('_', ' ')}</Text>
-
-              {/* Quick Actions */}
-              <View style={styles.quickActions}>
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => navigation.navigate('TrackRide', { rideId: ride._id })}
-                >
-                  <Text style={styles.actionText}>📍 Track</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => navigation.navigate('SickDay', { childId: kid._id, childName: kid.name })}
-                >
-                  <Text style={styles.actionText}>🩺 Sick</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => navigation.navigate('EarlyPickup', { childId: kid._id, childName: kid.name })}
-                >
-                  <Text style={styles.actionText}>🏃 Pick Up</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
+    <View style={[styles.container, { backgroundColor: theme.canvas }]}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND.primary} />}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Quick Stats Bar */}
+        <View style={styles.statsBar}>
+          <GlassCard style={styles.statCard}>
+            <Text style={styles.statNumber}>{kids.length}</Text>
+            <Text style={styles.statLabel}>Kids</Text>
           </GlassCard>
+          <GlassCard style={styles.statCard}>
+            <Text style={[styles.statNumber, { color: STATUS.info }]}>{activeRides.length}</Text>
+            <Text style={styles.statLabel}>Active</Text>
+          </GlassCard>
+          <GlassCard style={styles.statCard}>
+            <Text style={[styles.statNumber, { color: BRAND.gold }]}>
+              {creditBalance > 0 ? `${Math.round(creditBalance / 1000)}k` : '0'}
+            </Text>
+            <Text style={styles.statLabel}>Credits</Text>
+          </GlassCard>
+          <TouchableOpacity style={[styles.statCard, styles.famCard]} onPress={() => navigation.navigate('FamilySharing')}>
+            <Text style={styles.famIcon}>👨‍👩‍👧</Text>
+            <Text style={styles.statLabel}>Family</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Mode Toggle */}
+        <View style={styles.modeToggle}>
+          <TouchableOpacity
+            style={[styles.modeBtn, mode === 'school' && styles.modeActiveSchool]}
+            onPress={() => setMode('school')}
+          >
+            <Text style={[styles.modeText, mode === 'school' && styles.modeTextActive]}>🚸 School</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modeBtn, mode === 'ride' && styles.modeActiveRide]}
+            onPress={() => navigation.navigate('RideHailing')}
+          >
+            <Text style={[styles.modeText, mode === 'ride' && styles.modeTextActive]}>🚗 Ride</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Active Rides Banner */}
+        {activeRides.length > 0 && (
+          <TouchableOpacity
+            style={styles.activeBanner}
+            onPress={() => navigation.navigate('MultiKidDashboard')}
+          >
+            <Text style={styles.activeBannerIcon}>🚗</Text>
+            <View>
+              <Text style={styles.activeBannerTitle}>{activeRides.length} Active Ride{activeRides.length > 1 ? 's' : ''}</Text>
+              <Text style={styles.activeBannerSub}>Tap to view all kids</Text>
+            </View>
+            <Text style={styles.activeBannerArrow}>›</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Credit Balance Banner */}
+        {creditBalance > 0 && (
+          <TouchableOpacity style={styles.creditBanner} onPress={() => navigation.navigate('Credits')}>
+            <Text style={styles.creditIcon}>💰</Text>
+            <View>
+              <Text style={styles.creditText}>{creditBalance.toLocaleString()} UGX available</Text>
+              <Text style={styles.creditSub}>Use for rides or next term fees</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Section Header */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Your Kids</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('MultiKidDashboard')}>
+            <Text style={styles.seeAllText}>See All ›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Kid Cards */}
+        {kids.map(kid => (
+          <KidCard
+            key={kid._id}
+            kid={kid}
+            rides={rides}
+            navigation={navigation}
+            refresh={loadData}
+          />
         ))}
 
-      {/* Weekly Schedule */}
-      <Text style={styles.sectionTitle}>This Week</Text>
-      <View style={styles.weekGrid}>
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(day => {
-          const dayRides = rides.filter(r => {
-            if (!r.scheduledPickupTime) return false;
-            return new Date(r.scheduledPickupTime).toLocaleDateString('en-UG', { weekday: 'short' }) === day;
-          });
-          const hasRide = dayRides.length > 0;
-          const isToday = new Date().toLocaleDateString('en-UG', { weekday: 'short' }) === day;
-          return (
-            <GlassCard key={day} style={[styles.dayBox, isToday && styles.todayBox]}>
-              <Text style={[styles.dayLabel, isToday && styles.todayLabel]}>{day}</Text>
-              <Text style={styles.dayStatus}>
-                {hasRide ? '✅' : '—'}
-              </Text>
+        {/* Book New Ride Button */}
+        <PrimaryButton
+          title="+ Book School Ride"
+          onPress={() => navigation.navigate('Booking')}
+          variant="primary"
+          style={styles.bookBtn}
+        />
+
+        {/* Quick Access Grid */}
+        <Text style={[styles.sectionTitle, { marginTop: SPACING.md }]}>Quick Access</Text>
+        <View style={styles.quickGrid}>
+          <QuickAccessCard emoji="🏠" label="Family" onPress={() => navigation.navigate('FamilySharing')} />
+          <QuickAccessCard emoji="🛡️" label="Safety Board" onPress={() => navigation.navigate('CommunityBoard')} />
+          <QuickAccessCard emoji="💡" label="Feature Ideas" onPress={() => navigation.navigate('FeatureVoting')} />
+          <QuickAccessCard emoji="🤖" label="Hamna AI" onPress={() => navigation.navigate('HamnaChat')} />
+          <QuickAccessCard emoji="📝" label="Blog" onPress={() => navigation.navigate('CommunityBlog')} />
+          <QuickAccessCard emoji="⚙️" label="Settings" onPress={() => navigation.navigate('Settings')} />
+        </View>
+
+        {/* Week at a Glance */}
+        {todayRides.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { marginTop: SPACING.md }]}>Today's Schedule</Text>
+            <GlassCard style={styles.weekCard}>
+              {todayRides.map(ride => {
+                const m = getStatusMeta(ride.status);
+                return (
+                  <View key={ride._id} style={styles.todayRideRow}>
+                    <Text style={styles.todayRideEmoji}>{m.emoji}</Text>
+                    <View style={styles.todayRideInfo}>
+                      <Text style={styles.todayRideKid}>
+                        {ride.childId?.name || 'Child'} · {ride.type === 'school_morning' ? 'Morning Drop-off' : 'Afternoon Pickup'}
+                      </Text>
+                      <Text style={styles.todayRideTime}>
+                        {formatTime(ride.scheduledPickupTime)}
+                        {ride.driverId?.name ? ` · Driver: ${ride.driverId.name}` : ''}
+                      </Text>
+                    </View>
+                    <StatusBadge status={ride.status} compact />
+                  </View>
+                );
+              })}
             </GlassCard>
-          );
-        })}
-      </View>
+          </>
+        )}
 
-      {/* Book New Ride */}
-      <PrimaryButton title="+ Book New Ride" onPress={() => navigation.navigate('Booking')} variant="primary" />
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </View>
   );
 }
 
-function getStatusEmoji(status) {
-  const emojis = {
-    scheduled: '⏳', en_route: '🚗', picked_up: '👧', dropped_off: '📍',
-    gate_confirmed: '✅', cancelled: '❌', missed: '😤', completed: '✅',
-    sick_day: '🩺',
-  };
-  return emojis[status] || '⏳';
+// ─── Quick Access Card ────────────────────────────────
+function QuickAccessCard({ emoji, label, onPress }) {
+  return (
+    <TouchableOpacity style={styles.quickCard} onPress={onPress} activeOpacity={0.7}>
+      <Text style={styles.quickEmoji}>{emoji}</Text>
+      <Text style={styles.quickLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
 }
 
+// ─── Styles ──────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
-  modeToggle: { flexDirection: 'row', backgroundColor: '#e0e0e0', borderRadius: 12, marginBottom: 16, padding: 4 },
-  modeBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-  modeActive: { backgroundColor: COLORS.green },
-  modeText: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
-  modeTextActive: { color: '#fff' },
-  creditBanner: { backgroundColor: '#FFF8E1', padding: 14, borderRadius: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#FFB300' },
-  creditText: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  creditSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, marginTop: 8, color: COLORS.textPrimary },
-  kidCard: { padding: 16, marginBottom: 12 }, // layout only — GlassCard handles styling
-  kidHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  kidName: { fontSize: 17, fontWeight: '600' },
-  kidClass: { fontSize: 13, color: COLORS.textSecondary, backgroundColor: '#f0f0f0', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  noRide: { color: COLORS.textMuted, fontSize: 13, fontStyle: 'italic' },
-  rideRow: { borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 10 },
-  rideType: { fontSize: 14, fontWeight: '500' },
-  rideStatus: { fontSize: 13, color: COLORS.textSecondary, marginVertical: 4 },
-  quickActions: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  actionBtn: { backgroundColor: '#f0f0f0', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  actionText: { fontSize: 13, fontWeight: '500' },
-  weekGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  dayBox: { flex: 1, padding: 12, marginHorizontal: 2, alignItems: 'center' }, // layout only — GlassCard handles styling
-  todayBox: { backgroundColor: COLORS.greenBg, borderWidth: 1, borderColor: COLORS.green },
-  dayLabel: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
-  todayLabel: { color: COLORS.green },
-  dayStatus: { fontSize: 18, marginTop: 6 },
-
-  
-  // Pickup Code Section
-  codeSection: { backgroundColor: COLORS.orangeBg, borderRadius: 10, padding: 12, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#FF9800' },
-  codeTitle: { fontSize: 14, fontWeight: '700', color: COLORS.orange, marginBottom: 4 },
-  codeHint: { fontSize: 11, color: COLORS.textSecondary, marginBottom: 8, lineHeight: 16 },
-  currentCodeCard: { backgroundColor: COLORS.surface, borderRadius: 8, padding: 10, marginBottom: 8, borderWidth: 1, borderColor: '#FFB300' },
-  currentCodeLabel: { fontSize: 11, color: COLORS.textMuted, marginBottom: 2 },
-  currentCode: { fontSize: 24, fontWeight: '800', color: COLORS.orange, marginBottom: 6 },
-  codeInstruction: { fontSize: 11, color: '#555', lineHeight: 15, fontStyle: 'italic' },
-  noCode: { fontSize: 12, color: COLORS.textMuted, marginBottom: 8, fontStyle: 'italic' },
-  codeActions: { gap: 6 },
-  randomCodeBtn: { backgroundColor: '#FF9800', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
-  customCodeRow: { flexDirection: 'row', gap: 6 },
-  codeInput: { flex: 1, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14 },
-  setCodeBtn: { backgroundColor: COLORS.greenLight, paddingHorizontal: 20, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  btnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  container: { flex: 1 },
   center: { justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 15, color: COLORS.textSecondary },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8 },
-  emptyText: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
+  scrollContent: { padding: SPACING.md, paddingTop: SPACING.sm },
+
+  // Stats Bar
+  statsBar: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: STATUS.safe,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  famCard: {
+    backgroundColor: 'rgba(21, 101, 192, 0.06)',
+  },
+  famIcon: { fontSize: 20, marginBottom: 2 },
+
+  // Mode Toggle
+  modeToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#E5E7EB',
+    borderRadius: BORDER_RADIUS.md,
+    padding: 3,
+    marginBottom: 12,
+  },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modeActiveSchool: {
+    backgroundColor: BRAND.primary,
+  },
+  modeActiveRide: {
+    backgroundColor: BRAND.secondary,
+  },
+  modeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  modeTextActive: {
+    color: '#fff',
+  },
+
+  // Active Rides Banner
+  activeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    borderRadius: BORDER_RADIUS.md,
+    padding: 14,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: BRAND.secondary,
+  },
+  activeBannerIcon: { fontSize: 24, marginRight: 12 },
+  activeBannerTitle: { fontSize: 15, fontWeight: '700', color: BRAND.secondary },
+  activeBannerSub: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  activeBannerArrow: { fontSize: 24, color: BRAND.secondary, marginLeft: 'auto', fontWeight: '300' },
+
+  // Credit Banner
+  creditBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1',
+    borderRadius: BORDER_RADIUS.md,
+    padding: 14,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: BRAND.gold,
+  },
+  creditIcon: { fontSize: 22, marginRight: 12 },
+  creditText: { fontSize: 14, fontWeight: '700', color: '#1A1A2E' },
+  creditSub: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+
+  // Section Header
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  seeAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: BRAND.primary,
+  },
+
+  // Kid Card
+  kidCard: {
+    padding: 16,
+    marginBottom: 12,
+  },
+  kidHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  kidInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A2E',
+  },
+  kidMeta: {},
+  kidName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  kidClass: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+
+  // Active Ride
+  activeRide: {
+    marginTop: 14,
+    backgroundColor: '#F9FAFB',
+    borderRadius: BORDER_RADIUS.md,
+    padding: 12,
+  },
+  rideInfoBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rideEmoji: { fontSize: 28, marginRight: 12 },
+  rideInfoText: {},
+  rideStatusLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  rideTime: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  rideActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  actionBtn: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  actionPrimary: {
+    backgroundColor: BRAND.primary,
+  },
+  actionPrimaryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  actionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+
+  // No Ride State
+  noRideSection: {
+    marginTop: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  noRideText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
+  bookQuickBtn: {
+    backgroundColor: 'rgba(46, 125, 50, 0.1)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  bookQuickText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: BRAND.primary,
+  },
+
+  // Pickup Code Section
+  codeSection: {
+    marginTop: 12,
+  },
+  codeDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginBottom: 12,
+  },
+  codeSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: BRAND.accent,
+    marginBottom: 4,
+  },
+  codeHint: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 17,
+    marginBottom: 10,
+  },
+  currentCodeBox: {
+    backgroundColor: '#FFF8E1',
+    borderRadius: BORDER_RADIUS.sm,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  currentCodeLabel: {
+    fontSize: 11,
+    color: '#92400E',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  currentCode: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: BRAND.accent,
+    marginBottom: 6,
+  },
+  codeReminder: {
+    fontSize: 11,
+    color: '#78350F',
+    fontStyle: 'italic',
+  },
+  noCodeWarning: {
+    fontSize: 12,
+    color: '#92400E',
+    marginBottom: 10,
+    fontWeight: '500',
+  },
+  codeActions: {
+    gap: 8,
+  },
+  randomWordBtn: {
+    backgroundColor: BRAND.accent,
+    paddingVertical: 10,
+    borderRadius: BORDER_RADIUS.sm,
+    alignItems: 'center',
+  },
+  randomWordText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  customWordRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  wordInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  setWordBtn: {
+    backgroundColor: BRAND.primary,
+    paddingHorizontal: 20,
+    borderRadius: BORDER_RADIUS.sm,
+    justifyContent: 'center',
+  },
+  setWordText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // Quick Access Grid
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  quickCard: {
+    width: '31%',
+    backgroundColor: '#fff',
+    borderRadius: BORDER_RADIUS.md,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  quickEmoji: {
+    fontSize: 24,
+    marginBottom: 6,
+  },
+  quickLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#374151',
+  },
+
+  // Today's Schedule
+  weekCard: {
+    padding: 12,
+  },
+  todayRideRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  todayRideEmoji: { fontSize: 22, marginRight: 10 },
+  todayRideInfo: { flex: 1 },
+  todayRideKid: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  todayRideTime: { fontSize: 12, color: '#6B7280', marginTop: 1 },
+
+  // Book Button
+  bookBtn: {
+    marginTop: 8,
+  },
+
+  // Loading State
+  splashPulse: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(46, 125, 50, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  splashIcon: { fontSize: 32 },
+  loadingText: { fontSize: 15, color: '#6B7280', marginBottom: 24 },
+  skeletonRow: { width: '100%', paddingHorizontal: 16, gap: 12 },
+  skeletonCard: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: BORDER_RADIUS.md,
+    padding: 20,
+    gap: 8,
+  },
+  skeletonLine: {
+    height: 14,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 7,
+    width: '80%',
+  },
+
+  // Empty State
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(46, 125, 50, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyIcon: { fontSize: 40 },
+  emptyTitle: { fontSize: 22, fontWeight: '800', color: '#111827', marginBottom: 8 },
+  emptyDesc: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  exploreBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  exploreText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: BRAND.secondary,
+  },
 });

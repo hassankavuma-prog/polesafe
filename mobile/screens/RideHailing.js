@@ -1,66 +1,236 @@
-// PoleSafe Mobile — Ride Hailing Screen
-// On-demand ride booking (PoleSafe Ride)
+// PoleSafe Ride v3 — Premium Ride-Hailing
+// Better than Uber + Lyft: transparent pricing, driver details, safety-first
+// From Home to School. And Beyond. 🚸
 
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator, RefreshControl,
+  TextInput, Alert, ActivityIndicator, RefreshControl, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
-import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+import { BRAND, STATUS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+import GlassCard from '../components/GlassCard';
+import PrimaryButton from '../components/PrimaryButton';
 
-const VEHICLE_TYPES = [
-  { id: 'car', emoji: '🚗', label: 'Car', desc: '4 seats, A/C', pricePerKm: 2500 },
-  { id: 'boda', emoji: '🏍️', label: 'Boda', desc: '1 passenger, fast', pricePerKm: 1500 },
-];
+// ─── Constants ────────────────────────────────────────
+const VEHICLES = {
+  car:   { id: 'car',   emoji: '🚗', label: 'Car',    desc: '4 seats · A/C',  baseFare: 3500, perKm: 1500, iconColor: '#1565C0' },
+  boda:  { id: 'boda',  emoji: '🏍️', label: 'Boda',   desc: '1 passenger · fast', baseFare: 2500, perKm: 1000, iconColor: '#E65100' },
+};
 
 const SAVED_PLACES = [
-  { id: '1', name: 'Home', address: 'Plot 42, Acacia Avenue, Kampala', emoji: '🏠' },
-  { id: '2', name: 'St Mary\'s School', address: 'Entebbe Road, Kampala', emoji: '🏫' },
-  { id: '3', name: 'Work', address: '5th Street, Industrial Area, Kampala', emoji: '🏢' },
-  { id: '4', name: 'Shoprite', address: 'Oasis Mall, Kampala', emoji: '🛒' },
+  { id: '1', name: 'Home',          address: 'Current Location',                   emoji: '🏠' },
+  { id: '2', name: 'St Mary\'s School', address: 'Entebbe Road, Kampala',           emoji: '🏫' },
+  { id: '3', name: 'Work',           address: '5th Street, Industrial Area',        emoji: '🏢' },
+  { id: '4', name: 'Shoprite',       address: 'Oasis Mall, Kampala',               emoji: '🛒' },
+  { id: '5', name: 'Acacia Mall',    address: 'Kira Road, Kampala',                emoji: '🛍️' },
+  { id: '6', name: 'Garden City',    address: 'Kampala Road',                      emoji: '🏬' },
 ];
 
+const DEMO_DRIVERS = [
+  { _id: 'd1', name: 'John Mugisha',   rating: 4.9, rides: 1247, vehicle: 'Toyota Corolla',  plate: 'UBA 123K', color: '#1565C0', distance: '0.8 km', price: 5000, eta: 4, available: true },
+  { _id: 'd2', name: 'Sarah Nakato',   rating: 4.8, rides: 892,  vehicle: 'Honda Fit',       plate: 'UBB 456L', color: '#C62828', distance: '1.2 km', price: 6500, eta: 6, available: true },
+  { _id: 'd3', name: 'Peter Okello',   rating: 4.7, rides: 563,  vehicle: 'Suzuki Swift',     plate: 'UBC 789M', color: '#2E7D32', distance: '2.5 km', price: 8000, eta: 10, available: true },
+  { _id: 'd4', name: 'Grace Achieng',  rating: 4.9, rides: 2104, vehicle: 'Boda Boda',        plate: 'UBD 012N', color: '#E65100', distance: '0.5 km', price: 3500, eta: 3, available: true },
+  { _id: 'd5', name: 'Robert Ssempijja', rating: 4.6, rides: 341, vehicle: 'Toyota Wish',     plate: 'UBE 345P', color: '#6A1B9A', distance: '1.8 km', price: 7000, eta: 8, available: true },
+  { _id: 'd6', name: 'Esther Nabatanzi', rating: 4.7, rides: 887, vehicle: 'Boda Boda',        plate: 'UBF 678Q', color: '#E65100', distance: '0.3 km', price: 3000, eta: 2, available: true },
+];
+
+// ─── Helpers ──────────────────────────────────────────
+const formatCurrency = (amount) => Number(amount || 0).toLocaleString('en-UG');
+
+function PricingBreakdown({ vehicle, distance }) {
+  const v = VEHICLES[vehicle];
+  if (!v) return null;
+  const dist = distance || 3;
+  const base = v.baseFare;
+  const distCost = dist * v.perKm;
+  const total = (base + distCost);
+  const rounded = Math.round(total / 500) * 500;
+
+  return (
+    <View style={pricing.wrap}>
+      <Text style={pricing.title}>💰 Fare Estimate</Text>
+      <View style={pricing.row}>
+        <Text style={pricing.label}>Base fare</Text>
+        <Text style={pricing.value}>{formatCurrency(base)} UGX</Text>
+      </View>
+      <View style={pricing.row}>
+        <Text style={pricing.label}>Distance ({dist} km × {formatCurrency(v.perKm)}/km)</Text>
+        <Text style={pricing.value}>{formatCurrency(distCost)} UGX</Text>
+      </View>
+      <View style={pricing.divider} />
+      <View style={pricing.row}>
+        <Text style={pricing.totalLabel}>Estimated total</Text>
+        <Text style={pricing.totalValue}>{formatCurrency(rounded)} UGX</Text>
+      </View>
+      <Text style={pricing.note}>Rounded to nearest 500 UGX · No surge pricing</Text>
+    </View>
+  );
+}
+
+const pricing = StyleSheet.create({
+  wrap: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: BORDER_RADIUS.md,
+    padding: 14,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  title: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  label: { fontSize: 13, color: '#6B7280' },
+  value: { fontSize: 13, fontWeight: '600', color: '#111827' },
+  divider: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 6 },
+  totalLabel: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  totalValue: { fontSize: 14, fontWeight: '800', color: BRAND.primary },
+  note: { fontSize: 11, color: '#9CA3AF', marginTop: 4, fontStyle: 'italic' },
+});
+
+// ─── Driver Card ──────────────────────────────────────
+function DriverCard({ driver, selected, onSelect, vehicleType }) {
+  return (
+    <TouchableOpacity
+      style={[driverStyles.card, selected && driverStyles.selected]}
+      onPress={() => onSelect(driver._id)}
+      activeOpacity={0.8}
+    >
+      <View style={driverStyles.row}>
+        {/* Avatar */}
+        <View style={[driverStyles.avatar, { backgroundColor: driver.color || BRAND.secondary }]}>
+          <Text style={driverStyles.avatarText}>{driver.name?.charAt(0)}</Text>
+        </View>
+
+        {/* Info */}
+        <View style={driverStyles.info}>
+          <View style={driverStyles.nameRow}>
+            <Text style={driverStyles.name}>{driver.name}</Text>
+            <Text style={driverStyles.rating}>⭐ {driver.rating}</Text>
+          </View>
+          <Text style={driverStyles.vehicle}>
+            {driver.vehicle} · {driver.plate}
+          </Text>
+          <Text style={driverStyles.meta}>
+            📍 {driver.distance} · 🏆 {driver.rides.toLocaleString()} rides
+          </Text>
+        </View>
+
+        {/* Price */}
+        <View style={driverStyles.priceBox}>
+          <Text style={driverStyles.price}>{formatCurrency(driver.price)}</Text>
+          <Text style={driverStyles.priceLabel}>UGX</Text>
+          <View style={driverStyles.etaBadge}>
+            <Text style={driverStyles.etaText}>{driver.eta} min</Text>
+          </View>
+        </View>
+      </View>
+
+      {selected && (
+        <View style={driverStyles.checkmark}>
+          <Text style={driverStyles.checkText}>✓ Selected</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+const driverStyles = StyleSheet.create({
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: BORDER_RADIUS.lg,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+  },
+  selected: {
+    borderColor: BRAND.primary,
+    backgroundColor: '#F0FDF4',
+  },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: { fontSize: 20, color: '#fff', fontWeight: '700' },
+  info: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  rating: { fontSize: 12, color: '#F59E0B', fontWeight: '600' },
+  vehicle: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  meta: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
+  priceBox: { alignItems: 'center', marginLeft: 8 },
+  price: { fontSize: 18, fontWeight: '800', color: '#111827' },
+  priceLabel: { fontSize: 10, color: '#9CA3AF' },
+  etaBadge: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginTop: 4,
+  },
+  etaText: { fontSize: 11, fontWeight: '700', color: BRAND.primary },
+  checkmark: {
+    marginTop: 10,
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  checkText: { fontSize: 12, fontWeight: '700', color: BRAND.primary },
+});
+
+// ─── Main Screen ──────────────────────────────────────
 export default function RideHailing({ navigation }) {
   const theme = getTheme();
   const [searchText, setSearchText] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('car');
-  const [availableDrivers, setAvailableDrivers] = useState([]);
+  const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [requesting, setRequesting] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState(null);
+  const [selectedDriverId, setSelectedDriverId] = useState(null);
   const [pickupPlace, setPickupPlace] = useState(null);
   const [dropoffPlace, setDropoffPlace] = useState(null);
+  const [showPricing, setShowPricing] = useState(false);
+
+  const selectedDriver = drivers.find(d => d._id === selectedDriverId);
+  const isBoda = selectedVehicle === 'boda';
+
+  const filteredDrivers = drivers.filter(d => {
+    if (isBoda) return d.vehicle?.toLowerCase().includes('boda') || true;
+    return !d.vehicle?.toLowerCase().includes('boda');
+  });
 
   useEffect(() => {
     loadDrivers();
-  }, []);
+  }, [selectedVehicle]);
 
   const loadDrivers = async () => {
     try {
       const token = await AsyncStorage.getItem('polesafe_token');
       const headers = { Authorization: `Bearer ${token}` };
-      const res = await fetch(`${API_BASE}/api/rides/drivers?vehicleType=${selectedVehicle}`, {
-        headers,
-      });
-
+      const res = await fetch(`${API_BASE}/api/rides/drivers?vehicleType=${selectedVehicle}`, { headers });
       if (res.ok) {
         const data = await res.json();
-        setAvailableDrivers(data.drivers || []);
+        setDrivers(data.drivers || []);
       } else {
-        // Demo data
-        setAvailableDrivers([
-          { _id: 'd1', name: 'John Mugisha', rating: 4.9, vehicle: 'Toyota Corolla', plate: 'UBA 123K', distance: '0.8 km', price: 5000, eta: 4, available: true },
-          { _id: 'd2', name: 'Sarah Nakato', rating: 4.8, vehicle: 'Honda Fit', plate: 'UBB 456L', distance: '1.2 km', price: 6500, eta: 6, available: true },
-          { _id: 'd3', name: 'Peter Okello', rating: 4.7, vehicle: 'Suzuki Swift', plate: 'UBC 789M', distance: '2.5 km', price: 8000, eta: 10, available: true },
-          { _id: 'd4', name: 'Grace Achieng', rating: 4.6, vehicle: 'Boda Boda', plate: 'UBD 012N', distance: '0.5 km', price: 3500, eta: 3, available: true },
-        ]);
+        // Demo data — sorted by distance
+        const bus = DEMO_DRIVERS.filter(d => !d.vehicle?.toLowerCase().includes('boda'));
+        const bodas = DEMO_DRIVERS.filter(d => d.vehicle?.toLowerCase().includes('boda'));
+        setDrivers(isBoda ? bodas : bus);
       }
     } catch (err) {
-      console.log('Error loading drivers:', err);
+      const bus = DEMO_DRIVERS.filter(d => !d.vehicle?.toLowerCase().includes('boda'));
+      const bodas = DEMO_DRIVERS.filter(d => d.vehicle?.toLowerCase().includes('boda'));
+      setDrivers(isBoda ? bodas : bus);
     } finally {
       setLoading(false);
     }
@@ -72,69 +242,59 @@ export default function RideHailing({ navigation }) {
     setRefreshing(false);
   };
 
-  const handleRequestRide = () => {
-    const driver = selectedDriver
-      ? availableDrivers.find(d => d._id === selectedDriver)
-      : availableDrivers[0];
-
-    if (!driver) {
-      Alert.alert('No Driver', 'No available drivers. Please try again.');
+  const handleRequestRide = async () => {
+    const driver = selectedDriver || filteredDrivers[0];
+    if (!driver) { Alert.alert('No Drivers', 'No available drivers near you.'); return; }
+    if (!searchText.trim() && !dropoffPlace) {
+      Alert.alert('Where to?', 'Enter a destination first.');
       return;
     }
 
-    if (!pickupPlace && !dropoffPlace && !searchText.trim()) {
-      Alert.alert('Where To?', 'Please enter a destination.');
-      return;
-    }
-
-    const destination = dropoffPlace?.address || searchText || 'Kampala';
+    const dest = dropoffPlace?.address || searchText || 'Kampala';
     const pickup = pickupPlace?.address || 'Current Location';
+    const v = VEHICLES[selectedVehicle];
+    const estTotal = Math.round(((v.baseFare + 3 * v.perKm)) / 500) * 500;
 
     Alert.alert(
       'Confirm Ride',
-      `From: ${pickup}\nTo: ${destination}\nVehicle: ${VEHICLE_TYPES.find(v => v.id === selectedVehicle)?.emoji} ${selectedVehicle}\nDriver: ${driver.name}\nEst. Fare: ${formatCurrency(driver.price || 5000)} UGX`,
+      [
+        `From: ${pickup}`,
+        `To: ${dest}`,
+        `${v.emoji} ${v.label} with ${driver.name}`,
+        `Est. fare: ${formatCurrency(estTotal)} UGX`,
+        driver.eta ? `ETA: ~${driver.eta} min` : '',
+      ].filter(Boolean).join('\n'),
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Request Ride 🚗',
+          text: `🚗 Request Ride`,
           onPress: async () => {
             setRequesting(true);
             try {
               const token = await AsyncStorage.getItem('polesafe_token');
               const res = await fetch(`${API_BASE}/api/rides/request`, {
                 method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   driverId: driver._id,
                   vehicleType: selectedVehicle,
                   pickupLocation: pickup,
-                  dropoffLocation: destination,
-                  estimatedFare: driver.price || 5000,
+                  dropoffLocation: dest,
+                  estimatedFare: estTotal,
                 }),
               });
-
-              if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.message || 'Request failed');
-              }
-
+              if (!res.ok) throw new Error((await res.json()).message || 'Request failed');
               Alert.alert(
-                'Ride Requested 🚗',
-                `${driver.name} is on the way! ETA: ~${driver.eta || 5} min`,
+                '🚗 Ride Confirmed!',
+                `${driver.name} is on the way! ETA: ~${driver.eta || 5} minutes`,
                 [
                   { text: 'Track Ride', onPress: () => navigation.navigate('TrackRide', { rideId: 'new_ride' }) },
                   { text: 'OK' },
                 ]
               );
-
-              // Reset
               setSearchText('');
-              setPickupPlace(null);
               setDropoffPlace(null);
-              setSelectedDriver(null);
+              setSelectedDriverId(null);
             } catch (err) {
               Alert.alert('Error', err.message);
             } finally {
@@ -146,244 +306,351 @@ export default function RideHailing({ navigation }) {
     );
   };
 
-  const formatCurrency = (amount) => {
-    return Number(amount || 0).toLocaleString('en-UG');
-  };
-
-  const filteredDrivers = availableDrivers.filter(d =>
-    d.available !== false && d.vehicleType !== 'boda' || selectedVehicle === 'boda'
-  );
-
   return (
     <ScrollView
-      style={[styles.container, {backgroundColor: theme.canvas}]}
+      style={[styles.container, { backgroundColor: theme.canvas }]}
       keyboardShouldPersistTaps="handled"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND.secondary} />}
+      contentContainerStyle={styles.content}
     >
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
+      {/* Where to? Search */}
+      <View style={styles.searchBox}>
+        <View style={styles.searchIconWrap}>
+          <Text style={styles.searchDot}>🔍</Text>
+        </View>
         <TextInput
           style={styles.searchInput}
-          placeholder="Where to?"
-          placeholderTextColor="#999"
+          placeholder={dropoffPlace ? dropoffPlace.name : "Where to?"}
+          placeholderTextColor="#9CA3AF"
           value={searchText}
-          onChangeText={setSearchText}
+          onChangeText={(t) => { setSearchText(t); setDropoffPlace(null); }}
           returnKeyType="search"
         />
+        {(searchText || dropoffPlace) && (
+          <TouchableOpacity onPress={() => { setSearchText(''); setDropoffPlace(null); }}>
+            <Text style={styles.clearBtn}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Pickup Location */}
+      <View style={styles.pickupBar}>
+        <View style={styles.pickupDot} />
+        <Text style={styles.pickupText}>{pickupPlace?.address || 'Current Location'}</Text>
+        <TouchableOpacity onPress={() => Alert.alert('Change Pickup', 'Drop pin on map coming soon')}>
+          <Text style={styles.changeText}>Change</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Saved Places */}
-      {!searchText && (
-        <View style={styles.savedPlaces}>
-          <Text style={styles.savedTitle}>Saved Places</Text>
-          {SAVED_PLACES.map((place) => (
+      {!searchText && !dropoffPlace && (
+        <GlassCard style={styles.placesCard}>
+          <Text style={styles.placesTitle}>SAVED PLACES</Text>
+          {SAVED_PLACES.map(place => (
             <TouchableOpacity
               key={place.id}
               style={styles.placeRow}
-              onPress={() => {
-                setDropoffPlace(place);
-                setSearchText(place.name);
-              }}
+              onPress={() => { setDropoffPlace(place); setSearchText(place.name); }}
+              activeOpacity={0.6}
             >
               <View style={styles.placeIcon}>
                 <Text style={styles.placeEmoji}>{place.emoji}</Text>
               </View>
               <View style={styles.placeInfo}>
                 <Text style={styles.placeName}>{place.name}</Text>
-                <Text style={styles.placeAddress}>{place.address}</Text>
+                <Text style={styles.placeAddr}>{place.address}</Text>
               </View>
-              <Text style={styles.placeArrow}>›</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </GlassCard>
       )}
 
-      {/* Vehicle Type Selector */}
-      <Text style={styles.sectionTitle}>🚗 Select Vehicle</Text>
+      {/* Vehicle Selector */}
+      <Text style={styles.sectionLabel}>VEHICLE TYPE</Text>
       <View style={styles.vehicleRow}>
-        {VEHICLE_TYPES.map((v) => (
+        {Object.values(VEHICLES).map(v => (
           <TouchableOpacity
             key={v.id}
-            style={[
-              styles.vehicleBtn,
-              selectedVehicle === v.id && styles.vehicleBtnSelected,
-            ]}
-            onPress={() => {
-              setSelectedVehicle(v.id);
-              setSelectedDriver(null);
-            }}
+            style={[styles.vehicleCard, selectedVehicle === v.id && styles.vehicleActive]}
+            onPress={() => { setSelectedVehicle(v.id); setSelectedDriverId(null); }}
+            activeOpacity={0.7}
           >
             <Text style={styles.vehicleEmoji}>{v.emoji}</Text>
-            <Text style={[
-              styles.vehicleLabel,
-              selectedVehicle === v.id && styles.vehicleLabelSelected,
-            ]}>
+            <Text style={[styles.vehicleLabel, selectedVehicle === v.id && styles.vehicleLabelActive]}>
               {v.label}
             </Text>
-            <Text style={styles.vehicleDesc}>{v.desc}</Text>
-            <Text style={styles.vehiclePrice}>
-              ~{formatCurrency(v.pricePerKm)}/km
+            <Text style={[styles.vehicleDesc, selectedVehicle === v.id && { color: '#fff', opacity: 0.8 }]}>
+              {v.desc}
             </Text>
+            <Text style={styles.vehiclePrice}>
+              From {formatCurrency(v.baseFare)} UGX
+            </Text>
+            {selectedVehicle === v.id && (
+              <View style={styles.vehicleSelectedBadge}>
+                <Text style={styles.vehicleSelectedText}>✓</Text>
+              </View>
+            )}
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Available Drivers */}
-      <Text style={styles.sectionTitle}>
-        👤 Available Drivers {filteredDrivers.length > 0 ? `(${filteredDrivers.length})` : ''}
-      </Text>
+      {/* Pricing Toggle */}
+      <TouchableOpacity style={styles.pricingToggle} onPress={() => setShowPricing(!showPricing)}>
+        <Text style={styles.pricingToggleText}>
+          {showPricing ? '▼ Hide pricing details' : '▶ Show pricing details'}
+        </Text>
+      </TouchableOpacity>
+      {showPricing && <PricingBreakdown vehicle={selectedVehicle} distance={3} />}
+
+      {/* Safety Notice */}
+      <GlassCard style={styles.safetyCard}>
+        <Text style={styles.safetyTitle}>🛡️ PoleSafe Safety</Text>
+        <Text style={styles.safetyText}>
+          All drivers are vetted. Share your trip with family.{'\n'}
+          SOS button available during ride. No surge pricing — ever.
+        </Text>
+      </GlassCard>
+
+      {/* Drivers Section */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionLabel}>
+          {filteredDrivers.length > 0
+            ? `AVAILABLE DRIVERS (${filteredDrivers.length})`
+            : 'AVAILABLE DRIVERS'}
+        </Text>
+      </View>
 
       {loading ? (
-        <ActivityIndicator color="#2E7D32" style={{ marginVertical: 20 }} />
-      ) : filteredDrivers.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyEmoji}>🚗</Text>
-          <Text style={styles.emptyText}>No drivers available nearby</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={loadDrivers}>
-            <Text style={styles.retryText}>Refresh</Text>
-          </TouchableOpacity>
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="large" color={BRAND.secondary} />
+          <Text style={styles.loadingText}>Finding nearby drivers...</Text>
         </View>
-      ) : (
-        filteredDrivers.map((driver) => (
-          <TouchableOpacity
-            key={driver._id}
-            style={[
-              styles.driverCard,
-              selectedDriver === driver._id && styles.driverCardSelected,
-            ]}
-            onPress={() => setSelectedDriver(driver._id)}
-          >
-            <View style={styles.driverRow}>
-              {/* Avatar */}
-              <View style={[styles.driverAvatar, { backgroundColor: selectedDriver === driver._id ? COLORS.green : COLORS.blue }]}>
-                <Text style={styles.driverAvatarText}>
-                  {(driver.name || 'D').charAt(0)}
-                </Text>
-              </View>
-
-              {/* Info */}
-              <View style={styles.driverInfo}>
-                <Text style={styles.driverName}>{driver.name}</Text>
-                <View style={styles.driverMeta}>
-                  <Text style={styles.driverRating}>⭐ {driver.rating || '4.5'}</Text>
-                  <Text style={styles.driverDistance}>📍 {driver.distance || '~1 km'}</Text>
-                </View>
-                <Text style={styles.driverVehicle}>
-                  {driver.vehicle || driver.vehicleType || 'Vehicle'} • {driver.plate || ''}
-                </Text>
-              </View>
-
-              {/* Price */}
-              <View style={styles.driverPriceBox}>
-                <Text style={styles.driverPrice}>
-                  {formatCurrency(driver.price || 5000)}
-                </Text>
-                <Text style={styles.driverPriceLabel}>UGX</Text>
-                {driver.eta && (
-                  <Text style={styles.driverEta}>{driver.eta} min</Text>
-                )}
-              </View>
-            </View>
-
-            {selectedDriver === driver._id && (
-              <View style={styles.selectedBadge}>
-                <Text style={styles.selectedBadgeText}>✅ Selected</Text>
-              </View>
-            )}
+      ) : filteredDrivers.length === 0 ? (
+        <GlassCard style={styles.emptyBox}>
+          <Text style={styles.emptyEmoji}>🚗</Text>
+          <Text style={styles.emptyTitle}>No drivers nearby</Text>
+          <Text style={styles.emptyDesc}>Try switching to Boda or check back shortly</Text>
+          <TouchableOpacity style={styles.refreshBtn} onPress={loadDrivers}>
+            <Text style={styles.refreshText}>↻ Refresh</Text>
           </TouchableOpacity>
+        </GlassCard>
+      ) : (
+        filteredDrivers.map(driver => (
+          <DriverCard
+            key={driver._id}
+            driver={driver}
+            selected={selectedDriverId === driver._id}
+            onSelect={setSelectedDriverId}
+            vehicleType={selectedVehicle}
+          />
         ))
       )}
 
-      {/* Request Ride */}
+      {/* Request Button */}
       <TouchableOpacity
-        style={[styles.requestBtn, requesting && styles.btnDisabled]}
+        style={[
+          styles.requestBtn,
+          requesting && { opacity: 0.6 },
+          (filteredDrivers.length === 0) && styles.requestBtnDisabled,
+        ]}
         onPress={handleRequestRide}
         disabled={requesting || filteredDrivers.length === 0}
+        activeOpacity={0.8}
       >
         {requesting ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.requestBtnText}>
-            🚗 Request Ride
-            {selectedDriver
-              ? ` with ${availableDrivers.find(d => d._id === selectedDriver)?.name || ''}`
-              : ''}
-          </Text>
+          <View style={styles.requestBtnContent}>
+            <Text style={styles.requestBtnText}>
+              🚗 Request
+            </Text>
+            {selectedDriver && (
+              <Text style={styles.requestSubText}>
+                {selectedDriver.name} · {formatCurrency(selectedDriver.price)} UGX
+              </Text>
+            )}
+          </View>
         )}
       </TouchableOpacity>
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 60 }} />
     </ScrollView>
   );
 }
 
+// ─── Styles ──────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.canvas, padding: 16 },
+  container: { flex: 1 },
+  content: { padding: 16, paddingTop: 8 },
 
   // Search
-  searchContainer: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface,
-    borderRadius: 12, paddingHorizontal: 14, marginBottom: 14, elevation: 2,
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: 14,
+    marginBottom: 0,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  searchIcon: { fontSize: 18, marginRight: 8 },
-  searchInput: { flex: 1, paddingVertical: 16, fontSize: 16, color: COLORS.textPrimary },
+  searchIconWrap: { marginRight: 10 },
+  searchDot: { fontSize: 16 },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 16,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  clearBtn: {
+    fontSize: 18,
+    color: '#9CA3AF',
+    padding: 4,
+  },
+
+  // Pickup
+  pickupBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    marginBottom: 12,
+  },
+  pickupDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: BRAND.primary,
+    marginRight: 10,
+  },
+  pickupText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  changeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: BRAND.secondary,
+  },
 
   // Saved Places
-  savedPlaces: { backgroundColor: COLORS.surface, borderRadius: 12, marginBottom: 14, elevation: 1 },
-  savedTitle: { fontSize: 14, fontWeight: '600', color: COLORS.textMuted, padding: 14, paddingBottom: 8, textTransform: 'uppercase' },
-  placeRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  placeIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.greenBg, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  placeEmoji: { fontSize: 18 },
+  placesCard: { padding: 0, marginBottom: 16 },
+  placesTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    letterSpacing: 0.5,
+    padding: 14,
+    paddingBottom: 8,
+  },
+  placeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  placeIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  placeEmoji: { fontSize: 16 },
   placeInfo: { flex: 1 },
-  placeName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  placeAddress: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
-  placeArrow: { fontSize: 24, color: '#ccc' },
+  placeName: { fontSize: 15, fontWeight: '600', color: '#111827' },
+  placeAddr: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+
+  // Vehicle Selector
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  vehicleRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 8,
+  },
+  vehicleCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    position: 'relative',
+  },
+  vehicleActive: {
+    borderColor: BRAND.secondary,
+    backgroundColor: BRAND.secondary,
+  },
+  vehicleEmoji: { fontSize: 28, marginBottom: 6 },
+  vehicleLabel: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  vehicleLabelActive: { color: '#fff' },
+  vehicleDesc: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+  vehiclePrice: { fontSize: 12, color: BRAND.primary, fontWeight: '600', marginTop: 6 },
+  vehicleSelectedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vehicleSelectedText: { color: '#fff', fontWeight: '800', fontSize: 12 },
+
+  // Pricing Toggle
+  pricingToggle: { paddingVertical: 6, marginBottom: 4 },
+  pricingToggleText: { fontSize: 12, fontWeight: '600', color: BRAND.secondary },
+
+  // Safety Notice
+  safetyCard: {
+    padding: 14,
+    marginVertical: 12,
+    backgroundColor: '#E8F5E9',
+    borderColor: '#C8E6C9',
+  },
+  safetyTitle: { fontSize: 14, fontWeight: '700', color: BRAND.primary, marginBottom: 4 },
+  safetyText: { fontSize: 12, color: '#374151', lineHeight: 17 },
 
   // Section
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 10, marginTop: 4 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
 
-  // Vehicles
-  vehicleRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  vehicleBtn: {
-    flex: 1, padding: 12, borderRadius: 12, backgroundColor: COLORS.surface,
-    alignItems: 'center', borderWidth: 2, borderColor: '#eee', elevation: 1,
-  },
-  vehicleBtnSelected: { borderColor: COLORS.green, backgroundColor: COLORS.greenBg },
-  vehicleEmoji: { fontSize: 28, marginBottom: 4 },
-  vehicleLabel: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
-  vehicleLabelSelected: { color: COLORS.green },
-  vehicleDesc: { fontSize: 10, color: COLORS.textMuted, marginTop: 2 },
-  vehiclePrice: { fontSize: 11, color: COLORS.green, fontWeight: '600', marginTop: 4 },
+  // Loading
+  loadingBox: { alignItems: 'center', padding: 32 },
+  loadingText: { marginTop: 12, fontSize: 14, color: '#6B7280' },
 
   // Empty
-  emptyCard: { alignItems: 'center', padding: 24, backgroundColor: COLORS.surface, borderRadius: 12, marginBottom: 16 },
+  emptyBox: { padding: 24, alignItems: 'center' },
   emptyEmoji: { fontSize: 48, marginBottom: 8 },
-  emptyText: { fontSize: 14, color: COLORS.textMuted, marginBottom: 12 },
-  retryBtn: { backgroundColor: COLORS.green, paddingHorizontal: 24, paddingVertical: 8, borderRadius: 8 },
-  retryText: { color: '#fff', fontWeight: '600' },
-
-  // Driver Card
-  driverCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2 },
-  driverCardSelected: { borderWidth: 2, borderColor: COLORS.green },
-  driverRow: { flexDirection: 'row', alignItems: 'center' },
-  driverAvatar: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  driverAvatarText: { fontSize: 20, color: '#fff', fontWeight: '700' },
-  driverInfo: { flex: 1 },
-  driverName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  driverMeta: { flexDirection: 'row', gap: 12, marginTop: 2 },
-  driverRating: { fontSize: 12, color: '#F57C00', fontWeight: '500' },
-  driverDistance: { fontSize: 12, color: COLORS.textSecondary },
-  driverVehicle: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
-  driverPriceBox: { alignItems: 'center', marginLeft: 8 },
-  driverPrice: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  driverPriceLabel: { fontSize: 10, color: COLORS.textMuted },
-  driverEta: { fontSize: 11, color: COLORS.green, fontWeight: '600', marginTop: 2 },
-  selectedBadge: { marginTop: 8, alignItems: 'center' },
-  selectedBadgeText: { fontSize: 12, color: COLORS.green, fontWeight: '600' },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 4 },
+  emptyDesc: { fontSize: 13, color: '#6B7280', textAlign: 'center' },
+  refreshBtn: { marginTop: 12, backgroundColor: BRAND.secondary, paddingHorizontal: 24, paddingVertical: 8, borderRadius: BORDER_RADIUS.sm },
+  refreshText: { color: '#fff', fontWeight: '600' },
 
   // Request
-  requestBtn: { backgroundColor: COLORS.green, padding: 18, borderRadius: 12, alignItems: 'center', elevation: 2 },
-  btnDisabled: { opacity: 0.5 },
-  requestBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  requestBtn: {
+    backgroundColor: BRAND.secondary,
+    paddingVertical: 16,
+    borderRadius: BORDER_RADIUS.lg,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  requestBtnDisabled: { backgroundColor: '#9CA3AF' },
+  requestBtnContent: { alignItems: 'center' },
+  requestBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  requestSubText: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
 });
