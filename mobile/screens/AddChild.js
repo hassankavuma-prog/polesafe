@@ -22,6 +22,9 @@ export default function AddChild({ navigation }) {
   const [className, setClassName] = useState('');
   const [schoolId, setSchoolId] = useState(null);
   const [age, setAge] = useState('');
+  const [gateDoor, setGateDoor] = useState('');
+  const [emergencyName, setEmergencyName] = useState('');
+  const [emergencyPhone, setEmergencyPhone] = useState('');
   const [medicalNotes, setMedicalNotes] = useState('');
   const [photo, setPhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -87,6 +90,9 @@ export default function AddChild({ navigation }) {
           name: name.trim(),
           class: className.trim(),
           schoolId,
+          gateDoor: gateDoor.trim() || undefined,
+          emergencyName: emergencyName.trim() || undefined,
+          emergencyPhone: emergencyPhone.trim() || undefined,
           age: age ? parseInt(age) : undefined,
           safeWordPhoto: photo || undefined,
         }),
@@ -193,6 +199,42 @@ export default function AddChild({ navigation }) {
             onChangeText={(text) => setAge(text.replace(/[^0-9]/g, ''))}
             editable={!loading}
             maxLength={2}
+          />
+        </View>
+
+        {/* Pickup Gate / Door (optional) */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Pickup Gate / Door (optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g., Main Gate, Side Entrance, Room 12"
+            placeholderTextColor="#aaa"
+            value={gateDoor}
+            onChangeText={setGateDoor}
+            editable={!loading}
+          />
+        </View>
+
+        {/* Emergency Contact (optional) */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Emergency Contact (optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Full name"
+            placeholderTextColor="#aaa"
+            value={emergencyName}
+            onChangeText={setEmergencyName}
+            editable={!loading}
+          />
+          <View style={{ height: 8 }} />
+          <TextInput
+            style={styles.input}
+            placeholder="Phone number"
+            placeholderTextColor="#aaa"
+            keyboardType="phone-pad"
+            value={emergencyPhone}
+            onChangeText={setEmergencyPhone}
+            editable={!loading}
           />
         </View>
 

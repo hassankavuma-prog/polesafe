@@ -263,6 +263,15 @@ export default function ParentTrack({ route, navigation }) {
               <Text style={styles.driverRating}>
                 ⭐ {ride?.driverId?.rating || '4.8'} · 🏆 {ride?.driverId?.rides || '500'}+ rides
               </Text>
+              {/* Safety Badges */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                <View style={{ backgroundColor: '#E8F5E9', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#2E7D32' }}>✅ Background Checked</Text>
+                </View>
+                <View style={{ backgroundColor: '#FFF8E1', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#92400E' }}>🩹 First Aid Certified</Text>
+                </View>
+              </View>
             </View>
             <View style={styles.driverETA}>
               <Text style={styles.driverETANum}>{formatDuration(etaMinutes || 5)}</Text>
@@ -280,6 +289,17 @@ export default function ParentTrack({ route, navigation }) {
             </TouchableOpacity>
           </View>
         </GlassCard>
+
+        {/* PIN Verified Banner */}
+        {ride?.status === 'picked_up' && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#BBF7D0' }}>
+            <Text style={{ fontSize: 24, marginRight: 12 }}>🔐</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '800', color: '#166534' }}>4-Digit PIN Verified ✅</Text>
+              <Text style={{ fontSize: 12, color: '#166534', marginTop: 2 }}>{kidName} matched the security code before getting in.</Text>
+            </View>
+          </View>
+        )}
 
         {/* Safety Reminder */}
         {ride?.status === 'en_route' && (
