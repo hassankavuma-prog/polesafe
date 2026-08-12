@@ -166,13 +166,10 @@ export default function DriverDashboard({ navigation }) {
 
   const handleAccept = (id) => {
     HapticFeedback.medium();
-    Alert.alert('Start Trip', 'Navigate to pickup location?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Navigate', onPress: () => {
-        setTrips(prev => prev.map(t => t._id === id ? { ...t, status: 'en_route' } : t));
-        Alert.alert('🚗 En Route!', 'Navigating to pickup. Remember: verify pickup word before child gets in.');
-      }},
-    ]);
+    const trip = trips.find(t => t._id === id);
+    if (trip) {
+      navigation.navigate('DriverActiveTrip', { trip });
+    }
   };
 
   const handleComplete = (id) => {
