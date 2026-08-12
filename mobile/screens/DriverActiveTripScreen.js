@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   },
   mapEmoji: { fontSize: 60, marginBottom: 12 },
   mapLabel: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 4 },
-  mapHint: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
+  mapHint: { fontSize: 13, color: 'rgba(255,255,255,0.65)' },
 
   // Bottom Section
   bottomSection: {

@@ -117,7 +117,7 @@ const tripStyles = StyleSheet.create({
   details: { gap: 6, marginBottom: 14 },
   detailItem: { flexDirection: 'row', alignItems: 'center' },
   detailEmoji: { fontSize: 14, marginRight: 8, width: 20 },
-  detailLabel: { fontSize: 13, color: '#9CA3AF', width: 40 },
+  detailLabel: { fontSize: 13, color: '#6B7280', width: 40 },
   detailValue: { fontSize: 13, fontWeight: '600', color: '#111827', flex: 1 },
   actions: { flexDirection: 'row', gap: 8 },
   acceptBtn: { flex: 1, backgroundColor: BRAND.secondary, paddingVertical: 12, borderRadius: BORDER_RADIUS.sm, alignItems: 'center' },
@@ -136,12 +136,20 @@ export default function DriverDashboard({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ today: 0, earnings: 0, rating: 0 });
-  const [voiceOn, setVoiceOn] = useState(isVoiceEnabled());
+  const [voiceOn, setVoiceOn] = useState(false);
+
+  // ─── Voice guidance (safety) ────────────────────
+  const announceWelcome = () => {
+    // Voice guidance welcome — placeholder for TTS integration
+    console.log('[Voice] Welcome to PoleSafe Driver');
+  };
 
   const toggleVoice = () => {
     const newState = !voiceOn;
     setVoiceOn(newState);
-    setVoiceEnabled(newState);
+    try {
+      AsyncStorage.setItem('driver_voice_enabled', JSON.stringify(newState));
+    } catch {}
     HapticFeedback.light();
     if (newState) announceWelcome();
   };
@@ -388,4 +396,16 @@ const styles = StyleSheet.create({
   // Loading
   splashPulse: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(21, 101, 192, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   loadingText: { fontSize: 15, color: '#6B7280' },
+
+  // Voice Toggle
+  voiceBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  voiceIcon: { fontSize: 20, marginRight: 10 },
+  voiceLabel: { fontSize: 14, fontWeight: '600', color: '#111827', flex: 1 },
 });

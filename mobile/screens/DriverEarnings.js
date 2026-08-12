@@ -557,7 +557,7 @@ const stw = StyleSheet.create({
     backgroundColor: '#1e293b', borderRadius: 12, padding: 14,
     marginBottom: 10, borderWidth: 1, borderColor: '#334155',
   },
-  nextPayoutLabel: { fontSize: 10, color: '#64748b', fontWeight: '600', letterSpacing: 1 },
+  nextPayoutLabel: { fontSize: 10, color: '#FFFFFF', fontWeight: '600', letterSpacing: 1 },
   nextPayoutDate: { fontSize: 16, fontWeight: '700', color: '#fff', marginTop: 2 },
   nextPayoutAmount: { fontSize: 12, color: '#f59e0b', marginTop: 2 },
   payoutBadge: { backgroundColor: BLUE, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16 },
@@ -576,9 +576,9 @@ const stw = StyleSheet.create({
 
   // Today
   todayCard: { backgroundColor: BLUE, borderRadius: 16, padding: 24, marginBottom: 14, elevation: 4 },
-  todayLabel: { fontSize: 13, color: '#BBDEFB', fontWeight: '500', textTransform: 'uppercase', letterSpacing: 1 },
+  todayLabel: { fontSize: 13, color: '#FFFFFF', fontWeight: '500', textTransform: 'uppercase', letterSpacing: 1 },
   todayAmount: { fontSize: 40, fontWeight: '800', color: '#fff', marginTop: 6 },
-  todayTrips: { fontSize: 14, color: '#BBDEFB', marginTop: 4 },
+  todayTrips: { fontSize: 14, color: '#FFFFFF', marginTop: 4 },
 
   // Summary
   summaryCard: { flex: 1, padding: 16, borderRadius: 12, alignItems: 'center' },

@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   stepDoneText: { fontSize: 18 },
   stepLine: { flex: 1, height: 3, backgroundColor: '#2E7D32', marginHorizontal: 4, borderRadius: 2 },
   stepLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, paddingHorizontal: 4 },
-  stepLabel: { fontSize: 11, color: '#888', fontWeight: '500' },
+  stepLabel: { fontSize: 11, color: '#555555', fontWeight: '500' },
 
   // Kid Card
   kidCard: { backgroundColor: '#fff', borderRadius: 12, padding: 20, marginBottom: 16, elevation: 2 },

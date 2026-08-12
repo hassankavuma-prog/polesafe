@@ -402,9 +402,7 @@ export default function ParentTrack({ route, navigation }) {
       {/* Post-Trip Review Modal */}
       <PostTripReviewModal
         visible={showReview}
-        rideId={rideId}
-        driverId={ride?.driverId?._id}
-        driverName={ride?.driverId?.name}
+        ride={ride}
         onClose={() => setShowReview(false)}
       />
     </View>
