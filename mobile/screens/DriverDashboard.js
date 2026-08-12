@@ -135,6 +135,15 @@ export default function DriverDashboard({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ today: 0, earnings: 0, rating: 0 });
+  const [voiceOn, setVoiceOn] = useState(isVoiceEnabled());
+
+  const toggleVoice = () => {
+    const newState = !voiceOn;
+    setVoiceOn(newState);
+    setVoiceEnabled(newState);
+    HapticFeedback.light();
+    if (newState) announceWelcome();
+  };
 
   const loadTrips = async () => {
     try {
@@ -218,6 +227,18 @@ export default function DriverDashboard({ navigation }) {
           onPress={toggleOnline}
         >
           <View style={[styles.toggleKnob, isOnline && styles.toggleKnobOn]} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Voice Toggle */}
+      <View style={styles.voiceBar}>
+        <Text style={styles.voiceIcon}>{voiceOn ? '🔊' : '🔇'}</Text>
+        <Text style={styles.voiceLabel}>Voice Safety Alerts: {voiceOn ? 'ON' : 'OFF'}</Text>
+        <TouchableOpacity
+          style={[styles.onlineToggle, voiceOn ? styles.onlineToggleOn : styles.onlineToggleOff]}
+          onPress={toggleVoice}
+        >
+          <View style={[styles.toggleKnob, voiceOn && styles.toggleKnobOn]} />
         </TouchableOpacity>
       </View>
 
