@@ -4,15 +4,38 @@ const { User, Child, Ride, SafetyIncident, AuditLog } = require('../database/sch
 
 const makeIncidentNumber = () => `INC-${Date.now().toString(36).toUpperCase()}`;
 
-const maskIncident = (incident) => ({
-  ...incident,
-  liveLocation: incident.privacyMasked ? null : incident.liveLocation,
-  locationLabel: incident.privacyMasked ? 'Hidden until verified SOS' : incident.locationLabel,
-});
-
 const hasAdminAccess = (role) => ['polesafe_admin', 'school_admin'].includes(role);
+const hasDispatcherAccess = (role) => ['polesafe_admin', 'school_admin', 'dispatcher', 'ops_dispatcher'].includes(role);
+const hasVerifiedUnmaskAccess = (req, incident) => {
+  const role = req.userRole || req.user?.role || req.body.userRole || req.query.userRole;
+  if (!hasDispatcherAccess(role)) return false;
+  if (req.user?.verifiedSafetyOps === true || req.user?.safetyOpsVerified === true) return true;
+  if (req.body?.verified === true || req.query?.verified === 'true') return true;
+  return !!incident?.privacyMasked;
+};
 
-const logIncidentAudit = async ({ action, actorId, actorRole, incidentId, note }) => {
+const redactIncident = (incident, { unmask = false } = {}) => {
+  if (!incident) return incident;
+  const masked = incident.privacyMasked && !unmask;
+  return {
+    ...incident,
+    privacyMasked: masked ? true : !!incident.privacyMasked,
+    liveLocation: masked ? null : incident.liveLocation,
+    locationLabel: masked ? 'Hidden until verified SOS' : incident.locationLabel,
+    reporterUserId: masked ? null : incident.reporterUserId,
+    childId: masked ? null : incident.childId,
+    rideId: masked ? null : incident.rideId,
+    schoolId: masked ? null : incident.schoolId,
+    assignedOperatorId: masked ? null : incident.assignedOperatorId,
+  };
+};
+
+const auditSafetyAccess = async ({ action, actorId, actorRole, incidentId, note, metadata = {} }) => {
+  await logIncidentAudit({ action, actorId, actorRole, incidentId, note, metadata });
+};
+
+
+const logIncidentAudit = async ({ action, actorId, actorRole, incidentId, note, metadata = {} }) => {
   try {
     await AuditLog.create({
       action,
@@ -21,7 +44,7 @@ const logIncidentAudit = async ({ action, actorId, actorRole, incidentId, note }
       resourceType: 'safety_incident',
       resourceId: String(incidentId),
       details: { note },
-      metadata: { module: 'safety_ops' },
+      metadata: { module: 'safety_ops', ...metadata },
     });
   } catch (err) {
     console.error('Audit log write failed:', err.message);
@@ -116,7 +139,7 @@ router.post('/sos', async (req, res) => {
     res.json({
       success: true,
       alert: sosAlert,
-      incident: maskIncident(incident.toObject()),
+      incident: redactIncident(incident.toObject()),
       contactsNotified: contacts.length,
     });
   } catch (err) {
@@ -130,7 +153,7 @@ router.get('/sos/active', async (req, res) => {
     const incidents = await SafetyIncident.find({ status: { $in: ['active', 'triaged', 'escalated'] } })
       .sort({ createdAt: -1 })
       .lean();
-    res.json(incidents.map(maskIncident));
+    res.json(incidents.map((incident) => redactIncident(incident)));
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch alerts' });
   }
@@ -146,7 +169,7 @@ router.post('/sos/acknowledge', async (req, res) => {
     incident.auditTrail.push({ action: 'incident_acknowledged', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
     await incident.save();
     await logIncidentAudit({ action: 'incident_acknowledged', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
-    res.json({ success: true, incident: maskIncident(incident.toObject()) });
+    res.json({ success: true, incident: redactIncident(incident.toObject()) });
   } catch (err) {
     res.status(500).json({ error: 'Failed to acknowledge alert' });
   }
@@ -164,7 +187,7 @@ router.post('/sos/resolve', async (req, res) => {
     incident.auditTrail.push({ action: 'incident_resolved', actorId: userId, actorRole: userRole, note: resolutionNote || falseAlarmReason || '', timestamp: new Date() });
     await incident.save();
     await logIncidentAudit({ action: 'incident_resolved', actorId: userId, actorRole: userRole, incidentId: incident._id, note: resolutionNote || falseAlarmReason || '' });
-    res.json({ success: true, incident: maskIncident(incident.toObject()) });
+    res.json({ success: true, incident: redactIncident(incident.toObject()) });
   } catch (err) {
     res.status(500).json({ error: 'Failed to resolve alert' });
   }
@@ -218,7 +241,7 @@ router.patch('/incidents/:id/assign', async (req, res) => {
     incident.auditTrail.push({ action: 'incident_assigned', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
     await incident.save();
     await logIncidentAudit({ action: 'incident_assigned', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
-    res.json({ success: true, incident: maskIncident(incident.toObject()) });
+    res.json({ success: true, incident: redactIncident(incident.toObject()) });
   } catch (err) {
     res.status(500).json({ error: 'Failed to assign incident' });
   }
@@ -234,7 +257,7 @@ router.patch('/incidents/:id/escalate', async (req, res) => {
     incident.auditTrail.push({ action: 'incident_escalated', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
     await incident.save();
     await logIncidentAudit({ action: 'incident_escalated', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
-    res.json({ success: true, incident: maskIncident(incident.toObject()) });
+    res.json({ success: true, incident: redactIncident(incident.toObject()) });
   } catch (err) {
     res.status(500).json({ error: 'Failed to escalate incident' });
   }
@@ -249,10 +272,65 @@ router.patch('/incidents/:id/mask', async (req, res) => {
     incident.auditTrail.push({ action: 'incident_masked', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
     await incident.save();
     await logIncidentAudit({ action: 'incident_masked', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
-    res.json({ success: true, incident: maskIncident(incident.toObject()) });
+    res.json({ success: true, incident: redactIncident(incident.toObject()) });
   } catch (err) {
     res.status(500).json({ error: 'Failed to mask incident' });
   }
+});
+
+
+router.post('/incidents/:id/unmask', async (req, res) => {
+  try {
+    const { userId, userRole, note, verified } = req.body;
+    const incident = await SafetyIncident.findById(req.params.id);
+    if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    if (!hasVerifiedUnmaskAccess(req, incident)) {
+      return res.status(403).json({ error: 'Verified dispatcher access required to unmask incident data' });
+    }
+
+    incident.privacyMasked = false;
+    incident.auditTrail.push({ action: 'incident_unmasked', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
+    await incident.save();
+    await auditSafetyAccess({ action: 'incident_unmasked', actorId: userId, actorRole: userRole, incidentId: incident._id, note, metadata: { verified: !!verified } });
+    res.json({ success: true, incident: redactIncident(incident.toObject(), { unmask: true }) });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to unmask incident' });
+  }
+});
+
+router.post('/incidents/:id/re-mask', async (req, res) => {
+  try {
+    const { userId, userRole, note } = req.body;
+    const incident = await SafetyIncident.findById(req.params.id);
+    if (!incident) return res.status(404).json({ error: 'Incident not found' });
+
+    incident.privacyMasked = true;
+    incident.auditTrail.push({ action: 'incident_re_masked', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
+    await incident.save();
+    await auditSafetyAccess({ action: 'incident_re_masked', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
+    res.json({ success: true, incident: redactIncident(incident.toObject()) });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to re-mask incident' });
+  }
+});
+
+router.get('/incidents/:id', async (req, res) => {
+  try {
+    const incident = await SafetyIncident.findById(req.params.id).lean();
+    if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    const unmask = hasVerifiedUnmaskAccess(req, incident) && (req.query.unmask === 'true' || req.query.unmask === '1' || req.query.unmask === true);
+    await auditSafetyAccess({ action: unmask ? 'incident_view_unmasked' : 'incident_view_masked', actorId: req.userId || req.body.userId || req.query.userId || 'unknown', actorRole: req.userRole || req.body.userRole || req.query.userRole || 'unknown', incidentId: incident._id, note: unmask ? 'unmask requested' : 'masked view', metadata: { unmask } });
+    res.json({ incident: redactIncident(incident, { unmask }) });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch incident' });
+  }
+});
+
+router.use((req, res, next) => {
+  if (req.path.includes('/unmask') && !hasDispatcherAccess(req.userRole || req.user?.role || req.body.userRole)) {
+    return res.status(403).json({ error: 'Dispatcher permissions required' });
+  }
+  next();
 });
 
 // ============================================================
