@@ -66,17 +66,21 @@ export default function SOSButton({ rideId, kidId, userRole }) {
       };
 
       await enqueueSosTrigger(payload, { rideId, childId: kidId, source: 'sos-button', priority: 'high' });
-
-      try {
-        const res = await fetch(`${API_URL}/api/safety/sos`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to send alert');
-      } catch (err) {
-        await flushOfflineQueue({ socketConnected: false, token: null });
+      const online = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      if (online) {
+        try {
+          const res = await fetch(`${API_URL}/api/safety/sos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || data.message || 'Failed to send alert');
+        } catch (err) {
+          await flushOfflineQueue({ socketConnected: false, token: null, forceOnline: false });
+        }
+      } else {
+        await flushOfflineQueue({ socketConnected: false, token: null, forceOnline: false });
       }
 
       setAlertActive(true);
