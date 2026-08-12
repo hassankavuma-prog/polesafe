@@ -98,5 +98,9 @@ export const dispatcherDashboardResponseSchema = z.object({
   stats: dispatcherDashboardStatsSchema,
   incidents: z.array(safetyIncidentSchema),
   privacyMode: z.literal('masked'),
-  allowedActions: z.array(z.enum(['acknowledge', 'assign', 'escalate', 'resolve', 'mark_false_alarm'])),
+  allowedActions: z.array(z.enum(['acknowledge', 'assign', 'escalate', 'resolve', 'mark_false_alarm', 'unmask'])),
 }).strict();
+
+export const unmaskIncidentInputSchema = incidentActionInputSchema.extend({
+  verified: z.boolean().default(false),
+});

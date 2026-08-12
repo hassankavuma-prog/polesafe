@@ -20,6 +20,7 @@ import {
   fetchDispatcherDashboardAction,
   maskIncidentAction,
   resolveIncidentAction,
+  unmaskIncidentAction,
 } from '../../../lib/safety-ops/actions';
 import type { SafetyIncident } from '../../../lib/safety-ops/types';
 
@@ -211,11 +212,12 @@ export default function SafetyOpsPage() {
 
   const handleUnmask = async (incident: SafetyIncident) => {
     try {
-      const result = await maskIncidentAction({
+      const result = await unmaskIncidentAction({
         incidentId: incident._id,
         userId: 'current-user',
         userRole: 'polesafe_admin',
         note: 'Operator requested reveal for verified triage',
+        verified: true,
       });
       if (!result.ok) throw new Error(result.error);
       setIncidents(prev => prev.map(x => x._id === incident._id ? { ...x, privacyMasked: false } : x));

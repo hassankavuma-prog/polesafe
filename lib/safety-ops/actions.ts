@@ -1,10 +1,10 @@
 'use server';
 
-import { createSosInputSchema, dispatcherDashboardResponseSchema, incidentActionInputSchema, maskIncidentInputSchema, resolveIncidentInputSchema } from './schemas';
+import { createSosInputSchema, dispatcherDashboardResponseSchema, incidentActionInputSchema, maskIncidentInputSchema, resolveIncidentInputSchema, unmaskIncidentInputSchema } from './schemas';
 import type { CreateSosInput, IncidentActionInput, ResolveIncidentInput } from './types';
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; issues?: unknown };
-const allowedAdminRoles = new Set(['polesafe_admin', 'school_admin']);
+const allowedAdminRoles = new Set(['polesafe_admin', 'school_admin', 'dispatcher', 'ops_dispatcher']);
 const incidentNumber = () => `INC-${Date.now().toString(36).toUpperCase()}`;
 function requireRole(userRole: string) { if (!allowedAdminRoles.has(userRole)) throw new Error('Forbidden'); }
 
@@ -20,7 +20,7 @@ export async function fetchActiveIncidentsAction(): Promise<ActionResult<unknown
 }
 
 export async function fetchDispatcherDashboardAction(): Promise<ActionResult<unknown>> {
-  return { ok: true, data: dispatcherDashboardResponseSchema.parse({ stats: { active: 0, triaged: 0, resolved: 0 }, incidents: [], privacyMode: 'masked', allowedActions: ['acknowledge', 'assign', 'escalate', 'resolve', 'mark_false_alarm'] }) };
+  return { ok: true, data: dispatcherDashboardResponseSchema.parse({ stats: { active: 0, triaged: 0, resolved: 0 }, incidents: [], privacyMode: 'masked', allowedActions: ['acknowledge', 'assign', 'escalate', 'resolve', 'mark_false_alarm', 'unmask'] }) };
 }
 
 export async function acknowledgeIncidentAction(input: unknown): Promise<ActionResult<{ success: true }>> {
@@ -59,5 +59,13 @@ export async function maskIncidentAction(input: unknown): Promise<ActionResult<{
   const parsed = maskIncidentInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid mask payload', issues: parsed.error.flatten() };
   requireRole(parsed.data.userRole);
+  return { ok: true, data: { success: true } };
+}
+
+export async function unmaskIncidentAction(input: unknown): Promise<ActionResult<{ success: true }>> {
+  const parsed = unmaskIncidentInputSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'Invalid unmask payload', issues: parsed.error.flatten() };
+  requireRole(parsed.data.userRole);
+  if (!parsed.data.verified) return { ok: false, error: 'Verified dispatcher access required' };
   return { ok: true, data: { success: true } };
 }
