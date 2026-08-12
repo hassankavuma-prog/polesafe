@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import API_BASE from '../config';
 import { isApproved as checkDriverVerified } from '../services/driverVerificationService';
 
 const ROLES = [
@@ -31,6 +32,21 @@ export default function RoleSwitcherScreen({ navigation, route }) {
       setPendingRoles(Array.isArray(pending) ? pending : []);
     })();
   }, []);
+
+  const requestDriverAccess = async () => {
+    const pending = Array.from(new Set([...(pendingRoles || []), 'driver']));
+    setPendingRoles(pending);
+    await AsyncStorage.setItem('pendingRoles', JSON.stringify(pending));
+    try {
+      const token = await AsyncStorage.getItem('polesafe_token');
+      await fetch(`${API_BASE}/api/driver/submit-documents`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docs: { requestType: 'role-switch', from: currentRole } }),
+      });
+    } catch {}
+    Alert.alert('Driver access requested', 'Your account stays the same. Driver mode will open after documents are submitted and approved.');
+  };
 
   const activate = async (role) => {
     if (role === 'driver' && !driverVerified) {
@@ -74,12 +90,7 @@ export default function RoleSwitcherScreen({ navigation, route }) {
       <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Parent can drive too', 'If you already have a parent or rider account, you can request driver onboarding. The account stays the same, but driver mode stays locked until documents are reviewed and approved.')}>
         <Text style={styles.linkText}>Parent wants to drive? Add driver mode</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.link} onPress={async () => {
-        const pending = Array.from(new Set([...(pendingRoles || []), 'driver']));
-        setPendingRoles(pending);
-        await AsyncStorage.setItem('pendingRoles', JSON.stringify(pending));
-        Alert.alert('Driver access requested', 'Your account stays the same. Driver mode will open after documents are submitted and approved.');
-      }}>
+      <TouchableOpacity style={styles.link} onPress={requestDriverAccess}>
         <Text style={styles.linkText}>Request Driver Access</Text>
       </TouchableOpacity>
       {pendingRoles.includes('driver') && (

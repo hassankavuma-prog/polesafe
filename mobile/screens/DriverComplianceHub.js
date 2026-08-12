@@ -8,8 +8,10 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Alert, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 
+import API_BASE from '../config';
 import { BRAND, STATUS, BORDER_RADIUS, SPACING } from '../theme';
 import GlassCard from '../components/GlassCard';
 import HapticFeedback from '../utils/hapticFeedback';
@@ -119,6 +121,7 @@ export default function DriverComplianceHub({ navigation }) {
                     ...prev,
                     [docKey]: { ...prev[docKey], status: 'pending' },
                   }));
+                  submitDriverDocuments(docKey);
                   setUploading(null);
                   HapticFeedback.success();
                   Alert.alert('✅ Uploaded!', 'Your document has been submitted for review.');
@@ -145,6 +148,7 @@ export default function DriverComplianceHub({ navigation }) {
                     ...prev,
                     [docKey]: { ...prev[docKey], status: 'pending' },
                   }));
+                  submitDriverDocuments(docKey);
                   setUploading(null);
                   HapticFeedback.success();
                   Alert.alert('✅ Uploaded!', 'Your document has been submitted for review.');
@@ -157,6 +161,17 @@ export default function DriverComplianceHub({ navigation }) {
         },
       ]
     );
+  };
+
+  const submitDriverDocuments = async (docKey) => {
+    try {
+      const token = await AsyncStorage.getItem('polesafe_token');
+      await fetch(`${API_BASE}/api/driver/submit-documents`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docs: { [docKey]: documents[docKey] } }),
+      });
+    } catch (err) {}
   };
 
   const getDocByKey = (key) => documents[key];
