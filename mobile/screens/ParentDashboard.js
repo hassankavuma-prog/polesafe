@@ -5,13 +5,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, TextInput, ActivityIndicator, Animated, Platform,
+  RefreshControl, TextInput, ActivityIndicator, Animated, Platform, SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import API_BASE from '../config';
-import { BRAND, STATUS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+import { BRAND, STATUS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS, WCAG } from '../theme';
 import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
 import StatusBadge from '../components/StatusBadge';
@@ -199,7 +198,6 @@ function KidCard({ kid, rides, navigation, refresh }) {
 // ─── Main Dashboard ───────────────────────────────────
 export default function ParentDashboard({ navigation }) {
   const theme = getTheme();
-  const insets = useSafeAreaInsets();
   const [kids, setKids] = useState([]);
   const [rides, setRides] = useState([]);
   const [creditBalance, setCreditBalance] = useState(0);
@@ -241,29 +239,30 @@ export default function ParentDashboard({ navigation }) {
   // ─── Loading State ────────────────────────────────
   if (loading && !refreshing) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: theme.canvas }]}>
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: theme.canvas }]}>
         <View style={styles.splashPulse}>
           <Text style={styles.splashIcon}>🚸</Text>
         </View>
-        <Text style={styles.loadingText}>Loading your dashboard...</Text>
+        <Text style={[styles.loadingText, { color: theme.text.secondary }]}>Loading your dashboard...</Text>
         <View style={styles.skeletonRow}>
           {[1, 2, 3].map(i => (
-            <View key={i} style={styles.skeletonCard}>
-              <View style={styles.skeletonLine} />
-              <View style={[styles.skeletonLine, { width: '60%' }]} />
+            <View key={i} style={[styles.skeletonCard, { backgroundColor: theme.divider }]}>
+              <View style={[styles.skeletonLine, { backgroundColor: theme.border }]} />
+              <View style={[styles.skeletonLine, { backgroundColor: theme.border, width: '60%' }]} />
             </View>
           ))}
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   // ─── Empty State ──────────────────────────────────
   if (!loading && kids.length === 0) {
     return (
-      <ScrollView style={[styles.container, { backgroundColor: theme.canvas }]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-        <View style={[styles.container, styles.center, { paddingTop: 80 }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.canvas }]}>
+        <ScrollView style={[styles.container, { backgroundColor: theme.canvas }]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+          <View style={[styles.container, styles.center, { paddingTop: 80 }]}>
           <View style={styles.emptyIconWrap}>
             <Text style={styles.emptyIcon}>🚸</Text>
           </View>
@@ -457,8 +456,8 @@ const styles = StyleSheet.create({
     color: STATUS.safe,
   },
   statLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     color: '#6B7280',
     marginTop: 2,
   },
@@ -482,10 +481,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modeActiveSchool: {
-    backgroundColor: BRAND.primary,
+    backgroundColor: '#15803D',
   },
   modeActiveRide: {
-    backgroundColor: BRAND.secondary,
+    backgroundColor: '#1E40AF',
   },
   modeText: {
     fontSize: 14,
@@ -510,7 +509,7 @@ const styles = StyleSheet.create({
   activeBannerIcon: { fontSize: 24, marginRight: 12 },
   activeBannerTitle: { fontSize: 15, fontWeight: '700', color: BRAND.secondary },
   activeBannerSub: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  activeBannerArrow: { fontSize: 24, color: BRAND.secondary, marginLeft: 'auto', fontWeight: '300' },
+  activeBannerArrow: { fontSize: 24, color: '#1E40AF', marginLeft: 'auto', fontWeight: '300' },
 
   // Credit Banner
   creditBanner: {
@@ -541,9 +540,9 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   seeAllText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: BRAND.primary,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#15803D',
   },
 
   // Kid Card
@@ -645,11 +644,11 @@ const styles = StyleSheet.create({
   },
   noRideText: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: '#757575',
     fontStyle: 'italic',
   },
   bookQuickBtn: {
-    backgroundColor: 'rgba(46, 125, 50, 0.1)',
+    backgroundColor: 'rgba(21, 128, 61, 0.1)',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: BORDER_RADIUS.sm,
@@ -657,7 +656,7 @@ const styles = StyleSheet.create({
   bookQuickText: {
     fontSize: 13,
     fontWeight: '700',
-    color: BRAND.primary,
+    color: '#15803D',
   },
 
   // Pickup Code Section
@@ -690,9 +689,9 @@ const styles = StyleSheet.create({
     borderColor: '#FDE68A',
   },
   currentCodeLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#92400E',
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 2,
   },
   currentCode: {
@@ -702,7 +701,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   codeReminder: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#78350F',
     fontStyle: 'italic',
   },
@@ -761,20 +760,20 @@ const styles = StyleSheet.create({
   },
   quickCard: {
     width: '31%',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: BORDER_RADIUS.md,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
   },
   quickEmoji: {
     fontSize: 24,
     marginBottom: 6,
   },
   quickLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     color: '#374151',
   },
 
@@ -791,7 +790,7 @@ const styles = StyleSheet.create({
   },
   todayRideEmoji: { fontSize: 22, marginRight: 10 },
   todayRideInfo: { flex: 1 },
-  todayRideKid: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  todayRideKid: { fontSize: 14, fontWeight: '700', color: '#111827' },
   todayRideTime: { fontSize: 12, color: '#6B7280', marginTop: 1 },
 
   // Book Button
@@ -842,7 +841,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     marginBottom: 24,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   exploreBtn: {
     marginTop: 16,

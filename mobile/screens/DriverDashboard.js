@@ -1,11 +1,12 @@
 // PoleSafe Driver Dashboard v3 — Premium Driver Hub
+// WCAG AA compliant — theme-aware, large tap targets, readable in sunlight
 // Better than Uber: clear trip flow, safety tools, earnings at a glance
 // From Home to School. And Beyond. 🚸
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Alert, ActivityIndicator, Animated,
+  RefreshControl, Alert, ActivityIndicator, Animated, SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -203,15 +204,16 @@ export default function DriverDashboard({ navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: theme.canvas }]}>
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: theme.canvas }]}>
         <View style={styles.splashPulse}><Text style={{ fontSize: 40 }}>🚗</Text></View>
-        <Text style={styles.loadingText}>Loading your dashboard...</Text>
-      </View>
+        <Text style={[styles.loadingText, { color: theme.text.secondary }]}>Loading your dashboard...</Text>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.canvas }]}>
+      <ScrollView
       style={[styles.container, { backgroundColor: theme.canvas }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND.secondary} />}
       contentContainerStyle={styles.content}
@@ -305,7 +307,8 @@ export default function DriverDashboard({ navigation }) {
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -330,7 +333,7 @@ const styles = StyleSheet.create({
   onlineInfo: { flexDirection: 'row', alignItems: 'center' },
   onlineDot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
   onlineDotActive: { backgroundColor: BRAND.primary },
-  onlineDotInactive: { backgroundColor: '#9CA3AF' },
+  onlineDotInactive: { backgroundColor: '#757575' },
   onlineLabel: { fontSize: 16, fontWeight: '700', color: '#111827' },
   onlineToggle: {
     width: 50,
@@ -348,17 +351,17 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   statCard: { flex: 1, paddingVertical: 14, alignItems: 'center' },
   statNumber: { fontSize: 22, fontWeight: '800', color: BRAND.secondary },
-  statLabel: { fontSize: 11, fontWeight: '600', color: '#6B7280', marginTop: 2 },
+  statLabel: { fontSize: 12, fontWeight: '700', color: '#6B7280', marginTop: 2 },
 
   // Safety
   safetyCard: { padding: 14, marginBottom: 12, backgroundColor: '#E8F5E9', borderColor: '#C8E6C9' },
-  safetyTitle: { fontSize: 14, fontWeight: '700', color: BRAND.primary, marginBottom: 8 },
-  safetyItem: { fontSize: 12, color: '#374151', lineHeight: 20 },
+  safetyTitle: { fontSize: 15, fontWeight: '800', color: '#15803D', marginBottom: 8 },
+  safetyItem: { fontSize: 13, color: '#374151', lineHeight: 20 },
 
   // Section
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 4 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  seeAllText: { fontSize: 13, fontWeight: '600', color: BRAND.secondary },
+  seeAllText: { fontSize: 14, fontWeight: '700', color: '#1E40AF' },
 
   // Empty
   emptyCard: { padding: 24, alignItems: 'center' },

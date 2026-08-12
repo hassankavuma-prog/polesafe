@@ -1,16 +1,17 @@
 // PoleSafe Ride v3 — Premium Ride-Hailing
+// WCAG AA compliant — large tap targets, readable pricing
 // Better than Uber + Lyft: transparent pricing, driver details, safety-first
 // From Home to School. And Beyond. 🚸
 
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator, RefreshControl, Platform,
+  TextInput, Alert, ActivityIndicator, RefreshControl, Platform, SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
-import { BRAND, STATUS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+import { BRAND, STATUS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS, WCAG } from '../theme';
 import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
 
@@ -307,8 +308,9 @@ export default function RideHailing({ navigation }) {
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.canvas }]}
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.canvas }]}>
+      <ScrollView
+        style={[styles.container, { backgroundColor: theme.canvas }]}
       keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND.secondary} />}
       contentContainerStyle={styles.content}
@@ -473,8 +475,9 @@ export default function RideHailing({ navigation }) {
         )}
       </TouchableOpacity>
 
-      <View style={{ height: 60 }} />
-    </ScrollView>
+    <View style={{ height: 60 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -531,8 +534,8 @@ const styles = StyleSheet.create({
   },
   changeText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: BRAND.secondary,
+    fontWeight: '700',
+    color: '#1E40AF',
   },
 
   // Saved Places
@@ -540,7 +543,7 @@ const styles = StyleSheet.create({
   placesTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: '#6B7280',
     letterSpacing: 0.5,
     padding: 14,
     paddingBottom: 8,
@@ -556,7 +559,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -564,7 +567,7 @@ const styles = StyleSheet.create({
   placeEmoji: { fontSize: 16 },
   placeInfo: { flex: 1 },
   placeName: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  placeAddr: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  placeAddr: { fontSize: 13, color: '#6B7280', marginTop: 2 },
 
   // Vehicle Selector
   sectionLabel: {
@@ -596,7 +599,7 @@ const styles = StyleSheet.create({
   vehicleEmoji: { fontSize: 28, marginBottom: 6 },
   vehicleLabel: { fontSize: 15, fontWeight: '700', color: '#111827' },
   vehicleLabelActive: { color: '#fff' },
-  vehicleDesc: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+  vehicleDesc: { fontSize: 12, color: '#6B7280', marginTop: 2 },
   vehiclePrice: { fontSize: 12, color: BRAND.primary, fontWeight: '600', marginTop: 6 },
   vehicleSelectedBadge: {
     position: 'absolute',
@@ -623,7 +626,7 @@ const styles = StyleSheet.create({
     borderColor: '#C8E6C9',
   },
   safetyTitle: { fontSize: 14, fontWeight: '700', color: BRAND.primary, marginBottom: 4 },
-  safetyText: { fontSize: 12, color: '#374151', lineHeight: 17 },
+  safetyText: { fontSize: 13, color: '#374151', lineHeight: 18 },
 
   // Section
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
@@ -652,5 +655,5 @@ const styles = StyleSheet.create({
   requestBtnDisabled: { backgroundColor: '#9CA3AF' },
   requestBtnContent: { alignItems: 'center' },
   requestBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  requestSubText: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
+  requestSubText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 2 },
 });
