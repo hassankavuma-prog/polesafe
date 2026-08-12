@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isApproved as checkDriverVerified } from '../services/driverVerificationService';
 
 const ROLES = [
   { key: 'parent', label: 'Parent / Family', icon: '🏠', desc: 'Book, track, credits, schedules' },
@@ -15,10 +16,12 @@ export default function RoleSwitcherScreen({ navigation, route }) {
   const [currentRole, setCurrentRole] = useState('parent');
   const [availableRoles, setAvailableRoles] = useState(['parent']);
   const [pendingRoles, setPendingRoles] = useState([]);
+  const [driverVerified, setDriverVerified] = useState(false);
 
   useEffect(() => {
     (async () => {
       const role = (await AsyncStorage.getItem('userRole')) || 'parent';
+      try { setDriverVerified(await checkDriverVerified()); } catch {}
       const rolesRaw = await AsyncStorage.getItem('userRoles');
       const roles = rolesRaw ? JSON.parse(rolesRaw) : [role];
       const pendingRaw = await AsyncStorage.getItem('pendingRoles');
@@ -30,6 +33,10 @@ export default function RoleSwitcherScreen({ navigation, route }) {
   }, []);
 
   const activate = async (role) => {
+    if (role === 'driver' && !driverVerified) {
+      navigation.navigate('DriverComplianceHub');
+      return;
+    }
     await AsyncStorage.setItem('userRole', role);
     await AsyncStorage.setItem('roleScope', role);
     const existing = JSON.parse((await AsyncStorage.getItem('userRoles')) || '[]');
@@ -57,7 +64,7 @@ export default function RoleSwitcherScreen({ navigation, route }) {
               <Text style={styles.label}>{meta.label}</Text>
               <Text style={styles.desc}>{meta.desc}</Text>
             </View>
-            <Text style={styles.activeText}>{active ? 'Current' : 'Use'}</Text>
+            <Text style={styles.activeText}>{active ? 'Current' : (role === 'driver' && !driverVerified ? 'Verify' : 'Use')}</Text>
           </TouchableOpacity>
         );
       })}
@@ -77,6 +84,9 @@ export default function RoleSwitcherScreen({ navigation, route }) {
       </TouchableOpacity>
       {pendingRoles.includes('driver') && (
         <Text style={styles.pendingNote}>Driver mode pending: submit documents, then wait for approval.</Text>
+      )}
+      {!driverVerified && (
+        <Text style={styles.pendingNote}>Driver mode is locked until documents are reviewed and approved.</Text>
       )}
     </SafeAreaView>
   );
