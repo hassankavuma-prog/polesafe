@@ -11,9 +11,6 @@ import {
 
 import { requestMtnPayment, requestAirtelPayment } from '../services/mobileMoneyService';
 
-// Only render in __DEV__ mode
-if (!__DEV__) return () => null;
-
 // ─── Number Keypad ───────────────────────────────────
 function NumberKey({ label, onPress, disabled }) {
   return (
@@ -44,7 +41,7 @@ const keyStyles = StyleSheet.create({
 });
 
 // ─── MoMo Prompt Simulator ───────────────────────────
-export default function MoMoPromptModal({ visible, onClose, paymentData }) {
+function MoMoPromptModal({ visible, onClose, paymentData }) {
   const [pin, setPin] = useState([]);
   const [state, setState] = useState('input'); // input | processing | success | failed
   const [message, setMessage] = useState('');

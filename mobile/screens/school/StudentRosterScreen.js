@@ -11,8 +11,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../../config';
-import { BRAND, STATUS, getTheme, BORDER_RADIUS, SPACING } from '../theme';
-import GlassCard from '../components/GlassCard';
+import { BRAND, STATUS, getTheme, BORDER_RADIUS, SPACING } from '../../theme';
+import GlassCard from '../../components/GlassCard';
 
 const API_URL = API_BASE;
 
