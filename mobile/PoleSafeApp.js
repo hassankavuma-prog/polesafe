@@ -461,8 +461,11 @@ export default function PoleSafeApp() {
     try {
       const token = await AsyncStorage.getItem('polesafe_token') || await AsyncStorage.getItem('token');
       const role = await AsyncStorage.getItem('userRole');
+      const rolesRaw = await AsyncStorage.getItem('userRoles');
+      const roles = rolesRaw ? JSON.parse(rolesRaw) : [];
       const scope = await AsyncStorage.getItem('roleScope');
       if (token !== tokenRef.current) {
+        if (!rolesRaw && role) await AsyncStorage.setItem('userRoles', JSON.stringify([role]));
         setUserToken(token);
         setUserRole(role);
         setRoleScope(scope || 'main');
