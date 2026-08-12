@@ -250,6 +250,10 @@ export default function DriverDashboard({ navigation }) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND.secondary} />}
       contentContainerStyle={styles.content}
     >
+      <TouchableOpacity style={styles.roleSwitcherBtn} onPress={() => navigation.navigate('RoleSwitcher')}>
+        <Text style={styles.roleSwitcherBtnText}>🔄 Switch Role</Text>
+      </TouchableOpacity>
+
       {/* Online Toggle */}
       <View style={styles.onlineBar}>
         <View style={styles.onlineInfo}>

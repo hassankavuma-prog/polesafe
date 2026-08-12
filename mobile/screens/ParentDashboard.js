@@ -311,6 +311,10 @@ export default function ParentDashboard({ navigation }) {
         </View>
 
         {/* Mode Toggle */}
+        <TouchableOpacity style={styles.roleRequestBanner} onPress={() => navigation.navigate('RoleSwitcher')}>
+          <Text style={styles.roleRequestTitle}>Want to drive too?</Text>
+          <Text style={styles.roleRequestSub}>Request driver mode and upload documents after approval.</Text>
+        </TouchableOpacity>
         <View style={styles.modeToggle}>
           <TouchableOpacity
             style={[styles.modeBtn, mode === 'school' && styles.modeActiveSchool]}
@@ -870,4 +874,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 12,
   },
+
+  roleRequestBanner: {
+    backgroundColor: '#FFF7ED',
+    borderColor: '#FED7AA',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+  roleRequestTitle: { fontSize: 15, fontWeight: '800', color: '#9A3412' },
+  roleRequestSub: { fontSize: 12, color: '#7C2D12', marginTop: 4 },
 });

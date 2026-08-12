@@ -14,14 +14,18 @@ const ROLES = [
 export default function RoleSwitcherScreen({ navigation, route }) {
   const [currentRole, setCurrentRole] = useState('parent');
   const [availableRoles, setAvailableRoles] = useState(['parent']);
+  const [pendingRoles, setPendingRoles] = useState([]);
 
   useEffect(() => {
     (async () => {
       const role = (await AsyncStorage.getItem('userRole')) || 'parent';
       const rolesRaw = await AsyncStorage.getItem('userRoles');
       const roles = rolesRaw ? JSON.parse(rolesRaw) : [role];
+      const pendingRaw = await AsyncStorage.getItem('pendingRoles');
+      const pending = pendingRaw ? JSON.parse(pendingRaw) : [];
       setCurrentRole(role);
       setAvailableRoles(Array.isArray(roles) ? Array.from(new Set([role, ...roles])) : [role]);
+      setPendingRoles(Array.isArray(pending) ? pending : []);
     })();
   }, []);
 
@@ -38,6 +42,11 @@ export default function RoleSwitcherScreen({ navigation, route }) {
     <SafeAreaView style={styles.root}>
       <Text style={styles.title}>Switch Mode</Text>
       <Text style={styles.subtitle}>Use the same account. Pick how you want to work right now.</Text>
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryLabel}>Current role</Text>
+        <Text style={styles.summaryValue}>{currentRole}</Text>
+        <Text style={styles.summaryNote}>Roles attached to this account: {availableRoles.join(', ')}</Text>
+      </View>
       {availableRoles.map((role) => {
         const meta = ROLES.find((r) => r.key === role) || { icon: '👤', label: role, desc: '' };
         const active = role === currentRole;
@@ -55,9 +64,20 @@ export default function RoleSwitcherScreen({ navigation, route }) {
       <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Need a new role?', 'Use the Driver Compliance Hub to start driver onboarding, or school support to request admin access.')}>
         <Text style={styles.linkText}>Need another role?</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Parent can drive too', 'If you already have a parent account, complete driver verification to add driver mode to the same account.')}>
+      <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Parent can drive too', 'If you already have a parent or rider account, you can request driver onboarding. The account stays the same, but driver mode stays locked until documents are reviewed and approved.')}>
         <Text style={styles.linkText}>Parent wants to drive? Add driver mode</Text>
       </TouchableOpacity>
+      <TouchableOpacity style={styles.link} onPress={async () => {
+        const pending = Array.from(new Set([...(pendingRoles || []), 'driver']));
+        setPendingRoles(pending);
+        await AsyncStorage.setItem('pendingRoles', JSON.stringify(pending));
+        Alert.alert('Driver access requested', 'Your account stays the same. Driver mode will open after documents are submitted and approved.');
+      }}>
+        <Text style={styles.linkText}>Request Driver Access</Text>
+      </TouchableOpacity>
+      {pendingRoles.includes('driver') && (
+        <Text style={styles.pendingNote}>Driver mode pending: submit documents, then wait for approval.</Text>
+      )}
     </SafeAreaView>
   );
 }
@@ -66,6 +86,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F8FAFC', padding: 16 },
   title: { fontSize: 28, fontWeight: '800', color: '#111827' },
   subtitle: { marginTop: 6, color: '#475569' },
+  summaryCard: { marginTop: 14, padding: 14, borderRadius: 16, backgroundColor: '#EEF6FF', borderWidth: 1, borderColor: '#BFDBFE' },
+  summaryLabel: { fontSize: 12, fontWeight: '800', color: '#1D4ED8', textTransform: 'uppercase', letterSpacing: 0.5 },
+  summaryValue: { fontSize: 18, fontWeight: '900', color: '#111827', marginTop: 4 },
+  summaryNote: { fontSize: 12, color: '#475569', marginTop: 4, lineHeight: 18 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', marginTop: 12 },
   activeCard: { borderColor: '#2E7D32', backgroundColor: '#F0FDF4' },
   icon: { fontSize: 26 },
@@ -74,4 +98,5 @@ const styles = StyleSheet.create({
   activeText: { fontSize: 12, fontWeight: '800', color: '#2E7D32' },
   link: { marginTop: 18, alignItems: 'center' },
   linkText: { color: '#2E7D32', fontWeight: '800' },
+  pendingNote: { marginTop: 10, textAlign: 'center', color: '#B45309', fontWeight: '700' },
 });
