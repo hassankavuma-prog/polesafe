@@ -842,6 +842,70 @@ auditLogSchema.index({ createdAt: -1 });
 auditLogSchema.index({ userId: 1, createdAt: -1 });
 auditLogSchema.index({ resourceType: 1, resourceId: 1 });
 
+// ============================================================
+// SAFETY INCIDENT — Emergency SOS / dispatch triage record
+// ============================================================
+const safetyIncidentSchema = new mongoose.Schema({
+  incidentNumber: { type: String, required: true, unique: true, index: true },
+  triggerType: {
+    type: String,
+    enum: ['manual_sos', 'silent_alarm', 'fall_detection', 'driver_report', 'school_report', 'system_flag'],
+    required: true,
+    index: true,
+  },
+  severity: {
+    type: String,
+    enum: ['low', 'medium', 'high', 'critical'],
+    default: 'high',
+    index: true,
+  },
+  status: {
+    type: String,
+    enum: ['active', 'triaged', 'escalated', 'resolved', 'false_alarm', 'dismissed'],
+    default: 'active',
+    index: true,
+  },
+  reporterUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+  reporterRole: { type: String, enum: ['parent', 'driver', 'school_admin', 'polesafe_admin', 'system'] },
+  childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child', index: true },
+  rideId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ride', index: true },
+  schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', index: true },
+  liveLocation: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number] },
+  },
+  locationLabel: { type: String },
+  deviceStatus: {
+    batteryPercent: { type: Number },
+    networkState: { type: String, enum: ['online', 'poor', 'offline', 'unknown'], default: 'unknown' },
+    lastSeenAt: { type: Date },
+  },
+  contactRelay: [{
+    contactType: { type: String, enum: ['parent', 'driver', 'school', 'dispatcher', 'police', 'medical'] },
+    contactId: { type: String },
+    status: { type: String, enum: ['pending', 'sent', 'acknowledged', 'failed'], default: 'pending' },
+    sentAt: { type: Date },
+    acknowledgedAt: { type: Date },
+  }],
+  assignedOperatorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  resolvedById: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  resolutionNote: { type: String },
+  falseAlarmReason: { type: String },
+  privacyMasked: { type: Boolean, default: true },
+  verified: { type: Boolean, default: false },
+  verifiedAt: { type: Date },
+  auditTrail: [{
+    action: { type: String },
+    actorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    actorRole: { type: String },
+    note: { type: String },
+    timestamp: { type: Date, default: Date.now },
+  }],
+}, { timestamps: true });
+
+safetyIncidentSchema.index({ status: 1, severity: 1, createdAt: -1 });
+safetyIncidentSchema.index({ assignedOperatorId: 1, status: 1 });
+
 // Export models
 module.exports = {
   User: mongoose.model('User', userSchema),
@@ -862,4 +926,5 @@ module.exports = {
 
   // Audit Trail — system-wide activity log
   AuditLog: mongoose.model('AuditLog', auditLogSchema),
+  SafetyIncident: mongoose.model('SafetyIncident', safetyIncidentSchema),
 };

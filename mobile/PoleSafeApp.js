@@ -20,6 +20,7 @@ import { BRAND, STATUS, LIGHT, DARK, getTheme, TYPOGRAPHY } from './theme';
 // ─── Screens ──────────────────────────────────────────
 import LoginScreen from './screens/LoginScreen';
 import ParentDashboard from './screens/ParentDashboard';
+import RecurringScheduleScreen from './screens/RecurringScheduleScreen';
 import ParentBooking from './screens/ParentBooking';
 import ParentTrack from './screens/ParentTrack';
 import ParentSickDay from './screens/ParentSickDay';
@@ -31,6 +32,7 @@ import DriverDashboard from './screens/DriverDashboard';
 import DriverRoute from './screens/DriverRoute';
 import DriverEarnings from './screens/DriverEarnings';
 import DriverPickupVerify from './screens/DriverPickupVerify';
+import SafetyOpsDashboard from './screens/SafetyOpsDashboard';
 import SchoolDashboard from './screens/SchoolDashboard';
 import SchoolBroadcast from './screens/SchoolBroadcast';
 import SchoolGateCheck from './screens/SchoolGateCheck';
@@ -382,9 +384,11 @@ const SHARED_SCREENS = [
   ['FeatureVoting', FeatureVoting, { title: 'Feature Voting', color: BRAND.primary }],
   ['NewPost', NewPost, { title: 'New Post', color: BRAND.primary }],
   ['MultiKidDashboard', MultiKidDashboard, { title: 'All Kids', color: BRAND.primary }],
+  ['RecurringSchedule', RecurringScheduleScreen, { title: 'My Schedules', color: BRAND.primary }],
   ['FamilySharing', FamilySharing, { title: 'Family Sharing', color: BRAND.primary }],
   ['DriverPickupVerify', DriverPickupVerify, { title: 'Verify Pickup', color: BRAND.secondary }],
   ['DriverComplianceHub', DriverComplianceHub, { title: 'Safety & Credentials', color: BRAND.secondary }],
+  ['SafetyOps', SafetyOpsDashboard, { title: 'Safety Ops', color: '#B91C1C' }],
   ['UgandaRideRequest', UgandaRideRequest, { title: 'Book Transport', color: BRAND.primary }],
   ['DriverActiveTrip', DriverActiveTripScreen, { title: 'Active Trip', color: BRAND.secondary }],
   ['HamnaChat', HamnaChatScreen, { title: 'Hamna AI', color: BRAND.primary }],

@@ -1,6 +1,32 @@
 const express = require('express');
 const router = express.Router();
-const { User, Child } = require('../database/schema');
+const { User, Child, Ride, SafetyIncident, AuditLog } = require('../database/schema');
+
+const makeIncidentNumber = () => `INC-${Date.now().toString(36).toUpperCase()}`;
+
+const maskIncident = (incident) => ({
+  ...incident,
+  liveLocation: incident.privacyMasked ? null : incident.liveLocation,
+  locationLabel: incident.privacyMasked ? 'Hidden until verified SOS' : incident.locationLabel,
+});
+
+const hasAdminAccess = (role) => ['polesafe_admin', 'school_admin'].includes(role);
+
+const logIncidentAudit = async ({ action, actorId, actorRole, incidentId, note }) => {
+  try {
+    await AuditLog.create({
+      action,
+      userId: actorId,
+      userRole: actorRole,
+      resourceType: 'safety_incident',
+      resourceId: String(incidentId),
+      details: { note },
+      metadata: { module: 'safety_ops' },
+    });
+  } catch (err) {
+    console.error('Audit log write failed:', err.message);
+  }
+};
 
 // ============================================================
 // SOS/Emergency Alert System
@@ -8,11 +34,30 @@ const { User, Child } = require('../database/schema');
 
 router.post('/sos', async (req, res) => {
   try {
-    const { userId, userRole, kidId, rideId, location, message } = req.body;
+    const { userId, userRole, kidId, rideId, location, message, triggerType, severity, deviceStatus } = req.body;
     
     if (!userId || !userRole) {
       return res.status(400).json({ error: 'User ID and role required' });
     }
+
+    const ride = rideId ? await Ride.findById(rideId).populate('childId schoolId') : null;
+    const incident = await SafetyIncident.create({
+      incidentNumber: makeIncidentNumber(),
+      triggerType: triggerType || 'manual_sos',
+      severity: severity || 'high',
+      status: 'active',
+      reporterUserId: userId,
+      reporterRole: userRole,
+      childId: kidId || ride?.childId?._id || null,
+      rideId: rideId || null,
+      schoolId: ride?.schoolId?._id || null,
+      liveLocation: location?.coordinates ? { type: 'Point', coordinates: location.coordinates } : undefined,
+      locationLabel: location?.label || location?.address || null,
+      deviceStatus: deviceStatus || {},
+      privacyMasked: true,
+      auditTrail: [{ action: 'incident_created', actorId: userId, actorRole: userRole, note: message || 'Emergency!', timestamp: new Date() }],
+      contactRelay: [],
+    });
 
     const sosAlert = {
       userId,
@@ -25,6 +70,7 @@ router.post('/sos', async (req, res) => {
       status: 'active',
       notified: [],
       contacts: [],
+      incidentId: incident._id,
     };
 
     if (!global.sosAlerts) global.sosAlerts = [];
@@ -63,10 +109,14 @@ router.post('/sos', async (req, res) => {
     }
 
     sosAlert.contacts = contacts;
+    incident.contactRelay = contacts.map(c => ({ contactType: c.role, contactId: String(c.userId), status: 'sent', sentAt: new Date() }));
+    await incident.save();
+    await logIncidentAudit({ action: 'incident_triaged', actorId: userId, actorRole: userRole, incidentId: incident._id, note: `contacts=${contacts.length}` });
 
     res.json({
       success: true,
       alert: sosAlert,
+      incident: maskIncident(incident.toObject()),
       contactsNotified: contacts.length,
     });
   } catch (err) {
@@ -77,10 +127,10 @@ router.post('/sos', async (req, res) => {
 
 router.get('/sos/active', async (req, res) => {
   try {
-    const alerts = (global.sosAlerts || [])
-      .filter(a => a.status === 'active')
-      .sort((a, b) => b.timestamp - a.timestamp);
-    res.json(alerts);
+    const incidents = await SafetyIncident.find({ status: { $in: ['active', 'triaged', 'escalated'] } })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(incidents.map(maskIncident));
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch alerts' });
   }
@@ -88,16 +138,15 @@ router.get('/sos/active', async (req, res) => {
 
 router.post('/sos/acknowledge', async (req, res) => {
   try {
-    const { alertIndex, userId } = req.body;
-    if (!global.sosAlerts || !global.sosAlerts[alertIndex]) {
-      return res.status(404).json({ error: 'Alert not found' });
-    }
-    const alert = global.sosAlerts[alertIndex];
-    if (!alert.notified.includes(userId)) {
-      alert.notified.push(userId);
-    }
-    alert.status = 'acknowledged';
-    res.json({ success: true, alert });
+    const { incidentId, userId, userRole, note } = req.body;
+    const incident = await SafetyIncident.findById(incidentId);
+    if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    incident.status = 'triaged';
+    incident.assignedOperatorId = incident.assignedOperatorId || userId;
+    incident.auditTrail.push({ action: 'incident_acknowledged', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
+    await incident.save();
+    await logIncidentAudit({ action: 'incident_acknowledged', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
+    res.json({ success: true, incident: maskIncident(incident.toObject()) });
   } catch (err) {
     res.status(500).json({ error: 'Failed to acknowledge alert' });
   }
@@ -105,14 +154,104 @@ router.post('/sos/acknowledge', async (req, res) => {
 
 router.post('/sos/resolve', async (req, res) => {
   try {
-    const { alertIndex } = req.body;
-    if (!global.sosAlerts || !global.sosAlerts[alertIndex]) {
-      return res.status(404).json({ error: 'Alert not found' });
-    }
-    global.sosAlerts[alertIndex].status = 'resolved';
-    res.json({ success: true });
+    const { incidentId, userId, userRole, resolutionNote, falseAlarmReason } = req.body;
+    const incident = await SafetyIncident.findById(incidentId);
+    if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    incident.status = falseAlarmReason ? 'false_alarm' : 'resolved';
+    incident.resolvedById = userId;
+    incident.resolutionNote = resolutionNote || '';
+    incident.falseAlarmReason = falseAlarmReason || '';
+    incident.auditTrail.push({ action: 'incident_resolved', actorId: userId, actorRole: userRole, note: resolutionNote || falseAlarmReason || '', timestamp: new Date() });
+    await incident.save();
+    await logIncidentAudit({ action: 'incident_resolved', actorId: userId, actorRole: userRole, incidentId: incident._id, note: resolutionNote || falseAlarmReason || '' });
+    res.json({ success: true, incident: maskIncident(incident.toObject()) });
   } catch (err) {
     res.status(500).json({ error: 'Failed to resolve alert' });
+  }
+});
+
+router.get('/incidents', async (req, res) => {
+  try {
+    const incidents = await SafetyIncident.find().sort({ createdAt: -1 }).limit(100).lean();
+    res.json({ incidents: incidents.map(maskIncident) });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch incidents' });
+  }
+});
+
+router.get('/dispatcher/dashboard', async (req, res) => {
+  try {
+    const role = req.userRole || req.user?.role || 'system';
+    if (req.userRole && !hasAdminAccess(role)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const [active, triaged, resolved] = await Promise.all([
+      SafetyIncident.countDocuments({ status: 'active' }),
+      SafetyIncident.countDocuments({ status: { $in: ['triaged', 'escalated'] } }),
+      SafetyIncident.countDocuments({ status: 'resolved' }),
+    ]);
+
+    const incidents = await SafetyIncident.find({ status: { $in: ['active', 'triaged', 'escalated'] } })
+      .sort({ severity: -1, createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    res.json({
+      stats: { active, triaged, resolved },
+      incidents: incidents.map(maskIncident),
+      privacyMode: 'masked',
+      allowedActions: ['acknowledge', 'assign', 'escalate', 'resolve', 'mark_false_alarm'],
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load dispatcher dashboard' });
+  }
+});
+
+router.patch('/incidents/:id/assign', async (req, res) => {
+  try {
+    const { assignedOperatorId, note, userId, userRole } = req.body;
+    const incident = await SafetyIncident.findById(req.params.id);
+    if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    incident.assignedOperatorId = assignedOperatorId;
+    incident.status = 'triaged';
+    incident.auditTrail.push({ action: 'incident_assigned', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
+    await incident.save();
+    await logIncidentAudit({ action: 'incident_assigned', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
+    res.json({ success: true, incident: maskIncident(incident.toObject()) });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to assign incident' });
+  }
+});
+
+router.patch('/incidents/:id/escalate', async (req, res) => {
+  try {
+    const { userId, userRole, note } = req.body;
+    const incident = await SafetyIncident.findById(req.params.id);
+    if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    incident.status = 'escalated';
+    incident.severity = 'critical';
+    incident.auditTrail.push({ action: 'incident_escalated', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
+    await incident.save();
+    await logIncidentAudit({ action: 'incident_escalated', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
+    res.json({ success: true, incident: maskIncident(incident.toObject()) });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to escalate incident' });
+  }
+});
+
+router.patch('/incidents/:id/mask', async (req, res) => {
+  try {
+    const { userId, userRole, note } = req.body;
+    const incident = await SafetyIncident.findById(req.params.id);
+    if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    incident.privacyMasked = true;
+    incident.auditTrail.push({ action: 'incident_masked', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
+    await incident.save();
+    await logIncidentAudit({ action: 'incident_masked', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
+    res.json({ success: true, incident: maskIncident(incident.toObject()) });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mask incident' });
   }
 });
 
