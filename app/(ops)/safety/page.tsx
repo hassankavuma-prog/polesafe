@@ -170,7 +170,7 @@ export default function SafetyOpsPage() {
       const base = {
         incidentId: selected._id,
         userId: 'current-user',
-        userRole: 'polesafe_admin' as const,
+        userRole: 'polesafe_admin',
         note: note || undefined,
       };
 
@@ -217,7 +217,7 @@ export default function SafetyOpsPage() {
         verified: true,
       });
       if (!result.ok) throw new Error(result.error);
-      setIncidents(prev => prev.map(x => x._id === incident._id ? { ...x, privacyMasked: false } : x));
+      await loadDashboard();
     } catch (e: any) {
       setError(e?.message || 'Unable to reveal incident');
     }
