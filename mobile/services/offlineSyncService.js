@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE from '../config';
+import NetInfo from '@react-native-community/netinfo';
 
 const QUEUE_KEY = '@polesafe_offline_queue_v2';
 const METADATA_KEY = '@polesafe_offline_queue_meta_v2';
@@ -18,6 +19,7 @@ const ACK_TIMEOUT_MS = 8000;
 let flushInProgress = false;
 let flushTimer = null;
 let socketConnected = false;
+let lastKnownOnline = true;
 
 function nowIso() {
   return new Date().toISOString();
@@ -84,8 +86,21 @@ function queueItem({ type, payload = {}, rideId = null, childId = null, source =
 }
 
 function backoffFor(retryCount) {
-  const delay = Math.min(MAX_BACKOFF_MS, INITIAL_BACKOFF_MS * (2 ** Math.max(0, retryCount - 1)));
-  return delay;
+  return Math.min(MAX_BACKOFF_MS, INITIAL_BACKOFF_MS * (2 ** Math.max(0, retryCount - 1)));
+}
+
+function eventKey(item) {
+  return item.dedupeKey || `${item.type}:${item.rideId || 'na'}:${item.childId || 'na'}`;
+}
+
+async function isOnline() {
+  try {
+    const state = await NetInfo.fetch();
+    lastKnownOnline = !!state.isConnected && !!state.isInternetReachable;
+    return lastKnownOnline;
+  } catch {
+    return lastKnownOnline;
+  }
 }
 
 async function recordFailure(item, errorMessage) {
@@ -167,7 +182,13 @@ export async function enqueueOfflineEvent(type, payload = {}, options = {}) {
     priority: options.priority || 'normal',
   });
 
-  queue.push(item);
+  const key = eventKey(item);
+  const existingIndex = queue.findIndex((q) => eventKey(q) === key);
+  if (existingIndex >= 0) {
+    queue[existingIndex] = { ...queue[existingIndex], ...item, retryCount: queue[existingIndex].retryCount || 0 };
+  } else {
+    queue.push(item);
+  }
   await saveQueue(queue);
   return item;
 }
@@ -228,6 +249,11 @@ export async function flushOfflineQueue(options = {}) {
       return { flushed: 0, failed: 0, remaining: 0 };
     }
 
+    const online = options.forceOnline ?? await isOnline();
+    if (!online && !options.socketConnected && !socketConnected) {
+      return { flushed: 0, failed: 0, remaining: queue.length, offline: true };
+    }
+
     const ordered = [...queue].sort((a, b) => {
       if (a.priority === b.priority) return new Date(a.createdAt) - new Date(b.createdAt);
       return a.priority === 'high' ? -1 : 1;
@@ -245,9 +271,8 @@ export async function flushOfflineQueue(options = {}) {
         remaining.push(item);
         continue;
       }
-
       try {
-                await Promise.race([
+        await Promise.race([
           processItem(item, options),
           new Promise((_, reject) => setTimeout(() => reject(new Error('sync_timeout')), ACK_TIMEOUT_MS)),
         ]);
@@ -268,7 +293,7 @@ export async function flushOfflineQueue(options = {}) {
     meta.lastErrorAt = failed > 0 ? nowIso() : meta.lastErrorAt;
     await saveMeta(meta);
 
-    return { flushed, failed, remaining: remaining.length };
+    return { flushed, failed, remaining: remaining.length, offline: false };
   } finally {
     flushInProgress = false;
   }
@@ -309,4 +334,5 @@ export default {
   setSocketConnected,
   scheduleFlush,
   hydrateOfflineQueueFromLegacy,
+  isOnline,
 };

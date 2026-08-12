@@ -2,7 +2,7 @@
 // Handles live location tracking for school rides and on-demand trips
 
 import API_BASE from '../config';
-import { enqueueLocationPing, flushOfflineQueue } from './offlineSyncService';
+import { enqueueLocationPing, flushOfflineQueue, isOnline } from './offlineSyncService';
 
 const trackingIntervals = {};
 
@@ -42,7 +42,9 @@ export async function startTracking(rideId, token, intervalMs = 10000) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
       } catch (err) {
         await enqueueLocationPing(payload, { rideId, source: 'tracking-service' });
-        await flushOfflineQueue({ socketConnected: false, token });
+        if (await isOnline()) {
+          await flushOfflineQueue({ socketConnected: false, token, forceOnline: true });
+        }
       }
     } catch (err) {
       console.log('Location send error:', err);

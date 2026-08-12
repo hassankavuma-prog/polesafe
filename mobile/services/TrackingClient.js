@@ -3,7 +3,7 @@
 
 import API_BASE from '../config';
 import { onSocketConnected, onSocketDisconnected } from './rideSocketService';
-import { enqueueLocationPing, flushOfflineQueue } from './offlineSyncService';
+import { enqueueLocationPing, flushOfflineQueue, isOnline } from './offlineSyncService';
 
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT = 5;
@@ -47,7 +47,7 @@ export default class TrackingClient {
         setTimeout(() => this._send({ type: 'subscribe_ride', rideId: this.rideId }), 400);
       }
       this._startHeartbeat();
-      flushOfflineQueue({ socketConnected: true, token: this.token });
+      flushOfflineQueue({ socketConnected: true, token: this.token, forceOnline: true });
     };
 
     this.socket.onmessage = (event) => {
@@ -101,7 +101,9 @@ export default class TrackingClient {
     }
 
     await enqueueLocationPing(data, { rideId: this.rideId, source: 'tracking-client' });
-    await this._sendHttpLocation(data);
+    if (await isOnline()) {
+      await this._sendHttpLocation(data);
+    }
     return { sent: true, transport: 'http' };
   }
 
