@@ -1,32 +1,34 @@
 // PoleSafe Mobile — StatusBadge Component
-// Reusable status badge showing emoji + label with contextual colors
+// WCAG AA compliant — high-contrast color pairs for sunlight readability
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 /**
- * Status configuration map
+ * Status configuration map — WCAG AA compliant
+ * Light bg + dark text pairs with minimum 4.5:1 contrast ratio
  */
 const STATUS_CONFIG = {
-  scheduled:    { emoji: '⏳', color: '#9E9E9E', bg: '#F5F5F5', label: 'Scheduled' },
-  en_route:     { emoji: '🚗', color: '#1565C0', bg: '#E3F2FD', label: 'En Route' },
-  picked_up:    { emoji: '👧', color: '#E65100', bg: '#FFF3E0', label: 'Picked Up' },
-  dropped_off:  { emoji: '📍', color: '#7B1FA2', bg: '#F3E5F5', label: 'Dropped Off' },
-  gate_confirmed: { emoji: '✅', color: '#2E7D32', bg: '#E8F5E9', label: 'Gate Confirmed' },
-  cancelled:    { emoji: '❌', color: '#C62828', bg: '#FFEBEE', label: 'Cancelled' },
-  completed:    { emoji: '✅', color: '#2E7D32', bg: '#E8F5E9', label: 'Completed' },
-  sick_day:     { emoji: '🩺', color: '#F9A825', bg: '#FFFDE7', label: 'Sick Day' },
-  morning:      { emoji: '🌅', color: '#1565C0', bg: '#E3F2FD', label: 'Morning' },
-  afternoon:    { emoji: '🌇', color: '#E65100', bg: '#FFF3E0', label: 'Afternoon' },
-  missing:      { emoji: '❓', color: '#C62828', bg: '#FFEBEE', label: 'Missing' },
-  received:     { emoji: '✅', color: '#2E7D32', bg: '#E8F5E9', label: 'Received' },
-  available:    { emoji: '🟢', color: '#2E7D32', bg: '#E8F5E9', label: 'Available' },
-  unavailable:  { emoji: '🔴', color: '#C62828', bg: '#FFEBEE', label: 'Unavailable' },
-  arrived:      { emoji: '🏫', color: '#2E7D32', bg: '#E8F5E9', label: 'Arrived' },
+  scheduled:    { emoji: '⏳', color: '#374151', bg: '#F3F4F6', label: 'Scheduled' },
+  en_route:     { emoji: '🚗', color: '#1E40AF', bg: '#DBEAFE', label: 'En Route' },
+  picked_up:    { emoji: '👧', color: '#92400E', bg: '#FFF3CD', label: 'Picked Up' },
+  dropped_off:  { emoji: '📍', color: '#6D28D9', bg: '#EDE9FE', label: 'Dropped Off' },
+  gate_confirmed: { emoji: '✅', color: '#15803D', bg: '#DCFCE7', label: 'Gate Confirmed' },
+  cancelled:    { emoji: '❌', color: '#B91C1C', bg: '#FEE2E2', label: 'Cancelled' },
+  completed:    { emoji: '✅', color: '#15803D', bg: '#DCFCE7', label: 'Completed' },
+  sick_day:     { emoji: '🩺', color: '#7C3AED', bg: '#F3E8FF', label: 'Sick Day' },
+  morning:      { emoji: '🌅', color: '#1E40AF', bg: '#DBEAFE', label: 'Morning' },
+  afternoon:    { emoji: '🌇', color: '#92400E', bg: '#FFF3CD', label: 'Afternoon' },
+  missing:      { emoji: '❓', color: '#BE123C', bg: '#FFE4E6', label: 'Missing' },
+  received:     { emoji: '✅', color: '#15803D', bg: '#DCFCE7', label: 'Received' },
+  available:    { emoji: '🟢', color: '#15803D', bg: '#DCFCE7', label: 'Available' },
+  unavailable:  { emoji: '🔴', color: '#B91C1C', bg: '#FEE2E2', label: 'Unavailable' },
+  arrived:      { emoji: '🏫', color: '#15803D', bg: '#DCFCE7', label: 'Arrived' },
 };
 
 /**
- * StatusBadge — displays a status with an emoji and label
+ * StatusBadge — WCAG AA compliant status display
+ * All color pairs verified for minimum 4.5:1 contrast ratio
  *
  * Props:
  *   status (string)  — key into STATUS_CONFIG
@@ -36,36 +38,36 @@ const STATUS_CONFIG = {
 export default function StatusBadge({ status, size = 'sm', style }) {
   const config = STATUS_CONFIG[status] || {
     emoji: '⏳',
-    color: '#9E9E9E',
-    bg: '#F5F5F5',
+    color: '#374151',
+    bg: '#F3F4F6',
     label: status?.replace('_', ' ') || 'Unknown',
   };
 
   const isSmall = size === 'sm';
   const isLarge = size === 'lg';
 
+  const fontSize = isSmall ? 12 : isLarge ? 15 : 14;
+  const paddingH = isSmall ? 8 : isLarge ? 16 : 12;
+  const paddingV = isSmall ? 4 : isLarge ? 8 : 6;
+  const emojiSize = isSmall ? 12 : isLarge ? 18 : 14;
+
   return (
     <View
       style={[
         styles.badge,
-        {
-          backgroundColor: config.bg,
-          paddingHorizontal: isSmall ? 8 : isLarge ? 16 : 12,
-          paddingVertical: isSmall ? 4 : isLarge ? 8 : 6,
-        },
+        { backgroundColor: config.bg, paddingHorizontal: paddingH, paddingVertical: paddingV },
         style,
       ]}
+      accessibilityRole="text"
+      accessibilityLabel={`Status: ${config.label}`}
     >
-      <Text style={[styles.emoji, { fontSize: isSmall ? 12 : isLarge ? 18 : 14 }]}>
+      <Text style={[styles.emoji, { fontSize: emojiSize }]}>
         {config.emoji}
       </Text>
       <Text
         style={[
           styles.label,
-          {
-            color: config.color,
-            fontSize: isSmall ? 11 : isLarge ? 15 : 13,
-          },
+          { color: config.color, fontSize },
         ]}
       >
         {config.label}
@@ -85,7 +87,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   label: {
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'capitalize',
   },
 });
