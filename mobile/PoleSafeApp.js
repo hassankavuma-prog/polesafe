@@ -406,9 +406,37 @@ function BackButton({ navigation }) {
 
 // ─── Root App ─────────────────────────────────────────
 import { useMoMoPrompt } from './components/MoMoPromptModal';
+import NetworkStatusBanner from './components/common/NetworkStatusBanner';
+import { flushQueue } from './services/offlineSyncService';
 
 export default function PoleSafeApp() {
   const { modal: momoModal } = useMoMoPrompt();
+  const [status, setStatus] = useState(null);
+
+  // Auto-flush offline queue when connectivity returns
+  useEffect(() => {
+    if (status === 'online') {
+      flushQueue();
+    }
+  }, [status]);
+
+  // Listen for network changes
+  useEffect(() => {
+    const check = setInterval(async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const res = await fetch('https://polesafe-api.onrender.com/api/health', { method: 'HEAD', signal: controller.signal });
+        clearTimeout(timeoutId);
+        setStatus(res.ok ? 'online' : 'low');
+      } catch {
+        setStatus('offline');
+      }
+    }, 15000);
+    check();
+    return () => clearInterval(check);
+  }, []);
+
   const [isLoading, setIsLoading] = useState(true);
   const [userToken, setUserToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
@@ -476,6 +504,7 @@ export default function PoleSafeApp() {
 
   return (
     <SafeAreaProvider>
+      <NetworkStatusBanner />
       <StatusBar style="light" />
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false, animationEnabled: true }}>
