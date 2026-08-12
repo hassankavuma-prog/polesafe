@@ -163,6 +163,9 @@ router.post('/sos/acknowledge', async (req, res) => {
     const { incidentId, userId, userRole, note } = req.body;
     const incident = await SafetyIncident.findById(incidentId);
     if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    if (!hasDispatcherAccess(userRole || req.userRole || req.user?.role)) {
+      return res.status(403).json({ error: 'Dispatcher access required' });
+    }
     incident.status = 'triaged';
     incident.assignedOperatorId = incident.assignedOperatorId || userId;
     incident.auditTrail.push({ action: 'incident_acknowledged', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
@@ -179,6 +182,9 @@ router.post('/sos/resolve', async (req, res) => {
     const { incidentId, userId, userRole, resolutionNote, falseAlarmReason } = req.body;
     const incident = await SafetyIncident.findById(incidentId);
     if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    if (!hasDispatcherAccess(userRole || req.userRole || req.user?.role)) {
+      return res.status(403).json({ error: 'Dispatcher access required' });
+    }
     incident.status = falseAlarmReason ? 'false_alarm' : 'resolved';
     incident.resolvedById = userId;
     incident.resolutionNote = resolutionNote || '';
@@ -235,7 +241,10 @@ router.patch('/incidents/:id/assign', async (req, res) => {
     const { assignedOperatorId, note, userId, userRole } = req.body;
     const incident = await SafetyIncident.findById(req.params.id);
     if (!incident) return res.status(404).json({ error: 'Incident not found' });
-    incident.assignedOperatorId = assignedOperatorId;
+    if (!hasDispatcherAccess(userRole || req.userRole || req.user?.role)) {
+      return res.status(403).json({ error: 'Dispatcher access required' });
+    }
+    incident.assignedOperatorId = assignedOperatorId || userId || incident.assignedOperatorId;
     incident.status = 'triaged';
     incident.auditTrail.push({ action: 'incident_assigned', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
     await incident.save();
@@ -251,6 +260,9 @@ router.patch('/incidents/:id/escalate', async (req, res) => {
     const { userId, userRole, note } = req.body;
     const incident = await SafetyIncident.findById(req.params.id);
     if (!incident) return res.status(404).json({ error: 'Incident not found' });
+    if (!hasDispatcherAccess(userRole || req.userRole || req.user?.role)) {
+      return res.status(403).json({ error: 'Dispatcher access required' });
+    }
     incident.status = 'escalated';
     incident.severity = 'critical';
     incident.auditTrail.push({ action: 'incident_escalated', actorId: userId, actorRole: userRole, note, timestamp: new Date() });

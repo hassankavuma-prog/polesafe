@@ -38,7 +38,7 @@ export const safetyIncidentSchema = z.object({
   severity: incidentSeveritySchema,
   status: incidentStatusSchema,
   reporterUserId: z.string().optional(),
-  reporterRole: z.enum(['parent', 'driver', 'school_admin', 'polesafe_admin', 'system']).optional(),
+  reporterRole: dispatcherRoleSchema.optional(),
   childId: z.string().optional(),
   rideId: z.string().optional(),
   schoolId: z.string().optional(),
@@ -60,7 +60,7 @@ export const safetyIncidentSchema = z.object({
 
 export const createSosInputSchema = z.object({
   userId: z.string().min(1),
-  userRole: z.enum(['parent', 'driver', 'school_admin', 'polesafe_admin', 'system']),
+  userRole: dispatcherRoleSchema,
   kidId: z.string().optional(),
   rideId: z.string().optional(),
   location: z.object({
@@ -74,10 +74,12 @@ export const createSosInputSchema = z.object({
   deviceStatus: incidentDeviceStatusSchema.optional(),
 }).strict();
 
+export const dispatcherRoleSchema = z.enum(['parent', 'driver', 'school_admin', 'polesafe_admin', 'dispatcher', 'ops_dispatcher', 'system']);
+
 export const incidentActionInputSchema = z.object({
   incidentId: z.string().min(1),
   userId: z.string().min(1),
-  userRole: z.enum(['parent', 'driver', 'school_admin', 'polesafe_admin', 'system']),
+  userRole: dispatcherRoleSchema,
   note: z.string().optional(),
 }).strict();
 
@@ -98,7 +100,7 @@ export const dispatcherDashboardResponseSchema = z.object({
   stats: dispatcherDashboardStatsSchema,
   incidents: z.array(safetyIncidentSchema),
   privacyMode: z.literal('masked'),
-  allowedActions: z.array(z.enum(['acknowledge', 'assign', 'escalate', 'resolve', 'mark_false_alarm', 'unmask'])),
+  allowedActions: z.array(z.enum(['acknowledge', 'assign', 'escalate', 'resolve', 'mark_false_alarm', 'unmask', 'mask'])),
 }).strict();
 
 export const unmaskIncidentInputSchema = incidentActionInputSchema.extend({
