@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
 import { COLORS, getTheme } from '../theme';
+import { calculatePayoutBreakdown, calculateWeeklyBreakdown, formatPaymentBadge, getPaymentBadge } from '../services/driverPayoutService';
 const BLUE = COLORS.blue;
 
 export default function DriverEarnings({ navigation }) {
@@ -42,6 +43,13 @@ export default function DriverEarnings({ navigation }) {
   // Withdrawal type: 'scheduled' (free, Friday) or 'early' (1k fee)
   const [withdrawalType, setWithdrawalType] = useState('scheduled');
 
+  // Phase 10 features
+  const [transactions, setTransactions] = useState([]);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [weeklyToggle, setWeeklyToggle] = useState('daily'); // 'daily' | 'weekly'
+  const [showPayoutHistory, setShowPayoutHistory] = useState(false);
+
   useEffect(() => { loadEarnings(); }, []);
 
   const loadEarnings = async () => {
@@ -54,6 +62,7 @@ export default function DriverEarnings({ navigation }) {
         const data = await res.json();
         setEarnings(data);
         setWallet(data.wallet || null);
+        setTransactions(data?.transactions || []);
       } else {
         setEarnings({
           summary: { totalTrips: 98, schoolTrips: 75, rideHailingTrips: 23, schoolEarnings: 850000, rideHailingEarnings: 400000, totalEarnings: 1250000 },
@@ -73,13 +82,36 @@ export default function DriverEarnings({ navigation }) {
             { date: new Date(Date.now() - 259200000).toISOString(), trips: 6, earnings: 48000, type: 'ride' },
             { date: new Date(Date.now() - 345600000).toISOString(), trips: 4, earnings: 42000, type: 'school' },
           ],
+          transactions: [
+            { id: 't1', childName: 'Sarah M.', school: 'Greenhill Academy', destination: 'Naalya', fare: 15000, paymentMethod: 'momo_mtn', time: '8:15 AM', date: new Date().toISOString(), distance: '4.2 km', duration: '18 min', tip: 0, status: 'completed' },
+            { id: 't2', childName: 'James K.', school: 'Ntinda Community', destination: 'Bukoto', fare: 6000, paymentMethod: 'cash', time: '10:30 AM', date: new Date().toISOString(), distance: '2.1 km', duration: '10 min', tip: 2000, status: 'completed' },
+            { id: 't3', childName: 'Amina N.', school: 'Naalya Family', destination: 'Kiwatule', fare: 28000, paymentMethod: 'momo_airtel', time: '2:45 PM', date: new Date().toISOString(), distance: '6.8 km', duration: '25 min', tip: 0, status: 'completed' },
+            { id: 't4', childName: 'Peter O.', school: 'Kololo SS', destination: 'Wandegeya', fare: 18000, paymentMethod: 'momo_mtn', time: '7:00 AM', date: new Date(Date.now() - 86400000).toISOString(), distance: '5.3 km', duration: '22 min', tip: 0, status: 'completed' },
+            { id: 't5', childName: 'Grace L.', school: 'Uphill Academy', destination: 'Kisaasi', fare: 12000, paymentMethod: 'cash', time: '9:20 AM', date: new Date(Date.now() - 86400000).toISOString(), distance: '3.5 km', duration: '15 min', tip: 1000, status: 'completed' },
+            { id: 't6', childName: 'Daniel W.', school: 'Kabojja Juniour', destination: 'Muyenga', fare: 22000, paymentMethod: 'momo_mtn', time: '1:30 PM', date: new Date(Date.now() - 86400000).toISOString(), distance: '7.5 km', duration: '28 min', tip: 0, status: 'completed' },
+            { id: 't7', childName: 'Faith I.', school: 'Lake View', destination: 'Namasuba', fare: 8500, paymentMethod: 'cash', time: '6:45 AM', date: new Date(Date.now() - 172800000).toISOString(), distance: '2.8 km', duration: '12 min', tip: 500, status: 'completed' },
+            { id: 't8', childName: 'Brian S.', school: 'St. Mary\'s Kitende', destination: 'Kampala Road', fare: 32000, paymentMethod: 'momo_airtel', time: '4:00 PM', date: new Date(Date.now() - 172800000).toISOString(), distance: '9.2 km', duration: '35 min', tip: 0, status: 'completed' },
+          ],
         });
         setWallet({
           availableBalance: 320000, pendingEarlyWithdrawals: 0, scheduledForFriday: 150000,
           totalBalance: 470000, lifetimeEarnings: 4120000,
           nextPayoutLabel: 'Friday, Aug 14', daysUntilPayout: 4,
           payoutMethod: 'mobile_money', hasMobileMoney: true, hasBankDetails: false,
+          payoutHistory: [
+            { id: 'p1', amount: 50000, date: new Date(Date.now() - 86400000 * 3).toISOString(), method: 'MTN MoMo', status: 'completed' },
+            { id: 'p2', amount: 35000, date: new Date(Date.now() - 86400000 * 7).toISOString(), method: 'Airtel Money', status: 'completed' },
+            { id: 'p3', amount: 100000, date: new Date(Date.now() - 86400000 * 10).toISOString(), method: 'MTN MoMo', status: 'completed' },
+          ],
         });
+        setTransactions([
+          { id: 't1', childName: 'Sarah M.', school: 'Greenhill Academy', destination: 'Naalya', fare: 15000, paymentMethod: 'momo_mtn', time: '8:15 AM', date: new Date().toISOString(), distance: '4.2 km', duration: '18 min', tip: 0, status: 'completed' },
+          { id: 't2', childName: 'James K.', school: 'Ntinda Community', destination: 'Bukoto', fare: 6000, paymentMethod: 'cash', time: '10:30 AM', date: new Date().toISOString(), distance: '2.1 km', duration: '10 min', tip: 2000, status: 'completed' },
+          { id: 't3', childName: 'Amina N.', school: 'Naalya Family', destination: 'Kiwatule', fare: 28000, paymentMethod: 'momo_airtel', time: '2:45 PM', date: new Date().toISOString(), distance: '6.8 km', duration: '25 min', tip: 0, status: 'completed' },
+          { id: 't4', childName: 'Peter O.', school: 'Kololo SS', destination: 'Wandegeya', fare: 18000, paymentMethod: 'momo_mtn', time: '7:00 AM', date: new Date(Date.now() - 86400000).toISOString(), distance: '5.3 km', duration: '22 min', tip: 0, status: 'completed' },
+          { id: 't5', childName: 'Grace L.', school: 'Uphill Academy', destination: 'Kisaasi', fare: 12000, paymentMethod: 'cash', time: '9:20 AM', date: new Date(Date.now() - 86400000).toISOString(), distance: '3.5 km', duration: '15 min', tip: 1000, status: 'completed' },
+          { id: 't6', childName: 'Daniel W.', school: 'Kabojja Juniour', destination: 'Muyenga', fare: 22000, paymentMethod: 'momo_mtn', time: '1:30 PM', date: new Date(Date.now() - 86400000).toISOString(), distance: '7.5 km', duration: '28 min', tip: 0, status: 'completed' },
+        ]);
       }
     } catch (err) {
       console.log('Error loading earnings:', err);
@@ -251,6 +283,31 @@ export default function DriverEarnings({ navigation }) {
           </View>
         )}
 
+        {/* ===== COMMISSION BREAKDOWN ===== */}
+        <View style={stw.section}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={stw.sectionTitle}>📊 Earnings Breakdown</Text>
+            <TouchableOpacity onPress={() => setWeeklyToggle(t => t === 'daily' ? 'weekly' : 'daily')}>
+              <Text style={{ fontSize: 13, color: '#3B82F6', fontWeight: '600' }}>{weeklyToggle === 'daily' ? '📅 Weekly' : '📋 Daily'}</Text>
+            </TouchableOpacity>
+          </View>
+          {(() => {
+            const grossFare = weeklyToggle === 'daily' ? (today.total || 0) : (weekly.total || 0);
+            const commission = Math.round(grossFare * 0.12);
+            const cash = Math.round(grossFare * 0.15);
+            const net = grossFare - commission - cash;
+            return (
+              <View>
+                <View style={stw.bdRow}><Text style={stw.bdLabel}>Gross Fare Total</Text><Text style={stw.bdValue}>{displayAmount(grossFare)}</Text></View>
+                <View style={stw.bdRow}><Text style={[stw.bdLabel, { color: '#ef4444' }]}>PoleSafe Service Fee (12%)</Text><Text style={[stw.bdValue, { color: '#ef4444' }]}>- {displayAmount(commission)}</Text></View>
+                <View style={stw.bdRow}><Text style={[stw.bdLabel, { color: '#f59e0b' }]}>Cash Collected in Hand</Text><Text style={[stw.bdValue, { color: '#f59e0b' }]}>- {displayAmount(cash)}</Text></View>
+                <View style={[stw.bdDivider]} />
+                <View style={stw.bdRow}><Text style={[stw.bdLabel, { fontWeight: '700', color: '#22c55e' }]}>Net Payout Total</Text><Text style={[stw.bdValue, { fontWeight: '800', color: '#22c55e', fontSize: 18 }]}>🟢 {displayAmount(net)}</Text></View>
+              </View>
+            );
+          })()}
+        </View>
+
         {/* ===== BREAKDOWN ===== */}
         <View style={stw.section}>
           <Text style={stw.sectionTitle}>📊 Today's Breakdown</Text>
@@ -287,28 +344,36 @@ export default function DriverEarnings({ navigation }) {
           </View>
         </View>
 
-        {/* ===== HISTORY ===== */}
-        <Text style={stw.sectionTitle}>📋 Trip History</Text>
-        {history.length === 0 ? (
-          <View style={stw.emptyCard}><Text style={{ fontSize: 14, color: COLORS.textMuted }}>No trip history yet</Text></View>
+        {/* ===== PER-TRIP TRANSACTION FEED ===== */}
+        <Text style={stw.sectionTitle}>📋 Trip Transactions</Text>
+        {transactions.length === 0 ? (
+          <View style={stw.emptyCard}><Text style={{ fontSize: 14, color: '#6B7280' }}>No trips yet today</Text></View>
         ) : (
           <View style={stw.historyCard}>
-            {history.map((trip, i) => (
-              <View key={trip._id || i} style={stw.historyRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '500', color: COLORS.textPrimary }}>
-                    {trip.date ? new Date(trip.date).toLocaleDateString('en-UG', { weekday: 'short', day: 'numeric', month: 'short' }) : '—'}
-                  </Text>
-                  <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>
-                    {trip.type === 'ride' ? '🚗 Ride' : '🏫 School'}
-                  </Text>
-                </View>
-                <View style={{ marginHorizontal: 12 }}>
-                  <Text style={{ fontSize: 13, color: COLORS.textSecondary }}>{trip.trips} trip{trip.trips > 1 ? 's' : ''}</Text>
-                </View>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: COLORS.textPrimary }}>{displayAmount(trip.earnings)}</Text>
-              </View>
-            ))}
+            {transactions.map((trip) => {
+              const badge = getPaymentBadge(trip.paymentMethod);
+              const breakdown = calculatePayoutBreakdown(trip.fare, trip.paymentMethod, trip.tip);
+              return (
+                <TouchableOpacity key={trip.id} style={stw.historyRow}
+                  onPress={() => { setSelectedTrip({ ...trip, breakdown }); setShowReceipt(true); }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{trip.childName}</Text>
+                    <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>{trip.school} · {trip.time}</Text>
+                    <View style={{ flexDirection: 'row', gap: 4, marginTop: 4 }}>
+                      <View style={stw.paymentBadge}>
+                        <Text style={{ fontSize: 10 }}>{badge.emoji}</Text>
+                        <Text style={{ fontSize: 9, color: '#374151', marginLeft: 2, fontWeight: '600' }}>{badge.label}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>{displayAmount(trip.fare)}</Text>
+                    <Text style={{ fontSize: 10, color: '#6B7280', marginTop: 1 }}>{trip.distance}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
@@ -319,6 +384,45 @@ export default function DriverEarnings({ navigation }) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* ===== TRANSACTION RECEIPT MODAL ===== */}
+      <Modal visible={showReceipt} animationType="slide" transparent>
+        <View style={stw.overlay}>
+          <View style={[stw.modalContent, { paddingBottom: 40 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff' }}>🧾 Trip Receipt</Text>
+              <TouchableOpacity onPress={() => setShowReceipt(false)}>
+                <Text style={{ fontSize: 22, color: '#94a3b8', padding: 4 }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {selectedTrip && (
+              <>
+                <View style={stw.receiptHeader}>
+                  <Text style={stw.receiptChild}>{selectedTrip.childName}</Text>
+                  <Text style={stw.receiptSchool}>{selectedTrip.school} → {selectedTrip.destination}</Text>
+                </View>
+                <View style={stw.receiptRow}><Text style={stw.receiptLabel}>Distance</Text><Text style={stw.receiptValue}>{selectedTrip.distance}</Text></View>
+                <View style={stw.receiptRow}><Text style={stw.receiptLabel}>Duration</Text><Text style={stw.receiptValue}>{selectedTrip.duration}</Text></View>
+                <View style={stw.receiptRow}><Text style={stw.receiptLabel}>Payment</Text><Text style={stw.receiptValue}>{getPaymentBadge(selectedTrip.paymentMethod).emoji} {getPaymentBadge(selectedTrip.paymentMethod).label}</Text></View>
+                <View style={[stw.bdDivider, { marginVertical: 12, borderBottomColor: '#334155' }]} />
+                <View style={stw.receiptRow}><Text style={stw.receiptLabel}>Gross Fare</Text><Text style={stw.receiptValue}>{displayAmount(selectedTrip.breakdown?.grossFare)}</Text></View>
+                <View style={stw.receiptRow}><Text style={[stw.receiptLabel, { color: '#ef4444' }]}>Service Fee (12%)</Text><Text style={[stw.receiptValue, { color: '#ef4444' }]}>- {displayAmount(selectedTrip.breakdown?.commission)}</Text></View>
+                {selectedTrip.tip > 0 && (
+                  <View style={stw.receiptRow}><Text style={[stw.receiptLabel, { color: '#f59e0b' }]}>Driver Tip</Text><Text style={[stw.receiptValue, { color: '#f59e0b' }]}>+ {displayAmount(selectedTrip.tip)}</Text></View>
+                )}
+                <View style={[stw.bdDivider, { marginVertical: 12, borderBottomColor: '#334155' }]} />
+                <View style={stw.receiptRow}><Text style={[stw.receiptLabel, { fontWeight: '700', color: '#22c55e' }]}>Net Earnings</Text><Text style={[stw.receiptValue, { fontWeight: '800', color: '#22c55e', fontSize: 18 }]}>🟢 {displayAmount(selectedTrip.breakdown?.netPayout)}</Text></View>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#3B82F6', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 16 }}
+                  onPress={() => setShowReceipt(false)}
+                >
+                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>Close Receipt</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* ===== WITHDRAWAL MODAL (UBER-STYLE) ===== */}
       <Modal visible={showWithdraw} animationType="slide" transparent>
@@ -525,4 +629,21 @@ const stw = StyleSheet.create({
   payoutTabText: { fontSize: 13, fontWeight: '600', color: '#94a3b8' },
 
   submitBtn: { backgroundColor: BLUE, padding: 16, borderRadius: 12, alignItems: 'center' },
+
+  // Breakdown styles
+  bdRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+  bdLabel: { fontSize: 14, color: '#374151' },
+  bdValue: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  bdDivider: { borderBottomWidth: 1, borderBottomColor: '#e5e7eb', marginVertical: 6 },
+
+  // Payment badge
+  paymentBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+
+  // Receipt modal
+  receiptHeader: { alignItems: 'center', marginBottom: 16 },
+  receiptChild: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  receiptSchool: { fontSize: 13, color: '#94a3b8', marginTop: 2 },
+  receiptRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
+  receiptLabel: { fontSize: 14, color: '#94a3b8' },
+  receiptValue: { fontSize: 14, fontWeight: '600', color: '#fff' },
 });
