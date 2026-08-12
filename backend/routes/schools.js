@@ -754,4 +754,92 @@ router.get('/export/csv', async (req, res) => {
   }
 });
 
+// ============================================================
+// GATE MANAGEMENT — School gates with geofence coordinates
+// ============================================================
+
+// GET /api/schools/:schoolId/gates — List all gates
+router.get('/:schoolId/gates', requireSchoolAccess, async (req, res) => {
+  try {
+    const school = await School.findById(req.params.schoolId).select('gates');
+    if (!school) return res.status(404).json({ error: 'School not found' });
+    res.json({ gates: school.gates || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/schools/:schoolId/gates — Add a new gate
+router.post('/:schoolId/gates', requireSchoolAccess, async (req, res) => {
+  try {
+    const { name, lat, lng, radius } = req.body;
+    if (!name || lat == null || lng == null) {
+      return res.status(400).json({ error: 'Gate name, lat, and lng are required' });
+    }
+    const school = await School.findById(req.params.schoolId);
+    if (!school) return res.status(404).json({ error: 'School not found' });
+    school.gates.push({ name, lat, lng, radius: radius || 200, isActive: true });
+    await school.save();
+    res.json({ gate: school.gates[school.gates.length - 1] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/schools/:schoolId/gates/:gateId — Update a gate
+router.put('/:schoolId/gates/:gateId', requireSchoolAccess, async (req, res) => {
+  try {
+    const { name, lat, lng, radius, isActive } = req.body;
+    const school = await School.findById(req.params.schoolId);
+    if (!school) return res.status(404).json({ error: 'School not found' });
+    const gate = school.gates.id(req.params.gateId);
+    if (!gate) return res.status(404).json({ error: 'Gate not found' });
+    if (name !== undefined) gate.name = name;
+    if (lat !== undefined) gate.lat = lat;
+    if (lng !== undefined) gate.lng = lng;
+    if (radius !== undefined) gate.radius = radius;
+    if (isActive !== undefined) gate.isActive = isActive;
+    await school.save();
+    res.json({ gate });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/schools/:schoolId/gates/:gateId — Remove a gate
+router.delete('/:schoolId/gates/:gateId', requireSchoolAccess, async (req, res) => {
+  try {
+    const school = await School.findById(req.params.schoolId);
+    if (!school) return res.status(404).json({ error: 'School not found' });
+    const gate = school.gates.id(req.params.gateId);
+    if (!gate) return res.status(404).json({ error: 'Gate not found' });
+    gate.deleteOne();
+    await school.save();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/schools/:schoolId/gate-queue — Live queue at each gate
+router.get('/:schoolId/gate-queue', requireSchoolAccess, async (req, res) => {
+  try {
+    const gateGeofenceService = require('../services/gateGeofenceService');
+    const school = await School.findById(req.params.schoolId).select('gates');
+    if (!school) return res.status(404).json({ error: 'School not found' });
+    const queues = gateGeofenceService.getAllGateQueues(req.params.schoolId);
+    const enriched = [];
+    for (const gate of school.gates) {
+      enriched.push({
+        gateId: gate._id.toString(),
+        gateName: gate.name,
+        queue: queues[gate._id.toString()] || [],
+      });
+    }
+    res.json({ gates: enriched });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

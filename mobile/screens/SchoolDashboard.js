@@ -222,6 +222,8 @@ export default function SchoolDashboard({ navigation }) {
         onPress={() => navigation.navigate('AttendanceReport')} />
       <QuickAction icon="🛡️" title="Safety Board" subtitle="Community discussions"
         onPress={() => navigation.navigate('SchoolCommunity')} color={'#7B1FA2'} />
+      <QuickAction icon="🚧" title="Gate Setup" subtitle="Configure gates + view live queue"
+        onPress={() => navigation.navigate('GateCheck', { mode: 'setup' })} color={'#00695C'} />
 
       {/* Send SMS Button */}
       <TouchableOpacity

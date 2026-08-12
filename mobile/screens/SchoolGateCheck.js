@@ -1,15 +1,17 @@
 // PoleSafe Mobile — School Gate Check-In Screen
 // Track arriving kids at the school gate with status updates
+// Phase 11: Live gate queue + gate management
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, ActivityIndicator, RefreshControl,
+  Alert, ActivityIndicator, RefreshControl, TextInput, Modal,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import API_BASE from '../config';
 import { COLORS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../theme';
+import GlassCard from '../components/GlassCard';
 const ORANGE = COLORS.orange;
 
 export default function SchoolGateCheck({ navigation }) {
@@ -19,11 +21,45 @@ export default function SchoolGateCheck({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
 
-  useEffect(() => {
-    loadArrivals();
+  // Phase 11: Gate queue + management
+  const [gateQueues, setGateQueues] = useState([]);
+  const [gates, setGates] = useState([]);
+  const [showGateManager, setShowGateManager] = useState(false);
+  const [showAddGate, setShowAddGate] = useState(false);
+  const [newGate, setNewGate] = useState({ name: '', lat: '', lng: '', radius: '200' });
+  const [gateLoading, setGateLoading] = useState(false);
+
+  const loadGates = useCallback(async () => {
+    try {
+      const token = await AsyncStorage.getItem('polesafe_token');
+      const schoolId = await AsyncStorage.getItem('polesafe_school_id');
+      if (!schoolId) return;
+      const res = await fetch(`${API_BASE}/api/schools/${schoolId}/gates`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGates(data.gates || []);
+      }
+    } catch (err) {}
   }, []);
 
-  const loadArrivals = async () => {
+  const loadGateQueues = useCallback(async () => {
+    try {
+      const token = await AsyncStorage.getItem('polesafe_token');
+      const schoolId = await AsyncStorage.getItem('polesafe_school_id');
+      if (!schoolId) return;
+      const res = await fetch(`${API_BASE}/api/schools/${schoolId}/gate-queue`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGateQueues(data.gates || []);
+      }
+    } catch (err) {}
+  }, []);
+
+  const loadArrivals = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem('polesafe_token');
       const schoolId = await AsyncStorage.getItem('polesafe_school_id');
@@ -103,6 +139,154 @@ export default function SchoolGateCheck({ navigation }) {
       style={[styles.container, {backgroundColor: theme.canvas}]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
+      {/* ═══ Phase 11: Live Gate Queues ═══ */}
+      {gateQueues.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>🚧 Live Gate Queue</Text>
+          {gateQueues.map(gq => (
+            <GlassCard key={gq.gateId} style={styles.gateQueueCard}>
+              <Text style={styles.gateName}>🏫 {gq.gateName}</Text>
+              {gq.queue.length === 0 ? (
+                <Text style={styles.gateEmpty}>No vehicles approaching</Text>
+              ) : (
+                gq.queue.map((entry, i) => (
+                  <View key={entry.driverId} style={styles.queueRow}>
+                    <View style={styles.queuePos}>
+                      <Text style={styles.queuePosText}>#{entry.position}</Text>
+                    </View>
+                    <Text style={styles.queueVehicle}>{entry.vehicle}</Text>
+                    <Text style={styles.queueTime}>
+                      {new Date(entry.arrivedAt).toLocaleTimeString('en-UG', { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </GlassCard>
+          ))}
+        </>
+      )}
+
+      {/* ═══ Gate Management Toggle ═══ */}
+      <TouchableOpacity
+        style={styles.gateManagerToggle}
+        onPress={() => setShowGateManager(!showGateManager)}
+      >
+        <Text style={styles.gateManagerToggleText}>
+          {showGateManager ? '▲ Hide Gate Setup' : '▼ Manage Gates'}
+        </Text>
+      </TouchableOpacity>
+
+      {showGateManager && (
+        <GlassCard style={styles.gateManagerCard}>
+          <Text style={styles.gateManagerTitle}>Configure Gates</Text>
+          <Text style={styles.gateManagerHint}>
+            Add each school gate with its GPS coordinates. Drivers will be auto-detected within 200m.
+          </Text>
+
+          {/* Existing Gates */}
+          {gates.length === 0 ? (
+            <Text style={styles.noGatesText}>No gates configured yet. Add your first gate below.</Text>
+          ) : (
+            gates.map(gate => (
+              <View key={gate._id} style={styles.gateItem}>
+                <View style={styles.gateItemLeft}>
+                  <Text style={styles.gateItemName}>🚧 {gate.name}</Text>
+                  <Text style={styles.gateItemCoords}>
+                    {gate.lat.toFixed(4)}, {gate.lng.toFixed(4)} · {gate.radius || 200}m radius
+                  </Text>
+                </View>
+              </View>
+            ))
+          )}
+
+          {/* Add Gate Button */}
+          <TouchableOpacity
+            style={styles.addGateBtn}
+            onPress={() => setShowAddGate(!showAddGate)}
+          >
+            <Text style={styles.addGateBtnText}>+ Add Gate</Text>
+          </TouchableOpacity>
+
+          {/* Add Gate Form */}
+          {showAddGate && (
+            <View style={styles.addGateForm}>
+              <TextInput
+                style={styles.gateInput}
+                placeholder="Gate name (e.g., Gate B, Main Gate)"
+                placeholderTextColor="#9CA3AF"
+                value={newGate.name}
+                onChangeText={t => setNewGate({ ...newGate, name: t })}
+              />
+              <View style={styles.coordRow}>
+                <TextInput
+                  style={[styles.gateInput, styles.coordInput]}
+                  placeholder="Latitude"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="decimal-pad"
+                  value={newGate.lat}
+                  onChangeText={t => setNewGate({ ...newGate, lat: t })}
+                />
+                <TextInput
+                  style={[styles.gateInput, styles.coordInput]}
+                  placeholder="Longitude"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="decimal-pad"
+                  value={newGate.lng}
+                  onChangeText={t => setNewGate({ ...newGate, lng: t })}
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.saveGateBtn}
+                onPress={async () => {
+                  if (!newGate.name || !newGate.lat || !newGate.lng) {
+                    Alert.alert('Missing fields', 'Gate name, lat, and lng are required');
+                    return;
+                  }
+                  setGateLoading(true);
+                  try {
+                    const token = await AsyncStorage.getItem('polesafe_token');
+                    const schoolId = await AsyncStorage.getItem('polesafe_school_id');
+                    const res = await fetch(`${API_BASE}/api/schools/${schoolId}/gates`, {
+                      method: 'POST',
+                      headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        name: newGate.name,
+                        lat: parseFloat(newGate.lat),
+                        lng: parseFloat(newGate.lng),
+                        radius: parseInt(newGate.radius) || 200,
+                      }),
+                    });
+                    if (res.ok) {
+                      setNewGate({ name: '', lat: '', lng: '', radius: '200' });
+                      setShowAddGate(false);
+                      await loadGates();
+                      Alert.alert('✅ Gate Added', `${newGate.name} has been registered.`);
+                    } else {
+                      const err = await res.json();
+                      Alert.alert('Error', err.error || 'Failed to add gate');
+                    }
+                  } catch (err) {
+                    Alert.alert('Error', err.message);
+                  } finally {
+                    setGateLoading(false);
+                  }
+                }}
+                disabled={gateLoading}
+              >
+                {gateLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.saveGateBtnText}>💾 Save Gate</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </GlassCard>
+      )}
+
       {/* Progress Header */}
       <View style={styles.progressCard}>
         <Text style={styles.progressTitle}>🚪 Morning Arrivals</Text>
@@ -304,4 +488,52 @@ const styles = StyleSheet.create({
   actionBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   processedBtn: { alignItems: 'center', marginTop: 8 },
   processedBtnText: { fontSize: 13, color: COLORS.textMuted, fontWeight: '500' },
+
+  // Phase 11: Gate Queue
+  gateQueueCard: { padding: 14, marginBottom: 10, backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' },
+  gateName: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  gateEmpty: { fontSize: 13, color: '#6B7280', fontStyle: 'italic' },
+  queueRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 8,
+    borderTopWidth: 1, borderTopColor: '#E5E7EB',
+  },
+  queuePos: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: '#00695C', justifyContent: 'center', alignItems: 'center', marginRight: 10,
+  },
+  queuePosText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  queueVehicle: { flex: 1, fontSize: 14, fontWeight: '600', color: '#111827' },
+  queueTime: { fontSize: 11, color: '#6B7280' },
+
+  // Phase 11: Gate Management
+  gateManagerToggle: { paddingVertical: 12, alignItems: 'center', marginBottom: 8 },
+  gateManagerToggleText: { fontSize: 14, fontWeight: '600', color: '#00695C' },
+  gateManagerCard: { padding: 16, marginBottom: 16 },
+  gateManagerTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 6 },
+  gateManagerHint: { fontSize: 12, color: '#6B7280', lineHeight: 18, marginBottom: 14 },
+  noGatesText: { fontSize: 13, color: '#6B7280', fontStyle: 'italic', marginBottom: 12 },
+  gateItem: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
+    borderTopWidth: 1, borderTopColor: '#E5E7EB',
+  },
+  gateItemLeft: { flex: 1 },
+  gateItemName: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  gateItemCoords: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+  addGateBtn: {
+    paddingVertical: 12, borderRadius: 8, borderWidth: 1.5,
+    borderColor: '#00695C', alignItems: 'center', marginTop: 12,
+  },
+  addGateBtnText: { fontSize: 14, fontWeight: '700', color: '#00695C' },
+  addGateForm: { marginTop: 12 },
+  gateInput: {
+    backgroundColor: '#fff', borderWidth: 1, borderColor: '#D1D5DB',
+    borderRadius: 8, padding: 12, fontSize: 14, color: '#111827', marginBottom: 8,
+  },
+  coordRow: { flexDirection: 'row', gap: 8 },
+  coordInput: { flex: 1 },
+  saveGateBtn: {
+    backgroundColor: '#00695C', paddingVertical: 14, borderRadius: 8,
+    alignItems: 'center', marginTop: 4,
+  },
+  saveGateBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

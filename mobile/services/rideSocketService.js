@@ -10,6 +10,10 @@ export const RIDE_EVENTS = {
   LOCATION_UPDATE: 'LOCATION_UPDATE',
   PIN_VERIFIED: 'PIN_VERIFIED',
   RIDE_COMPLETED: 'RIDE_COMPLETED',
+  // Phase 11 — Gate Geofencing
+  DRIVER_NEAR_GATE: 'DRIVER_NEAR_GATE',
+  GATE_CONFIRMED: 'GATE_CONFIRMED',
+  GATE_QUEUE_UPDATED: 'GATE_QUEUE_UPDATED',
 };
 
 // ─── Listeners Registry ──────────────────────────────

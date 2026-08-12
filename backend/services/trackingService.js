@@ -4,6 +4,8 @@
 
 const WebSocket = require('ws');
 const { Ride } = require('../database/schema');
+const gateGeofenceService = require('./gateGeofenceService');
+const FCMService = require('./fcmService');
 
 class TrackingService {
   constructor(server) {
@@ -74,6 +76,79 @@ class TrackingService {
                   },
                 },
               });
+
+              // ── Gate Geofence Check ──────────────────────────────
+              // Check if driver is near any registered school gate
+              const ride = await Ride.findById(rideId).populate('schoolId', 'gates name').select('schoolId driverId');
+              if (ride && ride.schoolId) {
+                const driverInfo = this.connections.get(userId);
+                const gateResults = await gateGeofenceService.checkDriverPosition({
+                  driverId: userId,
+                  schoolId: ride.schoolId._id,
+                  lat,
+                  lng,
+                  rideId,
+                  vehiclePlate: msg.vehiclePlate || '',
+                });
+
+                // Broadcast geofence events to subscribers
+                if (gateResults.length > 0) {
+                  for (const result of gateResults) {
+                    if (result.entered) {
+                      const subscribers = this.rideSubscribers.get(rideId);
+                      if (subscribers) {
+                        const gatePayload = JSON.stringify({
+                          type: 'driver_near_gate',
+                          rideId,
+                          gateId: result.gateId,
+                          gateName: result.gateName,
+                          distance: result.distance,
+                          radius: result.radius,
+                          driverId: userId,
+                          lat,
+                          lng,
+                          timestamp: new Date().toISOString(),
+                        });
+                        for (const subId of subscribers) {
+                          const sub = this.connections.get(subId);
+                          if (sub && sub.ws.readyState === WebSocket.OPEN) {
+                            sub.ws.send(gatePayload);
+                          }
+                        }
+                      }
+
+                      // Send push notification to parent
+                      try {
+                        const parentId = ride.parentId;
+                        if (parentId) {
+                          const User = require('mongoose').model('User');
+                          const parent = await User.findById(parentId).select('deviceToken devicePlatform name');
+                          if (parent && parent.deviceToken) {
+                            await FCMService.sendPush({
+                              token: parent.deviceToken,
+                              platform: parent.devicePlatform || 'android',
+                              title: `🚌 Driver Arriving at ${ride.schoolId.name}`,
+                              body: `Driver is ${result.distance}m from ${result.gateName}. Student PIN ready.`,
+                              data: {
+                                type: 'driver_near_gate',
+                                rideId,
+                                gateName: result.gateName,
+                                distance: result.distance,
+                              },
+                            });
+                          }
+                        }
+                      } catch (pushErr) {
+                        console.error('[Geofence] Push notification error:', pushErr.message);
+                      }
+
+                      // Broadcast queue update to school admin subscribers
+                      this._broadcastGateQueue(ride.schoolId._id.toString());
+                    }
+                  }
+                }
+              }
+              // ── End Gate Geofence Check ──────────────────────────
 
               // Broadcast to subscribers of this ride
               const subscribers = this.rideSubscribers.get(rideId);
@@ -179,6 +254,35 @@ class TrackingService {
       activeConnections: this.connections.size,
       activeRides: this.rideSubscribers.size,
     };
+  }
+
+  /**
+   * Broadcast gate queue update to school admin connections
+   */
+  async _broadcastGateQueue(schoolId) {
+    try {
+      const User = require('mongoose').model('User');
+      // Find all school admin connections for this school
+      for (const [connId, conn] of this.connections.entries()) {
+        if (conn.role === 'school_admin') {
+          // Check if this admin belongs to this school
+          const admin = await User.findById(connId).select('schoolId');
+          if (admin && admin.schoolId && admin.schoolId.toString() === schoolId) {
+            const queues = gateGeofenceService.getAllGateQueues(schoolId);
+            if (conn.ws.readyState === WebSocket.OPEN) {
+              conn.ws.send(JSON.stringify({
+                type: 'gate_queue_update',
+                schoolId,
+                queues,
+                timestamp: new Date().toISOString(),
+              }));
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[WebSocket] Gate queue broadcast error:', err.message);
+    }
   }
 }
 

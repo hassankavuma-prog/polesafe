@@ -176,6 +176,13 @@ const schoolSchema = new mongoose.Schema({
   commissionRate: { type: Number, default: 0.05 },  // 5% for school
   hasAffiliate: { type: Boolean, default: false },    // School earns commission
   adminIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],  // At least 2 admins
+  gates: [{
+    name: { type: String, required: true },          // "Gate A", "Main Gate"
+    lat: { type: Number, required: true },             // Gate latitude
+    lng: { type: Number, required: true },             // Gate longitude
+    radius: { type: Number, default: 200 },             // Geofence radius in meters
+    isActive: { type: Boolean, default: true },
+  }],
   hasWaitingZone: { type: Boolean, default: false },   // For staggered class times
   createdAt: { type: Date, default: Date.now },
 });
