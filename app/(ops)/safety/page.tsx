@@ -255,21 +255,20 @@ export default function SafetyOpsPage() {
           </Pressable>
         </View>
 
-        <FlatList
-          scrollEnabled={false}
-          data={incidents}
-          keyExtractor={(item) => item._id}
-          ListEmptyComponent={<Text style={styles.emptyText}>No incidents right now.</Text>}
-          renderItem={({ item }) => (
-            <IncidentCard
-              incident={item}
-              onAcknowledge={(incident) => openModal('acknowledge', incident)}
-              onAssign={(incident) => openModal('assign', incident)}
-              onEscalate={(incident) => openModal('escalate', incident)}
-              onResolve={(incident) => openModal('resolve', incident)}
-              onMask={handleMask}
-              onUnmask={handleUnmask}
-            />
+        {incidents.map((item) => (
+          <IncidentCard
+            key={item._id}
+            incident={item}
+            onAcknowledge={(incident) => openModal('acknowledge', incident)}
+            onAssign={(incident) => openModal('assign', incident)}
+            onEscalate={(incident) => openModal('escalate', incident)}
+            onResolve={(incident) => openModal('resolve', incident)}
+            onMask={handleMask}
+            onUnmask={handleUnmask}
+          />
+        ))}
+        {incidents.length === 0 ? <Text style={styles.emptyText}>No incidents right now.</Text> : null}
+
           )}
         />
       </ScrollView>
