@@ -54,6 +54,7 @@ import DriverComplianceHub from './screens/DriverComplianceHub';
 import UgandaRideRequest from './screens/UgandaRideRequest';
 import DriverActiveTripScreen from './screens/DriverActiveTripScreen';
 import HamnaChatScreen from './screens/HamnaChatScreen';
+import RoleSwitcherScreen from './screens/RoleSwitcherScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -392,6 +393,7 @@ const SHARED_SCREENS = [
   ['UgandaRideRequest', UgandaRideRequest, { title: 'Book Transport', color: BRAND.primary }],
   ['DriverActiveTrip', DriverActiveTripScreen, { title: 'Active Trip', color: BRAND.secondary }],
   ['HamnaChat', HamnaChatScreen, { title: 'Hamna AI', color: BRAND.primary }],
+  ['RoleSwitcher', RoleSwitcherScreen, { title: 'Switch Role', color: BRAND.primary }],
 ];
 
 // ─── Shared Back Button ───────────────────────────────
@@ -444,16 +446,26 @@ export default function PoleSafeApp() {
   const [isLoading, setIsLoading] = useState(true);
   const [userToken, setUserToken] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [roleScope, setRoleScope] = useState('main');
   const tokenRef = useRef(userToken);
   tokenRef.current = userToken;
+
+
+  const setActiveRole = useCallback(async (nextRole) => {
+    setUserRole(nextRole);
+    await AsyncStorage.setItem('userRole', nextRole || 'parent');
+    await AsyncStorage.setItem('roleScope', nextRole === 'driver' ? 'driver' : nextRole === 'school_admin' ? 'school' : nextRole === 'dispatcher' || nextRole === 'ops_dispatcher' ? 'ops' : 'family');
+  }, []);
 
   const checkAuth = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem('polesafe_token') || await AsyncStorage.getItem('token');
       const role = await AsyncStorage.getItem('userRole');
+      const scope = await AsyncStorage.getItem('roleScope');
       if (token !== tokenRef.current) {
         setUserToken(token);
         setUserRole(role);
+        setRoleScope(scope || 'main');
         setIsLoading(false);
       } else if (isLoading) {
         setIsLoading(false);

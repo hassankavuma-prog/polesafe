@@ -1,0 +1,70 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const ROLES = [
+  { key: 'parent', label: 'Parent / Family', icon: '🏠', desc: 'Book, track, credits, schedules' },
+  { key: 'driver', label: 'Driver', icon: '🚗', desc: 'Trips, route, earnings, safety checks' },
+  { key: 'rider', label: 'Rider', icon: '🧍', desc: 'Request rides and ride hailing' },
+  { key: 'school_admin', label: 'School Admin', icon: '🏫', desc: 'Roster, gate checks, broadcast' },
+  { key: 'dispatcher', label: 'Dispatcher', icon: '🛡️', desc: 'Safety ops and incident triage' },
+  { key: 'ops_dispatcher', label: 'Ops Dispatcher', icon: '🛡️', desc: 'Safety operations and incident response' },
+];
+
+export default function RoleSwitcherScreen({ navigation, route }) {
+  const [currentRole, setCurrentRole] = useState('parent');
+  const [availableRoles, setAvailableRoles] = useState(['parent']);
+
+  useEffect(() => {
+    (async () => {
+      const role = (await AsyncStorage.getItem('userRole')) || 'parent';
+      const roles = JSON.parse((await AsyncStorage.getItem('userRoles')) || '["parent"]');
+      setCurrentRole(role);
+      setAvailableRoles(Array.isArray(roles) ? roles : [role]);
+    })();
+  }, []);
+
+  const activate = async (role) => {
+    await AsyncStorage.setItem('userRole', role);
+    await AsyncStorage.setItem('roleScope', role);
+    navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+  };
+
+  return (
+    <SafeAreaView style={styles.root}>
+      <Text style={styles.title}>Switch Mode</Text>
+      <Text style={styles.subtitle}>Use the same account. Pick how you want to work right now.</Text>
+      {availableRoles.map((role) => {
+        const meta = ROLES.find((r) => r.key === role) || { icon: '👤', label: role, desc: '' };
+        const active = role === currentRole;
+        return (
+          <TouchableOpacity key={role} style={[styles.card, active && styles.activeCard]} onPress={() => activate(role)}>
+            <Text style={styles.icon}>{meta.icon}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>{meta.label}</Text>
+              <Text style={styles.desc}>{meta.desc}</Text>
+            </View>
+            <Text style={styles.activeText}>{active ? 'Current' : 'Use'}</Text>
+          </TouchableOpacity>
+        );
+      })}
+      <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Need a new role?', 'You can start a driver or school-admin application from settings or support.')}>
+        <Text style={styles.linkText}>Need another role?</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#F8FAFC', padding: 16 },
+  title: { fontSize: 28, fontWeight: '800', color: '#111827' },
+  subtitle: { marginTop: 6, color: '#475569' },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', marginTop: 12 },
+  activeCard: { borderColor: '#2E7D32', backgroundColor: '#F0FDF4' },
+  icon: { fontSize: 26 },
+  label: { fontSize: 16, fontWeight: '800', color: '#111827' },
+  desc: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  activeText: { fontSize: 12, fontWeight: '800', color: '#2E7D32' },
+  link: { marginTop: 18, alignItems: 'center' },
+  linkText: { color: '#2E7D32', fontWeight: '800' },
+});
