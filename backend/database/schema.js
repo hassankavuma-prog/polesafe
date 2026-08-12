@@ -71,6 +71,32 @@ const userSchema = new mongoose.Schema({
   forceSelfieVerification: { type: Boolean, default: false },  // Admin can force next ride to require selfie
   completedRidesCount: { type: Number, default: 0 },  // Total completed rides (for new-driver check)
 
+  // 🪪 Driver Onboarding & Identity Verification (Phase 13)
+  verificationDocs: {
+    ninNumber: { type: String },             // National ID number
+    ninPhotoUrl: { type: String },            // Uploaded NIN photo URL
+    selfiePhotoUrl: { type: String },         // Live face selfie URL
+    plateNumber: { type: String },            // Vehicle plate number
+    vehicleMake: { type: String },            // e.g. "Toyota", "Bajaj"
+    vehicleModel: { type: String },           // e.g. "Hiace", "Boxer"
+    vehicleYear: { type: String },            // e.g. "2019"
+    vehicleType: { type: String, enum: ['car', 'boda', 'taxi', 'bus'] },
+    drivingPermitUrl: { type: String },       // Optional: Uganda driving permit photo
+    vehicleFrontPhotoUrl: { type: String },   // Optional: vehicle front photo
+    vehicleSidePhotoUrl: { type: String },    // Optional: vehicle side photo
+    emergencyContactName: { type: String },   // Optional: emergency contact
+    emergencyContactPhone: { type: String },  // Optional: emergency contact phone
+  },
+  verificationStatus: {
+    type: String,
+    enum: ['not_submitted', 'pending', 'approved', 'rejected'],
+    default: 'not_submitted',
+  },
+  verificationSubmittedAt: { type: Date },
+  verificationReviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  verificationReviewedAt: { type: Date },
+  verificationNotes: { type: String },        // Admin's rejection/resubmission notes
+
   // Driver Reliability System (see docs/driver-reliability-system.md)
   driverReliability: {
     // Per-booking strike tracking

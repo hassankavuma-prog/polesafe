@@ -327,4 +327,67 @@ router.post('/remove-support/:id', requireOwner, async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════
+//  PHASE 13: Driver Document Verification Review
+// ═══════════════════════════════════════════════════
+const driverVettingService = require('../services/driverVettingService');
+
+// GET /api/admin/pending-drivers — List drivers awaiting document review
+router.get('/pending-drivers', requireAdmin, async (req, res) => {
+  try {
+    const drivers = await driverVettingService.getPendingVerifications();
+    res.json({ drivers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/driver-docs/:id — Get a driver's full verification docs
+router.get('/driver-docs/:id', requireAdmin, async (req, res) => {
+  try {
+    const status = await driverVettingService.getVerificationStatus(req.params.id);
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/driver/:id/approve — Approve driver verification
+router.post('/driver/:id/approve', requireAdmin, async (req, res) => {
+  try {
+    const result = await driverVettingService.approveVerification(req.params.id, req.userId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/driver/:id/reject — Reject driver verification with reason
+router.post('/driver/:id/reject', requireAdmin, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    if (!reason) return res.status(400).json({ error: 'Rejection reason is required' });
+    const result = await driverVettingService.rejectVerification(req.params.id, req.userId, reason);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/verified-drivers — List all verified drivers
+router.get('/verified-drivers', requireAdmin, async (req, res) => {
+  try {
+    const drivers = await User.find({
+      role: 'driver',
+      verificationStatus: 'approved',
+    })
+      .select('name phone email verificationDocs verificationStatus verificationReviewedAt')
+      .sort({ verificationReviewedAt: -1 })
+      .lean();
+    res.json({ drivers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

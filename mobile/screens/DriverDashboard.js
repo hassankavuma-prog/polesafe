@@ -15,6 +15,7 @@ import { BRAND, STATUS, getTheme, BORDER_RADIUS, SPACING } from '../theme';
 import HapticFeedback from '../utils/hapticFeedback';
 import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
+import { isApproved as checkDriverVerified } from '../services/driverVerificationService';
 
 // ─── Helpers ──────────────────────────────────────────
 const formatCurrency = (amt) => Number(amt || 0).toLocaleString('en-UG');
@@ -137,6 +138,17 @@ export default function DriverDashboard({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ today: 0, earnings: 0, rating: 0 });
   const [voiceOn, setVoiceOn] = useState(false);
+  const [isVerified, setIsVerified] = useState(true); // Default true to avoid blocking on load
+
+  // ─── Gatekeeper: Check verification status on mount ──
+  useEffect(() => {
+    (async () => {
+      try {
+        const verified = await checkDriverVerified();
+        setIsVerified(verified);
+      } catch { /* Default to true to not block */ }
+    })();
+  }, []);
 
   // ─── Voice guidance (safety) ────────────────────
   const announceWelcome = () => {
@@ -206,8 +218,20 @@ export default function DriverDashboard({ navigation }) {
   };
 
   const toggleOnline = () => {
+    if (!isVerified) {
+      HapticFeedback.warning();
+      Alert.alert(
+        '🔒 Verification Required',
+        'You need to complete driver verification before you can go online and accept rides.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Complete Verification', onPress: () => navigation.navigate('DriverOnboarding') },
+        ]
+      );
+      return;
+    }
     setIsOnline(!isOnline);
-    Alert.alert(isOnline ? 'You\'re Offline' : 'You\'re Online', isOnline ? 'New trip requests paused.' : 'You\'ll receive trip requests.');
+    Alert.alert(isOnline ? 'You'\''re Offline' : 'You'\''re Online', isOnline ? 'New trip requests paused.' : 'You'\''ll receive trip requests.');
   };
 
   if (loading) {

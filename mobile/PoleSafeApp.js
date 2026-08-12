@@ -509,6 +509,8 @@ export default function PoleSafeApp() {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false, animationEnabled: true }}>
           {getMainStack()}
+          <Stack.Screen name="DriverOnboarding" component={DriverOnboardingScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="AdminDriverReview" component={AdminDriverReview} options={{ headerShown: false }} />
           {SHARED_SCREENS.map(([name, component, options]) => (
             <Stack.Screen
               key={name}

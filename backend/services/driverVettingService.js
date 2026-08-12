@@ -150,6 +150,144 @@ class DriverVettingService {
       };
     });
   }
+
+  // ═══════════════════════════════════════════════════
+  //  PHASE 13: Driver Onboarding Document Verification
+  // ═══════════════════════════════════════════════════
+
+  /**
+   * Driver submits onboarding documents for review
+   */
+  async submitDocuments(driverId, docs) {
+    const user = await User.findById(driverId);
+    if (!user) throw new Error('Driver not found');
+    if (user.role !== 'driver') throw new Error('User is not a driver');
+
+    // Merge submitted docs into user record
+    user.verificationDocs = {
+      ...user.verificationDocs,
+      ...docs,
+    };
+    user.verificationStatus = 'pending';
+    user.verificationSubmittedAt = new Date();
+    await user.save();
+
+    return {
+      status: 'pending',
+      message: 'Your documents have been submitted for review. You will be notified once approved.',
+    };
+  }
+
+  /**
+   * Get all drivers pending or needing document review
+   */
+  async getPendingVerifications() {
+    const drivers = await User.find({
+      role: 'driver',
+      verificationStatus: { $in: ['pending', 'rejected'] },
+    })
+      .select('name phone email verificationDocs verificationStatus verificationNotes verificationSubmittedAt createdAt')
+      .sort({ verificationSubmittedAt: -1 })
+      .lean();
+
+    return drivers.map(d => ({
+      _id: d._id,
+      name: d.name,
+      phone: d.phone,
+      email: d.email,
+      docs: d.verificationDocs || {},
+      status: d.verificationStatus,
+      notes: d.verificationNotes,
+      submittedAt: d.verificationSubmittedAt,
+      joinedAt: d.createdAt,
+    }));
+  }
+
+  /**
+   * Admin approves a driver's verification
+   */
+  async approveVerification(driverId, adminId) {
+    const user = await User.findById(driverId);
+    if (!user || user.role !== 'driver') throw new Error('Driver not found');
+
+    user.verificationStatus = 'approved';
+    user.verificationReviewedBy = adminId;
+    user.verificationReviewedAt = new Date();
+    user.verificationNotes = '';
+    user.isVerified = true;
+    await user.save();
+
+    // Also approve their vehicle if exists
+    await Vehicle.findOneAndUpdate(
+      { driverId },
+      { isApproved: true },
+    );
+
+    // Notify driver
+    try {
+      await notificationService.send({
+        userId: driverId,
+        phone: user.phone,
+        preferredChannel: user.preferredChannel || 'sms',
+        template: 'default',
+        data: {
+          message: `✅ PoleSafe Driver Approved!\n\nYour documents have been verified.\n\nYou can now start accepting rides. Open the app and go online!\n\nWelcome to PoleSafe 🚗`,
+        },
+        type: 'alert',
+      });
+    } catch {}
+
+    return { driverId, status: 'approved', message: 'Driver approved and notified.' };
+  }
+
+  /**
+   * Admin rejects a driver's verification with reason
+   */
+  async rejectVerification(driverId, adminId, reason) {
+    const user = await User.findById(driverId);
+    if (!user || user.role !== 'driver') throw new Error('Driver not found');
+
+    user.verificationStatus = 'rejected';
+    user.verificationReviewedBy = adminId;
+    user.verificationReviewedAt = new Date();
+    user.verificationNotes = reason;
+    await user.save();
+
+    // Notify driver
+    try {
+      await notificationService.send({
+        userId: driverId,
+        phone: user.phone,
+        preferredChannel: user.preferredChannel || 'sms',
+        template: 'default',
+        data: {
+          message: `❌ PoleSafe Document Review\n\nYour documents were not approved.\nReason: ${reason || 'Please resubmit with clearer photos'}\n\nOpen the app to resubmit. -PoleSafe`,
+        },
+        type: 'alert',
+      });
+    } catch {}
+
+    return { driverId, status: 'rejected', reason };
+  }
+
+  /**
+   * Get a single driver's verification status
+   */
+  async getVerificationStatus(driverId) {
+    const user = await User.findById(driverId)
+      .select('verificationDocs verificationStatus verificationNotes verificationSubmittedAt verificationReviewedAt')
+      .lean();
+
+    if (!user) throw new Error('Driver not found');
+
+    return {
+      status: user.verificationStatus || 'not_submitted',
+      docs: user.verificationDocs || {},
+      notes: user.verificationNotes || '',
+      submittedAt: user.verificationSubmittedAt,
+      reviewedAt: user.verificationReviewedAt,
+    };
+  }
 }
 
 module.exports = new DriverVettingService();
