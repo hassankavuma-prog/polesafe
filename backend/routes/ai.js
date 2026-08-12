@@ -3,8 +3,9 @@
 
 const express = require('express');
 const router = express.Router();
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, requireRole } = require('../middleware/auth');
 const aiService = require('../services/aiService');
+const hamnaAnalysisService = require('../services/hamnaAnalysisService');
 const User = require('mongoose').model('User');
 const Child = require('mongoose').model('Child');
 
@@ -118,6 +119,32 @@ router.get('/health', (req, res) => {
     model: process.env.HAMNA_MODEL || 'openai/gpt-4o-mini',
     configured: !!process.env.OPENROUTER_API_KEY,
   });
+});
+
+// ============================================================
+// GET /api/hamna/analyze-driver/:id — Hamna analyzes driver documents
+// ============================================================
+router.get('/analyze-driver/:id', authMiddleware, async (req, res) => {
+  try {
+    const analysis = await hamnaAnalysisService.analyzeDriverDocuments(req.params.id);
+    res.json({ analysis });
+  } catch (err) {
+    console.error('[Hamna] Analysis error:', err.message);
+    res.status(500).json({ error: 'Hamna could not analyze this driver right now.' });
+  }
+});
+
+// ============================================================
+// GET /api/hamna/system-anomalies — Hamna checks entire system
+// ============================================================
+router.get('/system-anomalies', authMiddleware, async (req, res) => {
+  try {
+    const anomalies = await hamnaAnalysisService.checkSystemAnomalies();
+    res.json({ anomalies });
+  } catch (err) {
+    console.error('[Hamna] System anomaly check error:', err.message);
+    res.status(500).json({ error: 'Hamna system check failed.' });
+  }
 });
 
 module.exports = router;

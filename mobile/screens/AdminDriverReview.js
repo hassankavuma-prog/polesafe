@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BRAND, STATUS, getTheme, BORDER_RADIUS, SPACING } from '../theme';
 import GlassCard from '../components/GlassCard';
 import HapticFeedback from '../utils/hapticFeedback';
+import HamnaAnalysisPanel from '../components/HamnaAnalysisPanel';
 import API_BASE from '../config';
 
 // ─── Status Meta ──────────────────────────────────────
@@ -141,6 +142,7 @@ function ReviewModal({ driver, visible, onClose, onApprove, onReject }) {
   const [preview, setPreview] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [viewing, setViewing] = useState(null);
+  const [showHamna, setShowHamna] = useState(false);
 
   if (!driver) return null;
 
@@ -279,6 +281,31 @@ function ReviewModal({ driver, visible, onClose, onApprove, onReject }) {
               )}
             </GlassCard>
 
+            {/* 🤖 Hamna Analysis */}
+            <View style={reviewStyles.hamnaSection}>
+              {!showHamna ? (
+                <TouchableOpacity
+                  style={reviewStyles.analyzeBtn}
+                  onPress={() => setShowHamna(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={reviewStyles.analyzeBtnIcon}>🤖</Text>
+                  <View style={reviewStyles.analyzeBtnText}>
+                    <Text style={reviewStyles.analyzeBtnTitle}>Analyze with Hamna</Text>
+                    <Text style={reviewStyles.analyzeBtnSub}>AI document check + forgery detection</Text>
+                  </View>
+                  <Text style={reviewStyles.analyzeBtnArrow}>→</Text>
+                </TouchableOpacity>
+              ) : (
+                <HamnaAnalysisPanel
+                  driverId={driver._id}
+                  driverData={driver}
+                  visible={showHamna}
+                  onClose={() => setShowHamna(false)}
+                />
+              )}
+            </View>
+
             {/* Submitted Date */}
             <Text style={reviewStyles.dateText}>
               Submitted: {driver.submittedAt ? new Date(driver.submittedAt).toLocaleString('en-UG') : 'N/A'}
@@ -370,6 +397,18 @@ const reviewStyles = StyleSheet.create({
   infoValue: { fontSize: 13, fontWeight: '600', color: '#0F172A', flex: 1 },
   emptyText: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', paddingVertical: 16 },
   dateText: { fontSize: 12, color: '#9CA3AF', marginBottom: 16, textAlign: 'center' },
+  // 🤖 Hamna Section
+  hamnaSection: { marginVertical: 12 },
+  analyzeBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#EEF0FF', borderRadius: 12, padding: 14,
+    borderWidth: 2, borderColor: '#4361ee', borderStyle: 'dashed',
+  },
+  analyzeBtnIcon: { fontSize: 28, marginRight: 12 },
+  analyzeBtnText: { flex: 1 },
+  analyzeBtnTitle: { fontSize: 14, fontWeight: '700', color: '#4361ee' },
+  analyzeBtnSub: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+  analyzeBtnArrow: { fontSize: 18, color: '#4361ee', fontWeight: '700' },
   actions: { marginTop: 8 },
   rejectLabel: { fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 },
   rejectInput: {
