@@ -432,4 +432,16 @@ const styles = StyleSheet.create({
   },
   voiceIcon: { fontSize: 20, marginRight: 10 },
   voiceLabel: { fontSize: 14, fontWeight: '600', color: '#111827', flex: 1 },
+
+  roleSwitcherBtn: {
+    alignSelf: 'flex-end',
+    marginBottom: 10,
+    backgroundColor: '#FFF7ED',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  roleSwitcherBtnText: { color: '#C2410C', fontWeight: '800', fontSize: 12 },
 });

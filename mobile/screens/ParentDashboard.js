@@ -14,6 +14,7 @@ import { BRAND, STATUS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS, WCAG } fro
 import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
 import StatusBadge from '../components/StatusBadge';
+import RoleSwitcherAction from '../components/RoleSwitcherAction';
 const API_URL = API_BASE;
 
 // ─── Helpers ──────────────────────────────────────────
@@ -852,5 +853,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: BRAND.secondary,
+  },
+
+  roleSwitcherBtn: {
+    alignSelf: 'flex-end',
+    marginBottom: 12,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  roleSwitcherBtnText: {
+    color: '#2E7D32',
+    fontWeight: '800',
+    fontSize: 12,
   },
 });
