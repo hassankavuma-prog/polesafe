@@ -1,77 +1,53 @@
-// PoleSafe Ride Event Bus v1
-// Client-side event emitter/consumer for ride lifecycle
-// Enables real-time flow simulation without WebSocket backend
+// PoleSafe Ride Event Bus + Socket.io fallback bridge
+// Provides local eventing and safe hooks for realtime disconnect handling
 // From Home to School. And Beyond. 🚸
 
-// ─── Event Types ─────────────────────────────────────
+import { flushOfflineQueue, setSocketConnected, scheduleFlush } from './offlineSyncService';
+
 export const RIDE_EVENTS = {
   RIDE_REQUESTED: 'RIDE_REQUESTED',
   RIDE_ACCEPTED: 'RIDE_ACCEPTED',
   LOCATION_UPDATE: 'LOCATION_UPDATE',
   PIN_VERIFIED: 'PIN_VERIFIED',
   RIDE_COMPLETED: 'RIDE_COMPLETED',
-  // Phase 11 — Gate Geofencing
   DRIVER_NEAR_GATE: 'DRIVER_NEAR_GATE',
   GATE_CONFIRMED: 'GATE_CONFIRMED',
   GATE_QUEUE_UPDATED: 'GATE_QUEUE_UPDATED',
+  SOS_TRIGGERED: 'SOS_TRIGGERED',
+  QUEUE_FAILED: 'QUEUE_FAILED',
+  QUEUE_FLUSHED: 'QUEUE_FLUSHED',
 };
 
-// ─── Listeners Registry ──────────────────────────────
 const listeners = {};
 
-// ─── Subscribe to an event ───────────────────────────
 export function onRideEvent(event, callback) {
-  if (!RIDE_EVENTS[event]) {
-    console.warn(`[RideSocket] Unknown event: ${event}`);
-    return () => {};
-  }
-  if (!listeners[event]) {
-    listeners[event] = [];
-  }
+  if (!RIDE_EVENTS[event]) return () => {};
+  if (!listeners[event]) listeners[event] = [];
   listeners[event].push(callback);
-
-  // Return unsubscribe function
   return () => {
-    listeners[event] = listeners[event].filter(cb => cb !== callback);
+    listeners[event] = (listeners[event] || []).filter((cb) => cb !== callback);
   };
 }
 
-// ─── Emit an event ───────────────────────────────────
 export function emitRideEvent(event, data) {
-  if (!RIDE_EVENTS[event]) {
-    console.warn(`[RideSocket] Unknown event: ${event}`);
-    return;
-  }
-  console.log(`[RideSocket] Emitting ${event}`, data);
+  if (!RIDE_EVENTS[event]) return;
   const cbs = listeners[event] || [];
-  cbs.forEach(cb => {
-    try {
-      cb(data);
-    } catch (err) {
-      console.error(`[RideSocket] Error in ${event} listener:`, err);
-    }
+  cbs.forEach((cb) => {
+    try { cb(data); } catch (err) { console.error('[RideSocket] listener error', err); }
   });
 }
 
-// ─── Remove all listeners for an event ───────────────
 export function clearRideEvent(event) {
-  if (event) {
-    delete listeners[event];
-  } else {
-    Object.keys(listeners).forEach(k => delete listeners[k]);
-  }
+  if (event) delete listeners[event];
+  else Object.keys(listeners).forEach((k) => delete listeners[k]);
 }
 
-// ─── Get active event count (for debugging) ──────────
 export function getActiveListeners() {
   const counts = {};
-  Object.keys(listeners).forEach(k => {
-    if (listeners[k].length > 0) counts[k] = listeners[k].length;
-  });
+  Object.keys(listeners).forEach((k) => { if ((listeners[k] || []).length) counts[k] = listeners[k].length; });
   return counts;
 }
 
-// ─── Kampala Mock Data ───────────────────────────────
 const KAMPALA_LANDMARKS = {
   pickup: ['Shell Kalerwe', 'Quality Supermarket, Naalya', 'Opposite Rubaga Cathedral', 'Ntinda Trading Centre'],
   dropoff: ['Greenhill Academy Gate', "St. Mary's School, Ntinda", 'Acacia Mall', 'Gayaza Road - Near Shell'],
@@ -87,7 +63,6 @@ const MOCK_DRIVERS = [
   { id: 'drv2', name: 'Peter Wasswa', vehicle: 'Toyota Hiace', plate: 'UBD 891Z', rating: 4.8 },
 ];
 
-// ─── Simulated GPS Route (Kalerwe → Ntinda) ─────────
 const GPS_ROUTE = [
   { lat: 0.3333, lng: 32.5678, label: 'Shell Kalerwe' },
   { lat: 0.3350, lng: 32.5700, label: 'Kalerwe Junction' },
@@ -98,15 +73,23 @@ const GPS_ROUTE = [
   { lat: 0.3500, lng: 32.5880, label: 'Greenhill Academy' },
 ];
 
-// ─── Mock Simulators ─────────────────────────────────
 let simulationInterval = null;
+
+export async function onSocketConnected() {
+  setSocketConnected(true);
+  await flushOfflineQueue({ socketConnected: true });
+}
+
+export function onSocketDisconnected() {
+  setSocketConnected(false);
+  scheduleFlush(() => flushOfflineQueue({ socketConnected: false }), 2500);
+}
 
 export function simulateParentRequest() {
   const kid = MOCK_KIDS[Math.floor(Math.random() * MOCK_KIDS.length)];
   const pickup = KAMPALA_LANDMARKS.pickup[Math.floor(Math.random() * KAMPALA_LANDMARKS.pickup.length)];
   const dropoff = KAMPALA_LANDMARKS.dropoff[Math.floor(Math.random() * KAMPALA_LANDMARKS.dropoff.length)];
   const price = Math.floor(Math.random() * 8000) + 4000;
-
   const rideData = {
     rideId: `sim_${Date.now()}`,
     childId: { id: kid.id, name: kid.name, pickupPin: kid.pin },
@@ -118,7 +101,6 @@ export function simulateParentRequest() {
     status: 'scheduled',
     scheduledPickupTime: new Date().toISOString(),
   };
-
   emitRideEvent(RIDE_EVENTS.RIDE_REQUESTED, rideData);
   return rideData;
 }
@@ -137,30 +119,18 @@ export function simulateDriverAccept() {
 export function simulateGPSMovement(onTick) {
   let index = 0;
   if (simulationInterval) clearInterval(simulationInterval);
-
   simulationInterval = setInterval(() => {
     if (index >= GPS_ROUTE.length) {
       clearInterval(simulationInterval);
       simulationInterval = null;
-      emitRideEvent(RIDE_EVENTS.RIDE_COMPLETED, {
-        status: 'completed',
-        completedAt: new Date().toISOString(),
-        finalLocation: GPS_ROUTE[GPS_ROUTE.length - 1],
-      });
+      emitRideEvent(RIDE_EVENTS.RIDE_COMPLETED, { status: 'completed', completedAt: new Date().toISOString(), finalLocation: GPS_ROUTE[GPS_ROUTE.length - 1] });
       return;
     }
     const point = GPS_ROUTE[index];
-    emitRideEvent(RIDE_EVENTS.LOCATION_UPDATE, {
-      lat: point.lat,
-      lng: point.lng,
-      label: point.label,
-      index,
-      total: GPS_ROUTE.length,
-    });
+    emitRideEvent(RIDE_EVENTS.LOCATION_UPDATE, { lat: point.lat, lng: point.lng, label: point.label, index, total: GPS_ROUTE.length });
     if (onTick) onTick(point, index);
-    index++;
+    index += 1;
   }, 2000);
-
   return () => {
     if (simulationInterval) {
       clearInterval(simulationInterval);
@@ -170,22 +140,12 @@ export function simulateGPSMovement(onTick) {
 }
 
 export function simulatePinVerification(pin) {
-  emitRideEvent(RIDE_EVENTS.PIN_VERIFIED, {
-    pin,
-    verified: true,
-    verifiedAt: new Date().toISOString(),
-  });
+  emitRideEvent(RIDE_EVENTS.PIN_VERIFIED, { pin, verified: true, verifiedAt: new Date().toISOString() });
   return true;
 }
 
 export function simulateTripCompletion() {
-  emitRideEvent(RIDE_EVENTS.RIDE_COMPLETED, {
-    status: 'completed',
-    completedAt: new Date().toISOString(),
-    payout: 12000,
-    paymentMethod: 'momo',
-    rating: 5,
-  });
+  emitRideEvent(RIDE_EVENTS.RIDE_COMPLETED, { status: 'completed', completedAt: new Date().toISOString(), payout: 12000, paymentMethod: 'momo', rating: 5 });
 }
 
 export function stopSimulation() {
@@ -201,6 +161,8 @@ export default {
   emitRideEvent,
   clearRideEvent,
   getActiveListeners,
+  onSocketConnected,
+  onSocketDisconnected,
   simulateParentRequest,
   simulateDriverAccept,
   simulateGPSMovement,
