@@ -15,6 +15,7 @@ import API_BASE from '../config';
 import { BRAND, STATUS, BORDER_RADIUS, SPACING } from '../theme';
 import GlassCard from '../components/GlassCard';
 import HapticFeedback from '../utils/hapticFeedback';
+import { submitForReview, getVerificationStatus, VERIFICATION_STATUS } from '../services/driverVerificationService';
 
 // ─── Document Status ──────────────────────────────────
 const STATUS_META = {
@@ -88,6 +89,19 @@ export default function DriverComplianceHub({ navigation }) {
     safetyInspection: { status: 'missing', icon: '🔧', title: 'Safety Inspection' },
   });
 
+  const loadVerification = async () => {
+    try {
+      const status = await getVerificationStatus();
+      if (status?.docs && Object.keys(status.docs).length) {
+        setDocuments(prev => ({
+          ...prev,
+          driversLicense: { ...prev.driversLicense, status: status.status === VERIFICATION_STATUS.APPROVED ? 'verified' : (status.status === VERIFICATION_STATUS.PENDING ? 'pending' : prev.driversLicense.status) },
+          vehicleRegistration: { ...prev.vehicleRegistration, status: status.status === VERIFICATION_STATUS.APPROVED ? 'verified' : prev.vehicleRegistration.status },
+        }));
+      }
+    } catch {}
+  };
+
   const verifiedCount = Object.values(documents).filter(d => d.status === 'verified').length;
   const totalDocs = Object.keys(documents).length;
   const allVerified = verifiedCount === totalDocs;
@@ -117,11 +131,12 @@ export default function DriverComplianceHub({ navigation }) {
                 setUploading(docKey);
                 // Simulate upload
                 setTimeout(() => {
+                  const payload = { status: 'pending', uploadedAt: new Date().toISOString() };
                   setDocuments(prev => ({
                     ...prev,
                     [docKey]: { ...prev[docKey], status: 'pending' },
                   }));
-                  submitDriverDocuments(docKey);
+                  submitDriverDocuments(docKey, payload);
                   setUploading(null);
                   HapticFeedback.success();
                   Alert.alert('✅ Uploaded!', 'Your document has been submitted for review.');
@@ -144,11 +159,12 @@ export default function DriverComplianceHub({ navigation }) {
               if (!result.canceled) {
                 setUploading(docKey);
                 setTimeout(() => {
+                  const payload = { status: 'pending', uploadedAt: new Date().toISOString() };
                   setDocuments(prev => ({
                     ...prev,
                     [docKey]: { ...prev[docKey], status: 'pending' },
                   }));
-                  submitDriverDocuments(docKey);
+                  submitDriverDocuments(docKey, payload);
                   setUploading(null);
                   HapticFeedback.success();
                   Alert.alert('✅ Uploaded!', 'Your document has been submitted for review.');
@@ -163,18 +179,15 @@ export default function DriverComplianceHub({ navigation }) {
     );
   };
 
-  const submitDriverDocuments = async (docKey) => {
+  const submitDriverDocuments = async (docKey, payload) => {
     try {
-      const token = await AsyncStorage.getItem('polesafe_token');
-      await fetch(`${API_BASE}/api/driver/submit-documents`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docs: { [docKey]: documents[docKey] } }),
-      });
+      await submitForReview(await AsyncStorage.getItem('polesafe_user_id'), { [docKey]: payload });
     } catch (err) {}
   };
 
   const getDocByKey = (key) => documents[key];
+
+  useEffect(() => { loadVerification(); }, []);
 
   return (
     <ScrollView

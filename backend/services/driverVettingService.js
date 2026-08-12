@@ -163,13 +163,18 @@ class DriverVettingService {
     if (!user) throw new Error('Driver not found');
     if (user.role !== 'driver') throw new Error('User is not a driver');
 
-    // Merge submitted docs into user record
-    user.verificationDocs = {
+    const cleanDocs = {
       ...user.verificationDocs,
       ...docs,
     };
+
+    // Merge submitted docs into user record
+    user.verificationDocs = cleanDocs;
     user.verificationStatus = 'pending';
     user.verificationSubmittedAt = new Date();
+    if (cleanDocs.ninNumber && !user.driverIdNumber) {
+      user.driverIdNumber = `PS-DRV-${String(Date.now()).slice(-6)}`;
+    }
     await user.save();
 
     return {

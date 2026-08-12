@@ -9,6 +9,7 @@ const { Ride, Vehicle, Booking, User, WithdrawalRequest } = require('../database
 const routeService = require('../services/routeService');
 const schoolPremiumService = require('../services/schoolPremium');
 const notificationService = require('../services/notificationService');
+const driverVettingService = require('../services/driverVettingService');
 const {
   validateVehicle,
   validateWithdrawal,
@@ -714,3 +715,28 @@ router.post('/rides/:rideId/verify-seatbelt', async (req, res) => {
 });
 
 module.exports = router;
+
+// ============================================================
+// POST /api/drivers/submit-documents — Submit driver onboarding docs
+// ============================================================
+router.post('/submit-documents', async (req, res) => {
+  try {
+    const { docs = {} } = req.body || {};
+    const result = await driverVettingService.submitDocuments(req.userId, docs);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// GET /api/drivers/verification-status — Current verification status
+// ============================================================
+router.get('/verification-status', async (req, res) => {
+  try {
+    const status = await driverVettingService.getVerificationStatus(req.userId);
+    res.json(status);
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+});

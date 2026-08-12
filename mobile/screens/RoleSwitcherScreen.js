@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE from '../config';
-import { isApproved as checkDriverVerified } from '../services/driverVerificationService';
+import { isApproved as checkDriverVerified, getVerificationStatus, VERIFICATION_STATUS } from '../services/driverVerificationService';
 
 const ROLES = [
   { key: 'parent', label: 'Parent / Family', icon: '🏠', desc: 'Book, track, credits, schedules' },
@@ -22,7 +22,10 @@ export default function RoleSwitcherScreen({ navigation, route }) {
   useEffect(() => {
     (async () => {
       const role = (await AsyncStorage.getItem('userRole')) || 'parent';
-      try { setDriverVerified(await checkDriverVerified()); } catch {}
+      try {
+        const v = await getVerificationStatus();
+        setDriverVerified(v?.status === VERIFICATION_STATUS.APPROVED);
+      } catch {}
       const rolesRaw = await AsyncStorage.getItem('userRoles');
       const roles = rolesRaw ? JSON.parse(rolesRaw) : [role];
       const pendingRaw = await AsyncStorage.getItem('pendingRoles');
@@ -84,8 +87,8 @@ export default function RoleSwitcherScreen({ navigation, route }) {
           </TouchableOpacity>
         );
       })}
-      <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Need a new role?', 'Use the Driver Compliance Hub to start driver onboarding, or school support to request admin access.')}>
-        <Text style={styles.linkText}>Need another role?</Text>
+      <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('DriverComplianceHub')}>
+        <Text style={styles.linkText}>Open Driver Compliance Hub</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Parent can drive too', 'If you already have a parent or rider account, you can request driver onboarding. The account stays the same, but driver mode stays locked until documents are reviewed and approved.')}>
         <Text style={styles.linkText}>Parent wants to drive? Add driver mode</Text>
