@@ -235,14 +235,6 @@ export default function SafetyOpsPage() {
     );
   }
 
-  if (!allowed) {
-    return (
-      <SafeAreaView style={styles.center}>
-        <Text style={styles.errorText}>{error || 'Access denied'}</Text>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.container}>
