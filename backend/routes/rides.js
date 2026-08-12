@@ -397,4 +397,90 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// ============================================================
+// Phase 12: POST /api/rides/:id/rate — Rate a driver after ride
+// ============================================================
+router.post('/:id/rate', authMiddleware, async (req, res) => {
+  try {
+    const { rating } = req.body;
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+    const ratingService = require('../services/ratingService');
+    const result = await ratingService.rateDriver({
+      rideId: req.params.id,
+      parentId: req.userId,
+      rating,
+      comment: req.body.comment || '',
+    });
+
+    // Auto-flag low ratings
+    if (rating <= 2) {
+      await ratingService.autoFlagLowRating(req.params.id, rating);
+    }
+
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/rides/:id/safety-checks — Submit safety checks
+router.post('/:id/safety-checks', authMiddleware, async (req, res) => {
+  try {
+    const ratingService = require('../services/ratingService');
+    const result = await ratingService.submitSafetyChecks({
+      rideId: req.params.id,
+      parentId: req.userId,
+      checks: req.body.checks || {},
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/rides/:id/tip — Tip a driver
+router.post('/:id/tip', authMiddleware, async (req, res) => {
+  try {
+    const { amount, method } = req.body;
+    const ratingService = require('../services/ratingService');
+    const result = await ratingService.processTip({
+      rideId: req.params.id,
+      parentId: req.userId,
+      amount: amount || 0,
+      method: method || 'mobile_money',
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/rides/favorite-driver — Toggle favorite driver
+router.post('/favorite-driver', authMiddleware, async (req, res) => {
+  try {
+    const { driverId, favorite } = req.body;
+    const ratingService = require('../services/ratingService');
+    const result = await ratingService.toggleFavoriteDriver({
+      parentId: req.userId,
+      driverId,
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/rides/favorite-drivers — List parent's favorite drivers
+router.get('/favorite-drivers', authMiddleware, async (req, res) => {
+  try {
+    const ratingService = require('../services/ratingService');
+    const favorites = await ratingService.getFavoriteDrivers(req.userId);
+    res.json({ favorites });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

@@ -156,6 +156,168 @@ class RatingService {
       message: 'Report submitted. PoleSafe will review within 24 hours.',
     };
   }
+
+  // ============================================================
+  // Phase 12: Safety Checks
+  // ============================================================
+
+  /**
+   * Submit safety checks for a completed ride
+   */
+  async submitSafetyChecks({ rideId, parentId, checks }) {
+    const ride = await Ride.findOne({ _id: rideId, parentId });
+    if (!ride) throw new Error('Ride not found');
+
+    ride.safetyChecks = {
+      helmetProvided: checks.helmetProvided ?? null,
+      pinVerified: checks.pinVerified ?? null,
+      safeSpeed: checks.safeSpeed ?? null,
+      politeRide: checks.politeRide ?? null,
+      onTimePickup: checks.onTimePickup ?? null,
+    };
+    ride.safetyReviewSubmitted = true;
+    ride.safetyReviewSubmittedAt = new Date();
+    ride.updatedAt = new Date();
+    await ride.save();
+
+    return {
+      rideId,
+      safetyChecks: ride.safetyChecks,
+      submitted: true,
+    };
+  }
+
+  // ============================================================
+  // Phase 12: Tip Processing
+  // ============================================================
+
+  /**
+   * Process a tip for a driver after a ride
+   */
+  async processTip({ rideId, parentId, amount, method }) {
+    if (amount < 0) throw new Error('Tip amount cannot be negative');
+    if (amount <= 0) {
+      return { rideId, tipped: false, amount: 0, message: 'No tip selected' };
+    }
+
+    const ride = await Ride.findOne({ _id: rideId, parentId }).populate('driverId');
+    if (!ride) throw new Error('Ride not found');
+
+    ride.tipAmount = amount;
+    ride.tipCurrency = 'UGX';
+    ride.tipMethod = method || 'mobile_money';
+    ride.tipProcessed = true;
+    ride.tipProcessedAt = new Date();
+    ride.updatedAt = new Date();
+    await ride.save();
+
+    // Add tip to driver's earnings
+    if (ride.driverId) {
+      const driver = await User.findById(ride.driverId._id);
+      if (driver) {
+        driver.earningsBalance = (driver.earningsBalance || 0) + amount;
+        driver.lifetimeEarnings = (driver.lifetimeEarnings || 0) + amount;
+        await driver.save();
+      }
+    }
+
+    // Notify driver about tip
+    await notificationService.send({
+      userId: ride.driverId._id,
+      phone: ride.driverId.phone,
+      preferredChannel: 'whatsapp',
+      template: 'default',
+      data: {
+        message: `💝 You received a tip of UGX ${amount.toLocaleString()}!\n\nGreat service appreciated! -PoleSafe`,
+      },
+      type: 'alert',
+    });
+
+    return {
+      rideId,
+      tipped: true,
+      amount,
+      method: ride.tipMethod,
+      message: `Tip of UGX ${amount.toLocaleString()} sent to driver.`,
+    };
+  }
+
+  // ============================================================
+  // Phase 12: Favorite Drivers
+  // ============================================================
+
+  /**
+   * Toggle a driver as favorite for a parent
+   */
+  async toggleFavoriteDriver({ parentId, driverId }) {
+    const { FavoriteDriver } = require('../database/schema');
+    const existing = await FavoriteDriver.findOne({ parentId, driverId });
+
+    if (existing) {
+      await existing.deleteOne();
+      return { parentId, driverId, favorited: false };
+    }
+
+    await FavoriteDriver.create({ parentId, driverId });
+    return { parentId, driverId, favorited: true };
+  }
+
+  /**
+   * Get all favorite drivers for a parent
+   */
+  async getFavoriteDrivers(parentId) {
+    const { FavoriteDriver } = require('../database/schema');
+    const favorites = await FavoriteDriver.find({ parentId })
+      .populate('driverId', 'name phone driverIdNumber driverPhotoUrl rating');
+    return favorites.map(f => ({
+      driverId: f.driverId._id,
+      name: f.driverId.name,
+      phone: f.driverId.phone,
+      driverIdNumber: f.driverId.driverIdNumber,
+      photoUrl: f.driverId.driverPhotoUrl,
+      addedAt: f.createdAt,
+    }));
+  }
+
+  /**
+   * Check if a driver is a favorite for a parent
+   */
+  async isFavoriteDriver(parentId, driverId) {
+    const { FavoriteDriver } = require('../database/schema');
+    const existing = await FavoriteDriver.findOne({ parentId, driverId });
+    return !!existing;
+  }
+
+  // ============================================================
+  // Phase 12: Auto-flag low ratings
+  // ============================================================
+
+  /**
+   * Auto-flag rides with 1-2 star ratings for safety team review
+   * Called automatically after rateDriver if rating <= 2
+   */
+  async autoFlagLowRating(rideId, rating) {
+    if (rating > 2) return null;
+
+    const ride = await Ride.findById(rideId).populate('driverId childId');
+    if (!ride) return null;
+
+    ride.flagged = true;
+    ride.flagReason = rating === 1
+      ? `Auto-flagged: Parent reported unsafe experience (1 star). Safety team review required.`
+      : `Auto-flagged: Parent reported issues (2 stars). Safety team review recommended.`;
+    ride.flaggedBy = ride.parentId;
+    ride.updatedAt = new Date();
+    await ride.save();
+
+    return {
+      flagged: true,
+      rideId,
+      rating,
+      reason: ride.flagReason,
+      message: 'Ride flagged for safety team review. We will investigate within 24 hours.',
+    };
+  }
 }
 
 module.exports = new RatingService();

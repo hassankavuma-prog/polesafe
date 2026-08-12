@@ -13,6 +13,7 @@ import API_BASE from '../config';
 import { BRAND, STATUS, getTheme, BORDER_RADIUS } from '../theme';
 import GlassCard from '../components/GlassCard';
 import SOSButton from '../components/SOSButton';
+import PostTripReviewModal from '../components/PostTripReviewModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -54,6 +55,8 @@ export default function ParentTrack({ route, navigation }) {
   const [ride, setRide] = useState(null);
   const [loading, setLoading] = useState(true);
   const [etaMinutes, setEtaMinutes] = useState(null);
+  const [showReview, setShowReview] = useState(false);
+  const [showReviewTriggered, setShowReviewTriggered] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -104,6 +107,12 @@ export default function ParentTrack({ route, navigation }) {
         if (res.ok) {
           const data = await res.json();
           setRide(data.ride || data);
+          // Show review modal when ride completes (one-time trigger)
+          const rideData = data.ride || data;
+          if (rideData?.status === 'completed' && !showReviewTriggered) {
+            setShowReview(true);
+            setShowReviewTriggered(true);
+          }
           // Simulate ETA
           if (data.ride?.status === 'en_route') {
             setEtaMinutes(Math.max(1, Math.round(Math.random() * 10 + 2)));
@@ -389,6 +398,15 @@ export default function ParentTrack({ route, navigation }) {
 
         <View style={{ height: 40 }} />
       </Animated.View>
+
+      {/* Post-Trip Review Modal */}
+      <PostTripReviewModal
+        visible={showReview}
+        rideId={rideId}
+        driverId={ride?.driverId?._id}
+        driverName={ride?.driverId?.name}
+        onClose={() => setShowReview(false)}
+      />
     </View>
   );
 }

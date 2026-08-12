@@ -326,9 +326,37 @@ const rideSchema = new mongoose.Schema({
     reassignment: { type: Boolean, default: false },
   },
 
+  // Phase 12: Parent safety checks (post-ride review)
+  safetyChecks: {
+    helmetProvided: { type: Boolean, default: null },
+    pinVerified: { type: Boolean, default: null },
+    safeSpeed: { type: Boolean, default: null },
+    politeRide: { type: Boolean, default: null },
+    onTimePickup: { type: Boolean, default: null },
+  },
+  safetyReviewSubmitted: { type: Boolean, default: false },
+  safetyReviewSubmittedAt: { type: Date },
+
+  // Phase 12: Tip
+  tipAmount: { type: Number, default: 0 },
+  tipCurrency: { type: String, default: 'UGX' },
+  tipMethod: { type: String, enum: ['mobile_money', 'card', 'none', null], default: null },
+  tipProcessed: { type: Boolean, default: false },
+  tipProcessedAt: { type: Date },
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
+
+// ============================================================
+// FAVORITE DRIVER — Parent saves preferred drivers
+// ============================================================
+const favoriteDriverSchema = new mongoose.Schema({
+  parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+favoriteDriverSchema.index({ parentId: 1, driverId: 1 }, { unique: true });
 
 // ============================================================
 // BOOKING — Weekly/monthly/termly subscription
