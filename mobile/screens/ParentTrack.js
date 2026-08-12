@@ -185,6 +185,24 @@ export default function ParentTrack({ route, navigation }) {
         </View>
       </View>
 
+      {/* Security PIN Card */}
+      {rideId && (
+        <View style={{ marginHorizontal: 16, marginTop: 4, marginBottom: 2, backgroundColor: '#1A2847', borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <Text style={{ fontSize: 20, marginRight: 10 }}>🔐</Text>
+            <View>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#93C5FD' }}>Child Verification PIN</Text>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: 2 }}>{ride?.childId?.pickupPin || '0000'}</Text>
+            </View>
+          </View>
+          <View style={{ backgroundColor: ride?.status === 'picked_up' || ride?.status === 'dropped_off' || ride?.status === 'gate_confirmed' ? '#166534' : '#92400E', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff' }}>
+              {ride?.status === 'picked_up' || ride?.status === 'dropped_off' || ride?.status === 'gate_confirmed' || ride?.status === 'completed' ? '✅ Verified at Pickup' : '⏳ Awaiting Handshake'}
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* Map Area */}
       <View style={styles.mapArea}>
         <View style={styles.mapPlaceholder}>
@@ -269,7 +287,7 @@ export default function ParentTrack({ route, navigation }) {
                   <Text style={{ fontSize: 10, fontWeight: '700', color: '#2E7D32' }}>✅ Background Checked</Text>
                 </View>
                 <View style={{ backgroundColor: '#FFF8E1', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#92400E' }}>🩹 First Aid Certified</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#92400E' }}>⛑️ Passenger Helmet Provided</Text>
                 </View>
               </View>
             </View>
@@ -355,6 +373,17 @@ export default function ParentTrack({ route, navigation }) {
             <Text style={styles.detailEmoji}>🏁</Text>
             <Text style={styles.detailLabel}>Drop-off</Text>
             <Text style={styles.detailValue}>{ride?.dropoffLocation || 'Home'}</Text>
+          </View>
+          {/* Payment Method Badge */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginTop: 6, borderTopWidth: 1, borderTopColor: '#F3F4F6' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 14, marginRight: 6 }}>💳</Text>
+              <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600' }}>Payment</Text>
+            </View>
+            <View style={{ backgroundColor: '#FFF8E1', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 12, marginRight: 4 }}>🟡</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#92400E' }}>MTN MoMo - UGX {((ride?.price || 5000)).toLocaleString('en-UG')}</Text>
+            </View>
           </View>
         </GlassCard>
 
