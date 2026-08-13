@@ -160,10 +160,10 @@ tr:hover{background:#f8f9ff}
 </div>
 
 <script>
-const API = '/api';
-let token = localStorage.getItem('schoolToken');
-let user = null;
-let schoolId = null;
+    const API = '/api';
+    let token = localStorage.getItem('schoolToken');
+    let user = null;
+    let schoolId = null;
 
 function msg(text, type='success') {
   const box = document.getElementById('msgBox') || document.getElementById('loginMsg');
@@ -180,12 +180,12 @@ async function api(path, opts={}) {
   return d;
 }
 
-document.getElementById('loginForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  try {
-    const d = await api('/auth/login', {
-      method:'POST',
-      body:JSON.stringify({phone: document.getElementById('phone').value, pin: document.getElementById('pin').value})
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      try {
+        const d = await api('/auth/login', {
+          method:'POST',
+          body:JSON.stringify({phone: document.getElementById('phone').value, pin: document.getElementById('pin').value})
     });
     if (d.user.role !== 'school_admin') throw new Error('School admin access only');
     token = d.token;
@@ -203,7 +203,20 @@ function logout() {
   schoolId = null;
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('dashboard').style.display = 'none';
-}
+    }
+
+    async function loginAsSchoolAdminByPhone(phone, pin) {
+      const d = await api('/auth/login', {
+        method:'POST',
+        body:JSON.stringify({ phone, pin })
+      });
+      if (d.user.role !== 'school_admin') throw new Error('School admin access only');
+      token = d.token;
+      localStorage.setItem('schoolToken', token);
+      user = d.user;
+      schoolId = d.user.schoolId;
+      showDashboard();
+    }
 
 async function showDashboard() {
   document.getElementById('loginScreen').style.display = 'none';
