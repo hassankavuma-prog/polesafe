@@ -46,6 +46,7 @@ import AttendanceReport from './screens/AttendanceReport';
 import TeacherPickupVerify from './screens/TeacherPickupVerify';
 import CommunityBoard from './screens/CommunityBoard';
 import CommunityBlog from './screens/CommunityBlog';
+import BlogDetail from './screens/BlogDetail';
 import FeatureVoting from './screens/FeatureVoting';
 import NewPost from './screens/NewPost';
 import MultiKidDashboard from './screens/MultiKidDashboard';
@@ -382,6 +383,7 @@ const SHARED_SCREENS = [
   ['SchoolDetention', SchoolDetention, { title: 'Late Pickup', color: BRAND.teal }],
   ['CommunityBoard', CommunityBoard, { title: 'Safety Board', color: BRAND.primary }],
   ['CommunityBlog', CommunityBlog, { title: 'Community Blog', color: BRAND.primary }],
+  ['BlogDetail', BlogDetail, { title: 'Article', color: BRAND.primary }],
   ['FeatureVoting', FeatureVoting, { title: 'Feature Voting', color: BRAND.primary }],
   ['NewPost', NewPost, { title: 'New Post', color: BRAND.primary }],
   ['MultiKidDashboard', MultiKidDashboard, { title: 'All Kids', color: BRAND.primary }],

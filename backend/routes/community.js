@@ -4,7 +4,9 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const { z } = require('zod');
 const { authMiddleware } = require('../middleware/auth');
+const { validateTenantScopedQuery } = require('../middleware/tenant');
 // optionalAuth: attach user if token present, don't reject if missing
 const optionalAuth = (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -47,13 +49,104 @@ async function checkReputation(req, res, next) {
 function getDisplayName(user) {
   const roleLabels = {
     parent: 'Parent',
+    teacher: 'Teacher',
     driver: 'Driver', 
     school: 'School Staff',
-    rider: 'Community Rider'
+    rider: 'Community Rider',
+    community: 'Community Member'
   };
   const role = roleLabels[user.role] || 'User';
   const location = user.location || (user.schoolName ? user.schoolName : 'Uganda');
   return `${role} · ${location}`;
+}
+
+function normalizeCommunityRole(role = '') {
+  if (role === 'teacher' || role === 'school' || role === 'parent' || role === 'driver' || role === 'rider' || role === 'community') {
+    return role;
+  }
+  return 'community';
+}
+
+function buildAuthorBadge(user) {
+  const role = normalizeCommunityRole(user?.role);
+  const roleBadgeMap = {
+    parent: 'Parent',
+    teacher: 'Teacher',
+    school: 'School Staff',
+    driver: 'Driver',
+    rider: 'Community Rider',
+    community: 'Community Member',
+  };
+  return roleBadgeMap[role] || 'Community Member';
+}
+
+function sanitizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  return tags.map(t => String(t).trim().toLowerCase()).filter(Boolean).slice(0, 8);
+}
+
+function sanitizeExcerpt(body, excerpt) {
+  const cleanExcerpt = typeof excerpt === 'string' ? excerpt.trim() : '';
+  if (cleanExcerpt) return cleanExcerpt.slice(0, 300);
+  return String(body || '').trim().slice(0, 250);
+}
+
+function normalizeBlogCategory(category) {
+  const allowed = new Set(['parenting', 'safety_tips', 'teaching', 'polesafe_updates', 'community_voices', 'other']);
+  return allowed.has(category) ? category : 'community_voices';
+}
+
+function categoryLabel(category) {
+  const map = {
+    parenting: 'Parenting Tips',
+    safety_tips: 'Safety Tips',
+    teaching: 'Teaching',
+    polesafe_updates: 'PoleSafe Updates',
+    community_voices: 'Community Voices',
+    other: 'Other',
+  };
+  return map[category] || 'Community Voices';
+}
+
+function toBlogView(post) {
+  if (!post) return post;
+  const obj = typeof post.toObject === 'function' ? post.toObject() : post;
+  return {
+    ...obj,
+    authorBadge: obj.authorBadge || buildAuthorBadge(obj),
+    reviewStatus: obj.reviewStatus || obj.moderationStatus,
+    isFeatured: Boolean(obj.isFeatured),
+    categoryLabel: obj.categoryLabel || categoryLabel(obj.category),
+  };
+}
+
+function blogEditorTemplates() {
+  return [
+    {
+      id: 'parenting',
+      title: 'Parenting guidance',
+      category: 'parenting',
+      prompt: 'Share practical advice for parents about school transport, routines, or child safety.',
+    },
+    {
+      id: 'safety',
+      title: 'Safety update',
+      category: 'safety_tips',
+      prompt: 'Share a road safety lesson, pickup tip, or child protection reminder.',
+    },
+    {
+      id: 'school',
+      title: 'School communication',
+      category: 'teaching',
+      prompt: 'Share a note, lesson, or school-community coordination idea.',
+    },
+    {
+      id: 'community',
+      title: 'Community voice',
+      category: 'community_voices',
+      prompt: 'Share a story, lesson, or question from the wider community.',
+    },
+  ];
 }
 
 // ============================================================
@@ -125,7 +218,7 @@ router.post('/posts', authMiddleware, checkReputation, async (req, res, next) =>
     
     const post = await CommunityPost.create({
       userId: req.user.id,
-      userRole: req.user.role,
+      userRole: normalizeCommunityRole(req.user.role),
       displayName: getDisplayName(req.user),
       location: req.user.location || 'Uganda',
       type,
@@ -265,10 +358,16 @@ router.post('/posts/:id/comments', authMiddleware, checkReputation, async (req, 
 // ============================================================
 router.get('/blog', optionalAuth, async (req, res, next) => {
   try {
-    const { category, page = 1, limit = 10 } = req.query;
+    const { category, page = 1, limit = 10, status = 'published' } = req.query;
     const query = { published: true, moderationStatus: 'approved' };
     
-    if (category && category !== 'all') query.category = category;
+    if (category && category !== 'all') query.category = normalizeBlogCategory(category);
+    if (status === 'all' && req.user) {
+      query.$or = [
+        { published: true, moderationStatus: 'approved' },
+        { userId: req.user.id },
+      ];
+    }
     
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
@@ -276,12 +375,23 @@ router.get('/blog', optionalAuth, async (req, res, next) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit))
-      .select('-body') // Don't send full body in list
+      .select('-body')
       .lean();
     
     const total = await BlogPost.countDocuments(query);
-    
-    res.json({ posts, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) });
+
+    res.json({
+      posts: posts.map(post => ({
+        ...post,
+        authorBadge: post.authorBadge || buildAuthorBadge(post),
+        reviewStatus: post.moderationStatus,
+        isFeatured: Boolean(post.isFeatured),
+        categoryLabel: post.categoryLabel || categoryLabel(post.category),
+      })),
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit)),
+    });
   } catch (e) {
     next(e);
   }
@@ -295,11 +405,14 @@ router.get('/blog/:id', optionalAuth, async (req, res, next) => {
     const postScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.user?.id || 'community', ['community:blog']);
     const post = await BlogPost.findById(postScope.tenantScopedQuery.id);
     if (!post) return res.status(404).json({ error: 'Blog post not found' });
+    if (!post.published && post.userId.toString() !== String(req.user?.id || '')) {
+      return res.status(403).json({ error: 'This post is awaiting Hamna approval.' });
+    }
     
     post.viewCount += 1;
     await post.save();
     
-    res.json({ post });
+    res.json({ post: toBlogView(post) });
   } catch (e) {
     next(e);
   }
@@ -310,32 +423,44 @@ router.get('/blog/:id', optionalAuth, async (req, res, next) => {
 // ============================================================
 router.post('/blog', authMiddleware, checkReputation, async (req, res, next) => {
   try {
-    const { title, body, excerpt, category = 'community_voices', tags = [] } = req.body;
+    const { title, body, excerpt, category = 'community_voices', tags = [], authorBio = '' } = req.body;
     
     if (!title || !body) {
       return res.status(400).json({ error: 'Title and body are required' });
     }
+
+    const cleanTitle = String(title).trim().slice(0, 200);
+    const cleanBody = String(body).trim();
+    const cleanExcerpt = sanitizeExcerpt(cleanBody, excerpt);
+    const cleanTags = sanitizeTags(tags);
+    const cleanCategory = normalizeBlogCategory(category);
     
-    // Moderate blog content
-    const modResult = await moderateContent({ title, body }, 'blog');
+    const modResult = await moderateContent({ title: cleanTitle, body: cleanBody, role: req.user.role }, 'blog');
     
-    // Detect language
-    const languageResult = await aiService.detectLanguage(body).catch(() => ({ language: 'en' }));
+    const languageResult = await aiService.detectLanguage(cleanBody).catch(() => ({ language: 'en' }));
+    const authorBadge = buildAuthorBadge(req.user);
+    const needsManualReview = modResult.status !== 'approved' || ['community', 'rider'].includes(normalizeCommunityRole(req.user.role));
     
     const post = await BlogPost.create({
       userId: req.user.id,
-      userRole: req.user.role,
+      userRole: normalizeCommunityRole(req.user.role),
       authorName: req.body.authorName || getDisplayName(req.user),
-      authorBio: req.body.authorBio || '',
-      title,
-      body,
-      excerpt: excerpt || body.substring(0, 250),
-      category,
-      tags,
-      moderationStatus: modResult.status,
+      authorBio: String(authorBio || '').trim().slice(0, 500),
+      authorBadge,
+      categoryLabel: categoryLabel(cleanCategory),
+      title: cleanTitle,
+      body: cleanBody,
+      excerpt: cleanExcerpt,
+      category: cleanCategory,
+      tags: cleanTags,
+      moderationStatus: needsManualReview ? 'pending' : modResult.status,
       moderationReason: modResult.reason || '',
       originalLanguage: languageResult.language || 'en',
-      published: modResult.status === 'approved',
+      translatedForModeration: languageResult.language && languageResult.language !== 'en',
+      published: !needsManualReview && modResult.status === 'approved',
+      isFeatured: false,
+      featuredBy: null,
+      featuredAt: null,
     });
     
     await UserReputation.findOneAndUpdate(
@@ -345,8 +470,8 @@ router.post('/blog', authMiddleware, checkReputation, async (req, res, next) => 
     );
     
     res.status(201).json({ 
-      post, 
-      note: modResult.status === 'pending' ? 'Your post is being reviewed and will be published once approved.' : undefined
+      post: toBlogView(post),
+      note: post.moderationStatus === 'pending' ? 'Your post is being reviewed by Hamna and will be published once approved.' : undefined
     });
   } catch (e) {
     next(e);
@@ -407,7 +532,7 @@ router.post('/features', authMiddleware, async (req, res, next) => {
     
     const feature = await FeatureSuggestion.create({
       userId: req.user.id,
-      userRole: req.user.role,
+      userRole: normalizeCommunityRole(req.user.role),
       title,
       description,
       category,
@@ -499,6 +624,43 @@ router.get('/categories', (req, res) => {
       { id: 'other', label: '📌 Other', icon: '📌' },
     ],
   });
+});
+
+// ============================================================
+// GET /api/community/blog/templates — Editor templates and prompts
+// ============================================================
+router.get('/blog/templates', (req, res) => {
+  res.json({
+    templates: blogEditorTemplates(),
+    defaultGuidance: [
+      'Write for parents, teachers, or the community.',
+      'Keep it practical, respectful, and specific to school transport, child safety, or community learning.',
+      'Hamna reviews every blog post before publishing.',
+    ],
+  });
+});
+
+// ============================================================
+// PATCH /api/community/blog/:id/feature — Feature a published article
+// ============================================================
+router.patch('/blog/:id/feature', authMiddleware, async (req, res, next) => {
+  try {
+    if (req.user.role !== 'school') {
+      return res.status(403).json({ error: 'Only administrators can feature articles' });
+    }
+
+    const blog = await BlogPost.findById(req.params.id);
+    if (!blog) return res.status(404).json({ error: 'Blog post not found' });
+
+    blog.isFeatured = Boolean(req.body.featured);
+    blog.featuredBy = blog.isFeatured ? req.user.id : null;
+    blog.featuredAt = blog.isFeatured ? new Date() : null;
+    await blog.save();
+
+    res.json({ post: toBlogView(blog) });
+  } catch (e) {
+    next(e);
+  }
 });
 
 // ============================================================

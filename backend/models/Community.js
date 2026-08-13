@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 // ============================================================
 const communityPostSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  userRole: { type: String, enum: ['parent', 'driver', 'school', 'rider'], required: true },
+  userRole: { type: String, enum: ['parent', 'teacher', 'driver', 'school', 'rider', 'community'], required: true },
   displayName: { type: String, default: '' }, // Masked name shown publicly
   location: { type: String, default: '' }, // e.g. "Kampala", "St Mary's School"
   
@@ -46,7 +46,7 @@ communityPostSchema.index({ type: 1, createdAt: -1 });
 const commentSchema = new mongoose.Schema({
   postId: { type: mongoose.Schema.Types.ObjectId, ref: 'CommunityPost', required: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  userRole: { type: String, enum: ['parent', 'driver', 'school', 'rider'], required: true },
+  userRole: { type: String, enum: ['parent', 'teacher', 'driver', 'school', 'rider', 'community'], required: true },
   displayName: { type: String, default: '' },
   location: { type: String, default: '' },
   
@@ -68,8 +68,9 @@ commentSchema.index({ userId: 1 });
 // ============================================================
 const blogPostSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  userRole: { type: String, enum: ['parent', 'driver', 'school', 'rider'], required: true },
+  userRole: { type: String, enum: ['parent', 'teacher', 'driver', 'school', 'rider', 'community'], required: true },
   authorName: { type: String, required: true }, // Chosen display name (can be real or pseudonym)
+  authorBadge: { type: String, default: 'Community Member' },
   authorBio: { type: String, default: '', maxlength: 500 },
   
   title: { type: String, required: true, maxlength: 200 },
@@ -84,6 +85,12 @@ const blogPostSchema = new mongoose.Schema({
   // Hamna moderation
   moderationStatus: { type: String, enum: ['pending', 'approved', 'rejected', 'flagged'], default: 'pending' },
   moderationReason: { type: String, default: '' },
+  reviewStatus: { type: String, default: 'pending' },
+  isFeatured: { type: Boolean, default: false },
+  featuredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  featuredAt: { type: Date, default: null },
+  categoryLabels: [{ type: String }],
+  editedAt: { type: Date, default: null },
   
   // Stats
   viewCount: { type: Number, default: 0 },
@@ -108,7 +115,7 @@ blogPostSchema.index({ tags: 1 });
 // ============================================================
 const featureSuggestionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  userRole: { type: String, enum: ['parent', 'driver', 'school', 'rider'], required: true },
+  userRole: { type: String, enum: ['parent', 'teacher', 'driver', 'school', 'rider', 'community'], required: true },
   
   title: { type: String, required: true, maxlength: 150 },
   description: { type: String, required: true, maxlength: 5000 },
