@@ -69,6 +69,7 @@ function BookingWidget() {
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
   const [result, setResult] = useState<string>('');
+  const [bookingMeta, setBookingMeta] = useState<{ rideId?: string; txRef?: string; flwRef?: string; checkoutUrl?: string }>({});
 
   const routeHint = useMemo(() => mode === 'school'
     ? 'School ride booking will create a trip request for the operations team to confirm.'
@@ -107,10 +108,32 @@ function BookingWidget() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Booking failed');
 
+      if (mode === 'community') {
+        const amount = Number(data.price?.total || 0);
+        if (amount > 0) {
+          const payResponse = await fetch('/api/payments/momo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount,
+              provider: 'mtn',
+              narration: `PoleSafe ride booking ${data.ride?._id || ''}`,
+              rideId: data.ride?._id,
+            }),
+          });
+          const payData = await payResponse.json();
+          if (!payResponse.ok) throw new Error(payData.error || 'Payment initiation failed');
+          setBookingMeta({ rideId: data.ride?._id, txRef: payData.txRef, flwRef: payData.flwRef });
+          setResult(`Ride requested. Fare: ${amount} UGX • Payment initiated via MTN MoMo. Confirm on your phone.`);
+        } else {
+          setBookingMeta({ rideId: data.ride?._id });
+          setResult(`Ride requested successfully. Driver: ${data.driver?.name || 'pending'} • Fare: pending`);
+        }
+      } else {
+        setBookingMeta({ rideId: data._id || data.trip?._id });
+        setResult(`School trip created successfully. Trip status: ${data.status || 'open'} • Ops will confirm next.`);
+      }
       setStatus('done');
-      setResult(mode === 'community'
-        ? `Ride requested successfully. Driver: ${data.driver?.name || 'pending'} • Fare: ${data.price?.total ? `${data.price.total} UGX` : 'pending'}`
-        : `School trip created successfully. Trip status: ${data.status || 'open'} • Ops will confirm next.`);
     } catch (err: any) {
       setStatus('error');
       setResult(err.message || 'Booking failed');
@@ -166,6 +189,15 @@ function BookingWidget() {
               {status === 'submitting' ? 'Submitting...' : 'Book ride now'}
             </button>
             {result && <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${status === 'done' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200' : 'border-red-500/20 bg-red-500/10 text-red-200'}`}>{result}</div>}
+            {bookingMeta.rideId && status === 'done' && (
+              <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-xs text-slate-300">
+                <div>Booking ID: {bookingMeta.rideId}</div>
+                {bookingMeta.flwRef && <div>Payment Ref: {bookingMeta.flwRef}</div>}
+                <div className="mt-2">
+                  <Link href="/ride/tracker" className="text-sky-300 underline">Open live tracker</Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
