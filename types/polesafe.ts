@@ -13,6 +13,20 @@ export type UserRole = 'parent' | 'driver' | 'school_admin' | 'polesafe_admin' |
 
 export type OrganizationKind = 'platform' | 'district' | 'school_group' | 'school';
 
+export type OperationalConfidence =
+  | 'confirmed'
+  | 'inferred'
+  | 'delayed'
+  | 'offline-received'
+  | 'manually-verified';
+
+export interface ConfidenceStamped {
+  confidence: OperationalConfidence;
+  confidenceNote?: string;
+  confidenceSource?: string;
+  confidenceUpdatedAt?: string;
+}
+
 export interface Organization {
   id: string;
   name: string;
@@ -72,7 +86,7 @@ export interface DriverComplianceVault {
   documents?: ComplianceDocument[];
 }
 
-export interface SmsUssdFallbackPayload {
+export interface SmsUssdFallbackPayload extends ConfidenceStamped {
   messageId: string;
   senderPhone: string;
   gatewayProvider: 'africas_talking' | 'twilio' | 'custom_ussd';
@@ -85,7 +99,7 @@ export interface SmsUssdFallbackPayload {
   campusId?: string;
 }
 
-export interface UssdSessionPayload {
+export interface UssdSessionPayload extends ConfidenceStamped {
   sessionId: string;
   senderPhone: string;
   serviceCode: string;
@@ -96,7 +110,7 @@ export interface UssdSessionPayload {
   success: boolean;
 }
 
-export interface TransportLedgerTransaction {
+export interface TransportLedgerTransaction extends ConfidenceStamped {
   transactionId: string;
   organizationId: string;
   parentId: string;
@@ -105,6 +119,8 @@ export interface TransportLedgerTransaction {
   status: 'success' | 'pending' | 'failed';
   termReference: string;
   createdAt: string;
+  paymentMatchStatus?: 'matched' | 'pending' | 'reconciled' | 'failed';
+  paymentProvider?: 'mtn_momo' | 'airtel_money' | 'unknown';
 }
 
 export type SafetyIncident = {
@@ -156,4 +172,33 @@ export interface SafetyOpsTenantContext {
   campusId?: string;
   role: UserRole;
   dispatcherRole?: z.infer<typeof dispatcherRoleSchema>;
+}
+
+export interface OperationalEvent extends ConfidenceStamped {
+  eventId: string;
+  eventType:
+    | 'child_checkin'
+    | 'child_checkout'
+    | 'ride_update'
+    | 'vehicle_telemetry'
+    | 'payment'
+    | 'sos'
+    | 'school_gate'
+    | 'sms_log';
+  actorRole?: UserRole | 'dispatcher' | 'school_admin' | 'student';
+  actorId?: string;
+  organizationId?: string;
+  schoolId?: string;
+  campusId?: string;
+  childId?: string;
+  rideId?: string;
+  vehicleId?: string;
+  incidentId?: string;
+  transactionId?: string;
+  messageId?: string;
+  occurredAt: string;
+  summary: string;
+  sourceChannel?: 'app' | 'sms' | 'ussd' | 'telemetry' | 'payment_gateway' | 'manual';
+  privacyMasked?: boolean;
+  metadata?: Record<string, unknown>;
 }

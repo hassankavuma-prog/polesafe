@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { CheckCircle2, Clock3, FileCheck2, ShieldAlert, Truck, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock3, FileCheck2, Mic2, PhoneCall, ShieldAlert, Smartphone, Truck, WifiOff, XCircle } from 'lucide-react';
 import type { DriverComplianceVault } from '../../types/polesafe';
 
 export const metadata: Metadata = {
@@ -45,17 +45,17 @@ export default function DriverDashboardPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <section className="border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-orange-300">
                 <Truck className="h-3.5 w-3.5" /> Driver operations
               </div>
               <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                Driver compliance vault
+                Driver stress mode
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-                Review route status, trip readiness, and compliance documents in one clean operations view.
+                Big controls, offline-friendly flow, and one-tap SOS for low-end Android devices in the field.
               </p>
             </div>
 
@@ -73,57 +73,64 @@ export default function DriverDashboardPage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:px-8 xl:grid-cols-[0.95fr_1.05fr]">
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="space-y-6">
-          <div className="glass-strong rounded-3xl p-6 shadow-2xl shadow-black/20">
+          <div className="glass-strong rounded-3xl p-5 shadow-2xl shadow-black/20 sm:p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold text-white">Trip readiness</h2>
-                <p className="mt-1 text-sm text-slate-400">Daily operational state for the assigned route.</p>
+                <h2 className="text-xl font-semibold text-white">Panic response</h2>
+                <p className="mt-1 text-sm text-slate-400">Single action for emergencies, even when the network is weak.</p>
               </div>
               <ShieldAlert className="h-5 w-5 text-orange-300" />
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <button className="mt-6 flex w-full items-center justify-center gap-3 rounded-[1.5rem] bg-red-500 px-6 py-5 text-lg font-semibold text-white shadow-lg shadow-red-950/30 transition active:scale-[0.99] sm:min-h-[88px]">
+              <PhoneCall className="h-6 w-6" />
+              ONE-TAP SOS
+            </button>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-4">
-                <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Current vehicle</div>
-                <div className="mt-2 text-lg font-semibold text-white">UAX 482B</div>
-                <div className="mt-1 text-sm text-slate-400">Service Toyota Hiace</div>
+                <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Fallback mode</div>
+                <div className="mt-2 flex items-center gap-2 text-sm text-slate-200">
+                  <WifiOff className="h-4 w-4 text-amber-300" /> Offline queue enabled
+                </div>
+                <div className="mt-1 text-sm text-slate-400">Actions sync automatically when signal returns.</div>
               </div>
               <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-4">
-                <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Next checkpoint</div>
-                <div className="mt-2 text-lg font-semibold text-white">Main Campus</div>
-                <div className="mt-1 text-sm text-slate-400">07:55 arrival window</div>
+                <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Handset profile</div>
+                <div className="mt-2 flex items-center gap-2 text-sm text-slate-200">
+                  <Smartphone className="h-4 w-4 text-emerald-300" /> Low-end Android optimized
+                </div>
+                <div className="mt-1 text-sm text-slate-400">Large targets and reduced visual noise.</div>
               </div>
             </div>
           </div>
 
-          <div className="glass rounded-3xl p-6">
+          <div className="glass rounded-3xl p-5 sm:p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold text-white">Activity timeline</h2>
-                <p className="mt-1 text-sm text-slate-400">Latest driver-side operational events.</p>
+                <h2 className="text-xl font-semibold text-white">Tap-friendly daily actions</h2>
+                <p className="mt-1 text-sm text-slate-400">Short list, large buttons, and no hunting through menus.</p>
               </div>
               <Clock3 className="h-5 w-5 text-emerald-300" />
             </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {[
-                { title: 'Pre-trip checklist completed', time: '06:45', icon: CheckCircle2, tone: 'emerald' },
-                { title: 'Fuel check recorded', time: '06:50', icon: FileCheck2, tone: 'orange' },
-                { title: 'Route broadcast sent', time: '06:52', icon: Truck, tone: 'slate' },
+                { title: 'Start route', icon: Truck, tone: 'emerald' },
+                { title: 'Mark pickup complete', icon: CheckCircle2, tone: 'emerald' },
+                { title: 'Report delay', icon: AlertTriangle, tone: 'orange' },
+                { title: 'Log fuel check', icon: FileCheck2, tone: 'slate' },
               ].map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.title} className="flex items-start gap-3 rounded-2xl border border-white/8 bg-slate-950/60 p-4">
-                    <div className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl ${item.tone === 'emerald' ? 'bg-emerald-500/10 text-emerald-300' : item.tone === 'orange' ? 'bg-orange-500/10 text-orange-300' : 'bg-slate-500/10 text-slate-300'}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-white">{item.title}</div>
-                      <div className="mt-1 text-xs text-slate-500">{item.time}</div>
-                    </div>
-                  </div>
+                  <button key={item.title} className="flex min-h-[72px] items-center gap-3 rounded-2xl border border-white/8 bg-slate-950/60 px-4 py-3 text-left text-sm font-medium text-white">
+                    <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.tone === 'emerald' ? 'bg-emerald-500/10 text-emerald-300' : item.tone === 'orange' ? 'bg-orange-500/10 text-orange-300' : 'bg-slate-500/10 text-slate-300'}`}>
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span>{item.title}</span>
+                  </button>
                 );
               })}
             </div>
@@ -131,11 +138,11 @@ export default function DriverDashboardPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="glass-strong rounded-3xl p-6 shadow-2xl shadow-black/20">
+          <div className="glass-strong rounded-3xl p-5 shadow-2xl shadow-black/20 sm:p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-white">Compliance vault</h2>
-                <p className="mt-1 text-sm text-slate-400">Document review state for the active driver.</p>
+                <p className="mt-1 text-sm text-slate-400">Document state stays visible even when the connection drops.</p>
               </div>
               <div className={`rounded-full px-3 py-1 text-xs font-medium ring-1 capitalize ${complianceStatusClass[vault.status]}`}>
                 {vault.status}
@@ -168,6 +175,29 @@ export default function DriverDashboardPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <div className="glass rounded-3xl p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-white">Offline safety notes</h2>
+                <p className="mt-1 text-sm text-slate-400">Designed for poor signal, glare, and gloved fingers.</p>
+              </div>
+              <Mic2 className="h-5 w-5 text-orange-300" />
+            </div>
+
+            <div className="mt-6 space-y-3">
+              {[
+                'One-tap SOS stays on screen at all times',
+                'Queued actions sync when the network returns',
+                'Buttons are large enough for quick thumb taps',
+                'Critical route info remains readable in bright light',
+              ].map((item) => (
+                <div key={item} className="rounded-2xl border border-white/8 bg-white/[0.04] p-4 text-sm text-slate-300">
+                  {item}
+                </div>
+              ))}
             </div>
           </div>
 

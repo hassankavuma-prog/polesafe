@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { AlertTriangle, CheckCircle2, RefreshCcw, RadioTower, Smartphone, MessageSquareText, WifiOff } from 'lucide-react';
-import type { SmsUssdFallbackPayload } from '../../../types/polesafe';
+import type { OperationalConfidence, SmsUssdFallbackPayload } from '../../../types/polesafe';
 
 export const metadata: Metadata = {
   title: 'Gateway Panel — PolePay',
@@ -20,6 +20,14 @@ const gatewayStats = {
   activeZones: 12,
 };
 
+const logConfidence: Record<OperationalConfidence, string> = {
+  confirmed: 'bg-emerald-500/10 text-emerald-300 ring-emerald-500/20',
+  inferred: 'bg-sky-500/10 text-sky-300 ring-sky-500/20',
+  delayed: 'bg-amber-500/10 text-amber-300 ring-amber-500/20',
+  'offline-received': 'bg-violet-500/10 text-violet-300 ring-violet-500/20',
+  'manually-verified': 'bg-orange-500/10 text-orange-300 ring-orange-500/20',
+};
+
 const fallbackLogs: GatewayLog[] = [
   {
     messageId: 'msg_001',
@@ -30,7 +38,10 @@ const fallbackLogs: GatewayLog[] = [
     associatedChildId: 'child_014',
     processedAt: '2026-08-13T06:41:00Z',
     success: true,
-    providerLabel: 'Africa\'s Talking SMS',
+    confidence: 'confirmed',
+    confidenceNote: 'Gateway delivery acknowledged and mirrored to dispatcher',
+    confidenceSource: 'sms_gateway',
+    providerLabel: "Africa's Talking SMS",
     routeLabel: 'School alert pipeline',
     latencyMs: 420,
   },
@@ -43,7 +54,10 @@ const fallbackLogs: GatewayLog[] = [
     associatedChildId: 'child_021',
     processedAt: '2026-08-13T06:45:00Z',
     success: true,
-    providerLabel: 'Africa\'s Talking SMS',
+    confidence: 'confirmed',
+    confidenceNote: 'Attendance updated from gateway translation',
+    confidenceSource: 'sms_gateway',
+    providerLabel: "Africa's Talking SMS",
     routeLabel: 'Attendance confirmation',
     latencyMs: 210,
   },
@@ -55,6 +69,9 @@ const fallbackLogs: GatewayLog[] = [
     interpretedAction: 'PICKUP_CONFIRM',
     processedAt: '2026-08-13T06:48:00Z',
     success: false,
+    confidence: 'delayed',
+    confidenceNote: 'Queued for retry after USSD timeout',
+    confidenceSource: 'ussd_retry',
     providerLabel: 'USSD gateway',
     routeLabel: 'Retry queue',
     latencyMs: 980,
@@ -67,6 +84,9 @@ const fallbackLogs: GatewayLog[] = [
     interpretedAction: 'UNKNOWN',
     processedAt: '2026-08-13T06:52:00Z',
     success: true,
+    confidence: 'offline-received',
+    confidenceNote: 'Recovered from queue after link interruption',
+    confidenceSource: 'queue_replay',
     providerLabel: 'Fallback SMS relay',
     routeLabel: 'Ops note',
     latencyMs: 365,
@@ -142,6 +162,9 @@ export default function GatewayPanelPage() {
                         <span className="text-sm font-semibold text-white">{log.providerLabel}</span>
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${eventColor(log.interpretedAction)}`}>
                           {log.interpretedAction}
+                        </span>
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${logConfidence[log.confidence]}`}>
+                          {log.confidence}
                         </span>
                         <span className="rounded-full bg-white/5 px-2.5 py-1 text-[11px] text-slate-300 ring-1 ring-white/10">
                           {log.success ? 'Delivered' : 'Needs retry'}

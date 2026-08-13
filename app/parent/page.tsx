@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, BusFront, CheckCircle2, Clock3, CreditCard, MapPinned, MessageSquareText, ShieldCheck, Smartphone } from 'lucide-react';
-import type { SmsUssdFallbackPayload, TransportLedgerTransaction } from '../../types/polesafe';
+import type { OperationalConfidence, SmsUssdFallbackPayload, TransportLedgerTransaction } from '../../types/polesafe';
 
 type RideStatus = 'waiting' | 'picked_up' | 'en_route' | 'dropped_off';
 
@@ -16,6 +16,9 @@ type ChildRide = {
   dropoffTime?: string;
   maskedVehicleLocation: string;
   vehicleLabel: string;
+  pickupProof: string;
+  dropoffProof?: string;
+  confidence: OperationalConfidence;
 };
 
 type ScheduleItem = {
@@ -36,12 +39,14 @@ const ride: ChildRide = {
   pickupTime: '07:18',
   maskedVehicleLocation: 'Near Makerere Hill • location masked for privacy',
   vehicleLabel: 'School Van • UAX 482B',
+  pickupProof: 'Teacher gate confirmation + driver scan',
+  confidence: 'confirmed',
 };
 
 const rideHistory = [
-  { id: 'r1', route: 'Route A', status: 'picked_up', time: '07:18' },
-  { id: 'r2', route: 'Route A', status: 'dropped_off', time: '15:48' },
-  { id: 'r3', route: 'Route B', status: 'picked_up', time: '07:26' },
+  { id: 'r1', route: 'Route A', status: 'picked_up', time: '07:18', confidence: 'confirmed' as OperationalConfidence },
+  { id: 'r2', route: 'Route A', status: 'dropped_off', time: '15:48', confidence: 'manually-verified' as OperationalConfidence },
+  { id: 'r3', route: 'Route B', status: 'picked_up', time: '07:26', confidence: 'inferred' as OperationalConfidence },
 ] as const;
 
 const schedule: ScheduleItem[] = [
@@ -66,6 +71,9 @@ const notificationLogs: SmsUssdFallbackPayload[] = [
     success: true,
     schoolId: 'school_ug_001',
     campusId: 'campus_1',
+    confidence: 'confirmed',
+    confidenceNote: 'Delivery acknowledged by gateway and mirrored to parent timeline',
+    confidenceSource: 'sms_gateway',
   },
   {
     messageId: 'sms_02',
@@ -77,6 +85,9 @@ const notificationLogs: SmsUssdFallbackPayload[] = [
     success: true,
     schoolId: 'school_ug_001',
     campusId: 'campus_1',
+    confidence: 'offline-received',
+    confidenceNote: 'Arrived via fallback after brief network loss',
+    confidenceSource: 'sms_fallback',
   },
   {
     messageId: 'sms_03',
@@ -88,6 +99,9 @@ const notificationLogs: SmsUssdFallbackPayload[] = [
     success: false,
     schoolId: 'school_ug_001',
     campusId: 'campus_1',
+    confidence: 'delayed',
+    confidenceNote: 'Queued for retry until USSD session resolves',
+    confidenceSource: 'ussd_retry',
   },
 ];
 
@@ -100,6 +114,11 @@ const mobileMoneyDraft: TransportLedgerTransaction = {
   status: 'pending',
   termReference: 'Term 2 2026',
   createdAt: '2026-08-13T02:00:00Z',
+  confidence: 'delayed',
+  confidenceNote: 'Waiting on MoMo callback match',
+  confidenceSource: 'flutterwave_webhook',
+  paymentMatchStatus: 'pending',
+  paymentProvider: 'mtn_momo',
 };
 
 const rideTone: Record<RideStatus, string> = {
@@ -109,12 +128,21 @@ const rideTone: Record<RideStatus, string> = {
   dropped_off: 'bg-blue-500/10 text-blue-300 ring-blue-500/20',
 };
 
+const confidenceTone: Record<OperationalConfidence, string> = {
+  confirmed: 'bg-emerald-500/10 text-emerald-300 ring-emerald-500/20',
+  inferred: 'bg-sky-500/10 text-sky-300 ring-sky-500/20',
+  delayed: 'bg-amber-500/10 text-amber-300 ring-amber-500/20',
+  'offline-received': 'bg-violet-500/10 text-violet-300 ring-violet-500/20',
+  'manually-verified': 'bg-orange-500/10 text-orange-300 ring-orange-500/20',
+};
+
 export default function ParentDashboardPage() {
   const [payments, setPayments] = useState<TransportLedgerTransaction[]>([mobileMoneyDraft]);
   const [selectedRail, setSelectedRail] = useState<'MTN MoMo' | 'Airtel Money'>('MTN MoMo');
 
   const dueTotal = useMemo(() => schedule.filter((item) => item.status !== 'paid').reduce((sum, item) => sum + item.feeUgx, 0), []);
   const latestLog = notificationLogs[0];
+  const latestPayment = payments[0];
 
   useEffect(() => {
     void fetch('/api/safety/dispatcher/summary').catch(() => undefined);
@@ -127,7 +155,11 @@ export default function ParentDashboardPage() {
         ...mobileMoneyDraft,
         transactionId: `TXN-UG-${Date.now()}`,
         paymentMethod: selectedRail === 'MTN MoMo' ? 'flutterwave_momo' : 'airtel_money',
+        paymentProvider: selectedRail === 'MTN MoMo' ? 'mtn_momo' : 'airtel_money',
         status: 'pending',
+        confidence: 'delayed',
+        confidenceNote: 'Awaiting callback and term match',
+        paymentMatchStatus: 'pending',
       },
     ]);
   };
@@ -165,30 +197,34 @@ export default function ParentDashboardPage() {
           <div className="glass-strong rounded-3xl p-5 shadow-2xl shadow-black/20">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">Live ride tracker</h2>
-                <p className="mt-1 text-sm text-slate-400">Pickup status, drop-off notifications, and privacy-masked location.</p>
+                <h2 className="text-lg font-semibold text-white">Peace-of-mind card</h2>
+                <p className="mt-1 text-sm text-slate-400">Last known child state, proof, and confidence in one place.</p>
               </div>
-              <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ring-1 ${rideTone[ride.status]}`}>
-                {ride.status === 'picked_up' ? <BusFront className="h-3.5 w-3.5" /> : <MapPinned className="h-3.5 w-3.5" />}
-                {ride.status.replace('_', ' ')}
+              <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ring-1 ${confidenceTone[ride.confidence]}`}>
+                {ride.confidence}
               </div>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-4">
-                <div className="text-xs text-slate-500">Child</div>
-                <div className="mt-1 text-sm font-semibold text-white">{ride.childName}</div>
-                <div className="mt-1 text-xs text-slate-400">{ride.school}</div>
-              </div>
-              <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-4">
-                <div className="text-xs text-slate-500">Vehicle</div>
-                <div className="mt-1 text-sm font-semibold text-white">{ride.vehicleLabel}</div>
-                <div className="mt-1 text-xs text-slate-400">Pickup {ride.pickupTime}</div>
-              </div>
-              <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-4">
-                <div className="text-xs text-slate-500">Location</div>
-                <div className="mt-1 text-sm font-semibold text-white">Masked</div>
+                <div className="text-xs text-slate-500">Last known child state</div>
+                <div className="mt-1 text-sm font-semibold text-white">{ride.status.replace('_', ' ')}</div>
                 <div className="mt-1 text-xs text-slate-400">{ride.maskedVehicleLocation}</div>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-4">
+                <div className="text-xs text-slate-500">Pickup proof</div>
+                <div className="mt-1 text-sm font-semibold text-white">{ride.pickupProof}</div>
+                <div className="mt-1 text-xs text-slate-400">Confidence: {ride.confidence}</div>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-4">
+                <div className="text-xs text-slate-500">SMS / USSD fallback</div>
+                <div className="mt-1 text-sm font-semibold text-white">{latestLog.success ? 'Delivered' : 'Retry queued'}</div>
+                <div className="mt-1 text-xs text-slate-400">{latestLog.senderPhone} • {latestLog.confidence}</div>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-4">
+                <div className="text-xs text-slate-500">Payment match</div>
+                <div className="mt-1 text-sm font-semibold text-white">{latestPayment.paymentMatchStatus}</div>
+                <div className="mt-1 text-xs text-slate-400">{latestPayment.paymentProvider?.toUpperCase() ?? 'UNKNOWN'} • {latestPayment.amountUgx.toLocaleString()} UGX</div>
               </div>
             </div>
           </div>
@@ -197,7 +233,7 @@ export default function ParentDashboardPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-white">Ride history</h2>
-                <p className="mt-1 text-sm text-slate-400">Quick recent history for pickup and drop-off checks.</p>
+                <p className="mt-1 text-sm text-slate-400">Pickup and drop-off proof with confidence labels.</p>
               </div>
               <Clock3 className="h-5 w-5 text-orange-300" />
             </div>
@@ -210,9 +246,14 @@ export default function ParentDashboardPage() {
                       <div className="text-sm font-semibold text-white">{item.route}</div>
                       <div className="mt-1 text-xs text-slate-400">{item.time}</div>
                     </div>
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] text-slate-300 ring-1 ring-white/10 capitalize ${rideTone[item.status as RideStatus]}`}>
-                      {item.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] text-slate-300 ring-1 ring-white/10 capitalize ${rideTone[item.status as RideStatus]}`}>
+                        {item.status}
+                      </span>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] ring-1 ${confidenceTone[item.confidence]}`}>
+                        {item.confidence}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -294,7 +335,7 @@ export default function ParentDashboardPage() {
           <div className="glass rounded-3xl p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-white">SMS / USSD log preview</h2>
+                <h2 className="text-lg font-semibold text-white">SMS / USSD receipt trail</h2>
                 <p className="mt-1 text-sm text-slate-400">Offline updates sent to Kabiriti and feature phones.</p>
               </div>
               <Smartphone className="h-5 w-5 text-orange-300" />
@@ -305,9 +346,14 @@ export default function ParentDashboardPage() {
                 <div key={log.messageId} className="rounded-2xl border border-white/8 bg-slate-950/60 p-4 text-sm text-slate-300">
                   <div className="flex items-center justify-between gap-3">
                     <div className="font-medium text-white">{log.senderPhone}</div>
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${log.success ? 'bg-emerald-500/10 text-emerald-300 ring-emerald-500/20' : 'bg-amber-500/10 text-amber-300 ring-amber-500/20'}`}>
-                      {log.success ? 'dispatched' : 'retry queued'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${log.success ? 'bg-emerald-500/10 text-emerald-300 ring-emerald-500/20' : 'bg-amber-500/10 text-amber-300 ring-amber-500/20'}`}>
+                        {log.success ? 'dispatched' : 'retry queued'}
+                      </span>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] ring-1 ${confidenceTone[log.confidence]}`}>
+                        {log.confidence}
+                      </span>
+                    </div>
                   </div>
                   <div className="mt-2 text-slate-400">{log.rawText}</div>
                   <div className="mt-1 text-xs text-slate-500">{new Date(log.processedAt).toLocaleString()}</div>
@@ -329,6 +375,9 @@ export default function ParentDashboardPage() {
             </div>
             <div className="mt-3 flex items-center gap-2 text-sm text-slate-300">
               <MessageSquareText className="h-4 w-4 text-orange-300" /> USSD and SMS updates stay readable for feature-phone families.
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-sm text-slate-300">
+              <ShieldCheck className="h-4 w-4 text-sky-300" /> Payment reconciliation shows matched, pending, or delayed state.
             </div>
           </div>
         </div>
