@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { AlertTriangle, BusFront, CheckCircle2, Clock3, CreditCard, MapPinned, MessageSquareText, ShieldCheck, Smartphone } from 'lucide-react';
 import type { SmsUssdFallbackPayload, TransportLedgerTransaction } from '../../types/polesafe';
 
@@ -36,6 +37,12 @@ const ride: ChildRide = {
   maskedVehicleLocation: 'Near Makerere Hill • location masked for privacy',
   vehicleLabel: 'School Van • UAX 482B',
 };
+
+const rideHistory = [
+  { id: 'r1', route: 'Route A', status: 'picked_up', time: '07:18' },
+  { id: 'r2', route: 'Route A', status: 'dropped_off', time: '15:48' },
+  { id: 'r3', route: 'Route B', status: 'picked_up', time: '07:26' },
+] as const;
 
 const schedule: ScheduleItem[] = [
   { term: 'Term 1 2026', route: 'Route A', days: 'Mon–Fri', pickup: '07:15', dropoff: '15:45', feeUgx: 150000, status: 'paid' },
@@ -129,7 +136,7 @@ export default function ParentDashboardPage() {
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <section className="border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-orange-300">
                 <ShieldCheck className="h-3.5 w-3.5" /> Parent portal
@@ -141,9 +148,13 @@ export default function ParentDashboardPage() {
                 Low-bandwidth tracking, pickup alerts, payment shortcuts, and SMS/USSD visibility for Kabiriti and other feature phones.
               </p>
             </div>
-            <div className="hidden sm:block rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-right">
-              <div className="text-xs text-slate-500">Current child</div>
-              <div className="text-sm font-semibold text-white">{ride.childName}</div>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/finance" className="rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400">
+                Pay now
+              </Link>
+              <Link href="/dispatch" className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 hover:bg-white/10">
+                Track dispatch
+              </Link>
             </div>
           </div>
         </div>
@@ -179,6 +190,32 @@ export default function ParentDashboardPage() {
                 <div className="mt-1 text-sm font-semibold text-white">Masked</div>
                 <div className="mt-1 text-xs text-slate-400">{ride.maskedVehicleLocation}</div>
               </div>
+            </div>
+          </div>
+
+          <div className="glass rounded-3xl p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Ride history</h2>
+                <p className="mt-1 text-sm text-slate-400">Quick recent history for pickup and drop-off checks.</p>
+              </div>
+              <Clock3 className="h-5 w-5 text-orange-300" />
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {rideHistory.map((item) => (
+                <div key={item.id} className="rounded-2xl border border-white/8 bg-slate-950/60 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-white">{item.route}</div>
+                      <div className="mt-1 text-xs text-slate-400">{item.time}</div>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] text-slate-300 ring-1 ring-white/10 capitalize ${rideTone[item.status as RideStatus]}`}>
+                      {item.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -290,12 +327,15 @@ export default function ParentDashboardPage() {
             <div className="mt-4 flex items-center gap-2 text-sm text-slate-300">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" /> Parent notifications stay visible even when the app is offline.
             </div>
+            <div className="mt-3 flex items-center gap-2 text-sm text-slate-300">
+              <MessageSquareText className="h-4 w-4 text-orange-300" /> USSD and SMS updates stay readable for feature-phone families.
+            </div>
           </div>
         </div>
       </section>
 
       <footer className="border-t border-white/5 py-6 text-center text-xs text-slate-500">
-        PolePay Parent Portal • mobile-first • low bandwidth • Uganda-first
+        PoleSafe Parent Portal • mobile-first • low bandwidth • Uganda-first
       </footer>
     </main>
   );
