@@ -6,7 +6,7 @@
 const config = require('../config');
 const { z } = require('zod');
 const { Credit, Transaction, Ride } = require('../database/schema');
-const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
 
 class CreditService {
 

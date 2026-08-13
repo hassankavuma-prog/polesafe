@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { z } = require('zod');
 const { User, Child } = require('../database/schema');
 const OTP = require('../models/OTP');
-const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'polesafe-dev-secret-change-in-production';
 const JWT_EXPIRY = '7d';

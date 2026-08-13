@@ -5,7 +5,7 @@
 const { Broadcast, School, Ride } = require('../database/schema');
 const { z } = require('zod');
 const smsService = require('./smsService');
-const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
 
 class BroadcastService {
 

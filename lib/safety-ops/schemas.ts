@@ -1,108 +1,31 @@
 import { z } from 'zod';
-
 export const dispatcherRoleSchema = z.enum(['parent', 'driver', 'school_admin', 'polesafe_admin', 'dispatcher', 'ops_dispatcher', 'system']);
-
+export const vehicleClassSchema = z.enum(['car', 'boda_boda']);
+export const bookingCadenceSchema = z.enum(['daily', 'weekly', 'termly']);
+export const bookingWeekdaySchema = z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']);
+export const mobileMoneyProviderSchema = z.enum(['mtn_momo', 'airtel_money', 'card']);
+export const localVerificationStatusSchema = z.enum(['pending', 'verified', 'rejected', 'expired']);
+export const trustDocumentSchema = z.object({ type: z.enum(['nin', 'driving_permit', 'riding_permit', 'proof_of_ownership', 'motorcycle_plate', 'lc1_letter', 'stage_chairman_letter']), reference: z.string().optional(), url: z.string().url().optional(), status: localVerificationStatusSchema, aiGenerated: z.boolean().optional().default(false), aiConfidence: z.number().min(0).max(1).optional(), attentionRequired: z.boolean().optional().default(false), attentionReason: z.string().optional() }).strict();
+export const localVerificationRecordSchema = z.object({ status: localVerificationStatusSchema, checkedAt: z.string().optional(), checkedBy: z.string().optional(), notes: z.string().optional(), trustDocuments: z.array(trustDocumentSchema).optional(), expiresAt: z.string().optional(), nextReviewAt: z.string().optional(), aiGeneratedRisk: z.boolean().optional().default(false), aiGeneratedRiskScore: z.number().min(0).max(1).optional(), attentionRequired: z.boolean().optional().default(false), attentionReason: z.string().optional(), alertRecipients: z.array(z.enum(['dispatcher', 'parent', 'school', 'owner', 'compliance'])).optional() }).strict();
+export const complianceAttentionEventSchema = z.object({ id: z.string().min(1), targetType: z.enum(['driver', 'vehicle', 'document', 'booking']), targetId: z.string().min(1), reason: z.string().min(1), severity: z.enum(['low', 'medium', 'high', 'critical']), maskedSummary: z.string().min(1), attentionRequired: z.boolean().default(true), aiGeneratedRisk: z.boolean().optional().default(false), aiGeneratedRiskScore: z.number().min(0).max(1).optional(), createdAt: z.string().optional(), createdBy: z.string().optional() }).strict();
+export const complianceSlaMetricSchema = z.object({ incidentId: z.string().optional(), eventType: z.enum(['sos_acknowledged', 'driver_contacted', 'parent_contacted', 'school_contacted', 'resolved']), startedAt: z.string().min(1), finishedAt: z.string().optional(), durationSeconds: z.number().min(0).optional(), actorId: z.string().optional(), actorRole: z.string().optional() }).strict();
+export const ugandaBookingInputSchema = z.object({ tenantId: z.string().min(1), parentId: z.string().min(1), childId: z.string().optional(), vehicleClass: vehicleClassSchema, cadence: bookingCadenceSchema, paymentProvider: mobileMoneyProviderSchema, pickupLocation: z.string().min(1), dropoffLocation: z.string().min(1), schoolTermReference: z.string().optional(), recurringDays: z.array(bookingWeekdaySchema).optional(), weeklyPattern: z.array(bookingWeekdaySchema).optional(), vehicleTrust: localVerificationRecordSchema.optional(), driverTrust: localVerificationRecordSchema.optional() }).strict();
+export const bookingWeeklyDefaults = { weekdayOnly: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const, withSaturday: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const };
 export const incidentTriggerTypeSchema = z.enum(['manual_sos', 'silent_alarm', 'fall_detection', 'driver_report', 'school_report', 'system_flag']);
 export const incidentSeveritySchema = z.enum(['low', 'medium', 'high', 'critical']);
 export const incidentStatusSchema = z.enum(['active', 'triaged', 'escalated', 'resolved', 'false_alarm', 'dismissed']);
 export const contactRelayTypeSchema = z.enum(['parent', 'driver', 'school', 'dispatcher', 'police', 'medical']);
 export const contactRelayStatusSchema = z.enum(['pending', 'sent', 'acknowledged', 'failed']);
 export const networkStateSchema = z.enum(['online', 'poor', 'offline', 'unknown']);
-
 export const geoPointSchema = z.object({ type: z.literal('Point'), coordinates: z.tuple([z.number(), z.number()]) });
-
-export const incidentDeviceStatusSchema = z.object({
-  batteryPercent: z.number().min(0).max(100).optional(),
-  networkState: networkStateSchema.optional().default('unknown'),
-  lastSeenAt: z.coerce.date().optional(),
-}).strict();
-
-export const incidentAuditEntrySchema = z.object({
-  action: z.string().min(1),
-  actorId: z.string().optional(),
-  actorRole: z.string().optional(),
-  note: z.string().optional(),
-  timestamp: z.coerce.date(),
-}).strict();
-
-export const incidentContactRelaySchema = z.object({
-  contactType: contactRelayTypeSchema,
-  contactId: z.string().optional(),
-  status: contactRelayStatusSchema.optional().default('pending'),
-  sentAt: z.coerce.date().optional(),
-  acknowledgedAt: z.coerce.date().optional(),
-}).strict();
-
-export const safetyIncidentSchema = z.object({
-  _id: z.string(),
-  incidentNumber: z.string().min(1),
-  triggerType: incidentTriggerTypeSchema,
-  severity: incidentSeveritySchema,
-  status: incidentStatusSchema,
-  reporterUserId: z.string().optional(),
-  reporterRole: dispatcherRoleSchema.optional(),
-  childId: z.string().optional(),
-  rideId: z.string().optional(),
-  schoolId: z.string().optional(),
-  liveLocation: geoPointSchema.nullable().optional(),
-  locationLabel: z.string().nullable().optional(),
-  deviceStatus: incidentDeviceStatusSchema.optional(),
-  contactRelay: z.array(incidentContactRelaySchema).optional(),
-  assignedOperatorId: z.string().optional(),
-  resolvedById: z.string().optional(),
-  resolutionNote: z.string().optional(),
-  falseAlarmReason: z.string().optional(),
-  privacyMasked: z.boolean(),
-  verified: z.boolean(),
-  verifiedAt: z.coerce.date().optional(),
-  auditTrail: z.array(incidentAuditEntrySchema),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-}).strict();
-
-export const createSosInputSchema = z.object({
-  userId: z.string().min(1),
-  userRole: dispatcherRoleSchema,
-  kidId: z.string().optional(),
-  rideId: z.string().optional(),
-  location: z.object({
-    coordinates: z.tuple([z.number(), z.number()]).optional(),
-    label: z.string().optional(),
-    address: z.string().optional(),
-  }).optional(),
-  message: z.string().optional(),
-  triggerType: incidentTriggerTypeSchema.optional(),
-  severity: incidentSeveritySchema.optional(),
-  deviceStatus: incidentDeviceStatusSchema.optional(),
-}).strict();
-
-export const incidentActionInputSchema = z.object({
-  incidentId: z.string().min(1),
-  userId: z.string().min(1),
-  userRole: dispatcherRoleSchema,
-  note: z.string().optional(),
-}).strict();
-
-export const resolveIncidentInputSchema = incidentActionInputSchema.extend({
-  resolutionNote: z.string().optional(),
-  falseAlarmReason: z.string().optional(),
-});
-
+export const incidentDeviceStatusSchema = z.object({ batteryPercent: z.number().min(0).max(100).optional(), networkState: networkStateSchema.optional().default('unknown'), lastSeenAt: z.coerce.date().optional() }).strict();
+export const incidentAuditEntrySchema = z.object({ action: z.string().min(1), actorId: z.string().optional(), actorRole: z.string().optional(), note: z.string().optional(), timestamp: z.coerce.date() }).strict();
+export const incidentContactRelaySchema = z.object({ contactType: contactRelayTypeSchema, contactId: z.string().optional(), status: contactRelayStatusSchema.optional().default('pending'), sentAt: z.coerce.date().optional(), acknowledgedAt: z.coerce.date().optional() }).strict();
+export const safetyIncidentSchema = z.object({ _id: z.string(), incidentNumber: z.string().min(1), triggerType: incidentTriggerTypeSchema, severity: incidentSeveritySchema, status: incidentStatusSchema, reporterUserId: z.string().optional(), reporterRole: dispatcherRoleSchema.optional(), childId: z.string().optional(), rideId: z.string().optional(), schoolId: z.string().optional(), liveLocation: geoPointSchema.nullable().optional(), locationLabel: z.string().nullable().optional(), deviceStatus: incidentDeviceStatusSchema.optional(), contactRelay: z.array(incidentContactRelaySchema).optional(), assignedOperatorId: z.string().optional(), resolvedById: z.string().optional(), resolutionNote: z.string().optional(), falseAlarmReason: z.string().optional(), privacyMasked: z.boolean(), verified: z.boolean(), verifiedAt: z.coerce.date().optional(), auditTrail: z.array(incidentAuditEntrySchema), createdAt: z.coerce.date(), updatedAt: z.coerce.date() }).strict();
+export const createSosInputSchema = z.object({ userId: z.string().min(1), userRole: dispatcherRoleSchema, kidId: z.string().optional(), rideId: z.string().optional(), location: z.object({ coordinates: z.tuple([z.number(), z.number()]).optional(), label: z.string().optional(), address: z.string().optional() }).optional(), message: z.string().optional(), triggerType: incidentTriggerTypeSchema.optional(), severity: incidentSeveritySchema.optional(), deviceStatus: incidentDeviceStatusSchema.optional() }).strict();
+export const incidentActionInputSchema = z.object({ incidentId: z.string().min(1), userId: z.string().min(1), userRole: dispatcherRoleSchema, note: z.string().optional() }).strict();
+export const resolveIncidentInputSchema = incidentActionInputSchema.extend({ resolutionNote: z.string().optional(), falseAlarmReason: z.string().optional() });
 export const maskIncidentInputSchema = incidentActionInputSchema;
-
-export const dispatcherDashboardStatsSchema = z.object({
-  active: z.number().int().nonnegative(),
-  triaged: z.number().int().nonnegative(),
-  resolved: z.number().int().nonnegative(),
-}).strict();
-
-export const dispatcherDashboardResponseSchema = z.object({
-  stats: dispatcherDashboardStatsSchema,
-  incidents: z.array(safetyIncidentSchema),
-  privacyMode: z.literal('masked'),
-  allowedActions: z.array(z.enum(['acknowledge', 'assign', 'escalate', 'resolve', 'mark_false_alarm', 'unmask', 'mask'])),
-}).strict();
-
-export const unmaskIncidentInputSchema = incidentActionInputSchema.extend({
-  verified: z.boolean().default(false),
-});
+export const dispatcherDashboardStatsSchema = z.object({ active: z.number().int().nonnegative(), triaged: z.number().int().nonnegative(), resolved: z.number().int().nonnegative() }).strict();
+export const dispatcherDashboardResponseSchema = z.object({ stats: dispatcherDashboardStatsSchema, incidents: z.array(safetyIncidentSchema), privacyMode: z.literal('masked'), allowedActions: z.array(z.enum(['acknowledge', 'assign', 'escalate', 'resolve', 'mark_false_alarm', 'unmask', 'mask'])) }).strict();
+export const unmaskIncidentInputSchema = incidentActionInputSchema.extend({ verified: z.boolean().default(false) });

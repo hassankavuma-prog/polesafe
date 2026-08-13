@@ -8,7 +8,7 @@ const School = mongoose.model('School');
 const Ride = mongoose.model('Ride');
 const FCMService = require('./fcmService');
 const { z } = require('zod');
-const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
 
 // ─── Constants ───────────────────────────────────────
 const ENTERED_GATE = 'entered_gate'; // Driver was outside, now inside geofence

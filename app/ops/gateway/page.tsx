@@ -3,8 +3,8 @@ import { AlertTriangle, CheckCircle2, RefreshCcw, RadioTower, Smartphone, Messag
 import type { OperationalConfidence, SmsUssdFallbackPayload } from '../../../types/polesafe';
 
 export const metadata: Metadata = {
-  title: 'Gateway Panel — PolePay',
-  description: 'SMS and USSD fallback gateway control panel for PolePay.',
+  title: 'Gateway Panel — PoleSafe',
+  description: 'SMS and USSD fallback gateway control panel for PoleSafe.',
 };
 
 type GatewayLog = SmsUssdFallbackPayload & {

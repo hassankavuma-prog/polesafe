@@ -7,7 +7,7 @@ const express = require('express');
 const router = express.Router();
 const smsHandler = require('../services/smsHandler');
 const smsService = require('../services/smsService');
-const { parseFallbackTransport, hamnahTriage } = require('../../lib/engine/hamnah-core');
+const { parseFallbackTransport, hamnahTriage } = require('../../lib/engine/hamnah-core.ts');
 
 // ============================================================
 // POST /api/sms/incoming — Africa's Talking SMS callback

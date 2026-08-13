@@ -1,5 +1,5 @@
 // PoleSafe Mobile — Driver Pickup Verification Screen
-// Driver arrives at pickup location → reveals safe word → kid says it → verify
+// Driver arrives at pickup location → tap to reveal safe word → kid says it → verify
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -49,7 +49,7 @@ export default function DriverPickupVerify({ navigation, route }) {
   const revealSafeWord = async () => {
     Alert.alert(
       'Reveal Safe Word?',
-      'Only reveal the word when the KID asks for it. The kid should challenge you first.',
+      'Only reveal the word after you have arrived at pickup and the kid asks for it. The kid should challenge you first.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -172,7 +172,7 @@ export default function DriverPickupVerify({ navigation, route }) {
           <Text style={styles.revealBtnEmoji}>🔐</Text>
           <Text style={styles.revealBtnTitle}>Tap to Reveal Safe Word</Text>
           <Text style={styles.revealBtnSub}>
-            Only press this when the kid asks: "What's the word?"
+            Only press this after arrival, when the kid asks: "What's the word?"
           </Text>
         </TouchableOpacity>
       )}

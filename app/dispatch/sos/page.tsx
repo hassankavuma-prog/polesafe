@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Ambulance, AlertTriangle, BellOff, PhoneCall, ShieldAlert, Siren, StickyNote, TrafficCone } from 'lucide-react';
-import type { SafetyIncident } from '../../../types/polesafe';
+import type { SafetyIncident } from '../../../lib/safety-ops/types';
 
 const ACTIVE_INCIDENTS: SafetyIncident[] = [
   {
@@ -20,10 +20,10 @@ const ACTIVE_INCIDENTS: SafetyIncident[] = [
     locationLabel: 'Kampala Northern Bypass',
     deviceStatus: { batteryPercent: 42, networkState: 'degraded' as any },
     contactRelay: [
-      { contactType: 'dispatcher', status: 'sent' as any },
-      { contactType: 'parent', status: 'sent' as any },
-      { contactType: 'police', status: 'pending' as any },
-    ],
+      { contactType: 'dispatcher', status: 'sent' },
+      { contactType: 'parent', status: 'sent' },
+      { contactType: 'police', status: 'pending' },
+    ] as any,
     privacyMasked: true,
     verified: false,
     auditTrail: [
@@ -46,9 +46,9 @@ const ACTIVE_INCIDENTS: SafetyIncident[] = [
     locationLabel: 'Wakiso corridor',
     deviceStatus: { batteryPercent: 67, networkState: 'stable' as any },
     contactRelay: [
-      { contactType: 'dispatcher', status: 'acknowledged' as any },
-      { contactType: 'driver', status: 'sent' as any },
-    ],
+      { contactType: 'dispatcher', status: 'acknowledged' },
+      { contactType: 'driver', status: 'sent' },
+    ] as any,
     privacyMasked: true,
     verified: true,
     verifiedAt: new Date(),
@@ -145,7 +145,7 @@ export default function DispatchSOSPage() {
             </div>
 
             <div className="mt-5 space-y-3">
-              {selectedIncident?.auditTrail.map((event, idx) => (
+              {selectedIncident?.auditTrail.map((event: any, idx: number) => (
                 <div key={`${event.action}-${idx}`} className="rounded-2xl border border-white/8 bg-slate-950/60 p-4">
                   <div className="text-sm font-semibold text-white">{event.action}</div>
                   <div className="mt-1 text-xs text-slate-400">{event.actorRole} • {event.timestamp.toLocaleString()}</div>

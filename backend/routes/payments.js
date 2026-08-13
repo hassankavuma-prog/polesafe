@@ -8,7 +8,7 @@ const { authMiddleware } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const flutterwave = require('../services/flutterwaveService');
 const { Transaction, User, Credit } = require('../database/schema');
-const { normalizeUgx, reconcileMobileMoney, buildSecurityBoundary } = require('../../lib/engine/hamnah-core');
+const { normalizeUgx, reconcileMobileMoney, buildSecurityBoundary } = require('../../lib/engine/hamnah-core.ts');
 
 router.use(authMiddleware);
 

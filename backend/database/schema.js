@@ -210,6 +210,22 @@ const schoolSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
   }],
   hasWaitingZone: { type: Boolean, default: false },   // For staggered class times
+  gatePinning: {
+    dispatcherId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    pinnedAt: { type: Date },
+    physicalVisitConfirmed: { type: Boolean, default: false },
+    visitNotes: { type: String },
+  },
+  dismissalSchedule: {
+    morning: { type: String },
+    midday: { type: String },
+    afternoon: { type: String },
+    byGrade: [{
+      grade: { type: String },
+      bellTime: { type: String },
+      enabled: { type: Boolean, default: true },
+    }],
+  },
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -232,6 +248,13 @@ const vehicleSchema = new mongoose.Schema({
   ownerModel: { type: String, enum: ['User', 'School'] },
   schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School' },
   busLabel: { type: String },  // "Bus #3" — admin names their fleet vehicles
+  compliance: {
+    insuranceNumber: { type: String },
+    roadLicensingExpiry: { type: Date },
+    inspectionExpiry: { type: Date },
+    operatorName: { type: String },
+    operatorPhone: { type: String },
+  },
 });
 
 // ============================================================
@@ -315,6 +338,7 @@ const rideSchema = new mongoose.Schema({
   safeWord: { type: String },  // Child's safe word — revealed to driver at pickup
   safeWordRevealedAt: { type: Date },  // When driver tapped to reveal
   safeWordVerified: { type: Boolean, default: false },  // Kid confirmed word matches
+  safeWordVerifiedAt: { type: Date },  // When kid confirmed the word
   classroomPickupStatus: { 
     type: String, 
     enum: ['pending', 'verified_by_teacher', 'completed'], 
@@ -569,7 +593,7 @@ const schoolTripSchema = new mongoose.Schema({
   // Vehicle & driver
   vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
   driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  vehicleSource: { type: String, enum: ['fleet', 'external'], default: 'external' },
+  vehicleSource: { type: String, enum: ['fleet', 'external', 'tour'], default: 'external' },
 
   // Capacity enforcement
   maxSeats: { type: Number, required: true },

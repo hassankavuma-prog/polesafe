@@ -7,7 +7,9 @@ const { z } = require('zod');
 const { authMiddleware } = require('../middleware/auth');
 const { requireRole, requireSchoolAccess } = require('../middleware/roles');
 const { Child, Ride, School, Broadcast } = require('../database/schema');
-const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
+const { matchGate } = require('../../lib/engine/gateGeofence');
+const { canReleaseDriverForGrade } = require('../../lib/engine/dismissalEngine');
 const broadcastService = require('../services/broadcastService');
 const creditService = require('../services/creditService');
 const smsService = require('../services/smsService');
@@ -276,6 +278,33 @@ router.post('/:id/send-attendance-sms', requireSchoolAccess, async (req, res) =>
 });
 
 // ============================================================
+// POST /api/schools/:id/dismissal-schedule — Update staggered bell schedule
+// ============================================================
+router.post('/:id/dismissal-schedule', requireSchoolAccess, async (req, res) => {
+  try {
+    const { morning, midday, afternoon, byGrade = [] } = req.body;
+    const school = await School.findById(req.params.id);
+    if (!school) return res.status(404).json({ error: 'School not found' });
+    school.dismissalSchedule = { morning, midday, afternoon, byGrade };
+    await school.save();
+    res.json({ message: 'Dismissal schedule saved', dismissalSchedule: school.dismissalSchedule });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ============================================================
+// GET /api/schools/:id/dismissal-release — Check if a grade may be released
+// ============================================================
+router.get('/:id/dismissal-release', requireSchoolAccess, async (req, res) => {
+  try {
+    const { grade } = req.query;
+    const school = await School.findById(req.params.id).lean();
+    const bell = school?.dismissalSchedule?.byGrade?.find(b => b.grade === grade);
+    const release = canReleaseDriverForGrade(grade, bell);
+    res.json({ grade, release, bell });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ============================================================
 // POST /api/schools/:id/gate-checkin — Confirm arrival at gate
 // ============================================================
 router.post('/:id/gate-checkin', requireSchoolAccess, async (req, res) => {
@@ -299,9 +328,13 @@ router.post('/:id/gate-checkin', requireSchoolAccess, async (req, res) => {
       return res.status(404).json({ error: 'No drop-off found for this child today' });
     }
 
+    const school = await School.findById(req.params.id).lean();
+    const gate = school?.gates?.length ? matchGate({ lat: req.body.lat || 0, lng: req.body.lng || 0 }, school.gates, 200) : null;
+
     // Confirm arrival
     ride.status = 'gate_confirmed';
     ride.updatedAt = new Date();
+    ride.gateId = gate?.gateId || ride.gateId;
     await ride.save();
 
     // Update booking completed trips

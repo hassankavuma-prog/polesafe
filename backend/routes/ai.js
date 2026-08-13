@@ -9,7 +9,7 @@ const hamnaAnalysisService = require('../services/hamnaAnalysisService');
 const User = require('mongoose').model('User');
 const Child = require('mongoose').model('Child');
 const { z } = require('zod');
-const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
 
 // ============================================================
 // POST /api/hamna/chat — Chat with Hamna (app + web)

@@ -3,7 +3,7 @@
 
 const { User, School } = require('../database/schema');
 const { z } = require('zod');
-const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
 
 /**
  * Middleware factory: restrict access to specific roles

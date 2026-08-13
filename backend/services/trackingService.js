@@ -5,7 +5,7 @@
 const WebSocket = require('ws');
 const { Ride } = require('../database/schema');
 const { z } = require('zod');
-const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
 const gateGeofenceService = require('./gateGeofenceService');
 const FCMService = require('./fcmService');
 

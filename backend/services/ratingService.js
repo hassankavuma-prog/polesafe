@@ -5,7 +5,7 @@
 const { Ride, User } = require('../database/schema');
 const { z } = require('zod');
 const notificationService = require('./notificationService');
-const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
 
 class RatingService {
 

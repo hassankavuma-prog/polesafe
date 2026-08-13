@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { z } = require('zod');
 const { User, Child, Ride, SafetyIncident, AuditLog } = require('../database/schema');
-const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
 
 const makeIncidentNumber = () => `INC-${Date.now().toString(36).toUpperCase()}`;
 

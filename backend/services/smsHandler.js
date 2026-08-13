@@ -10,7 +10,7 @@ const Ride = require('mongoose').model('Ride');
 const smsService = require('./smsService');
 const smsTemplates = require('./smsTemplates');
 const smsSession = require('./smsSession');
-const { parseFallbackTransport, hamnahTriage, validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
+const { parseFallbackTransport, hamnahTriage, validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
 
 const COMMANDS = {
   BOOK: 'BOOK',      // BOOK Faith P.3 StMarys 7AM

@@ -612,7 +612,7 @@ router.post('/availability', async (req, res) => {
 });
 
 // ============================================================
-// POST /api/drivers/rides/:rideId/reveal-safeword — Driver reveals safe word at pickup
+// POST /api/drivers/rides/:rideId/reveal-safeword — Driver reveals safe word only on arrival
 // Only works when driver has arrived at the pickup location
 // ============================================================
 router.post('/rides/:rideId/reveal-safeword', async (req, res) => {
@@ -623,6 +623,15 @@ router.post('/rides/:rideId/reveal-safeword', async (req, res) => {
     if (!ride) return res.status(404).json({ error: 'Ride not found' });
     if (ride.driverId?.toString() !== req.userId) {
       return res.status(403).json({ error: 'This ride is not assigned to you' });
+    }
+    const arrivalStatus = ride.status || ride.classroomPickupStatus;
+    const arrivedStatuses = ['arrived', 'picked_up', 'gate_confirmed', 'verified_by_teacher'];
+    if (!arrivedStatuses.includes(arrivalStatus)) {
+      return res.status(400).json({
+        error: 'Safe word can only be revealed after arrival',
+        requiredStatus: arrivedStatuses,
+        currentStatus: arrivalStatus,
+      });
     }
     if (ride.safeWordVerified) {
       return res.status(400).json({ error: 'Safe word already verified' });
@@ -645,6 +654,7 @@ router.post('/rides/:rideId/reveal-safeword', async (req, res) => {
       safeWord: child.safeWord,
       hasPhoto: !!child.safeWordPhoto,
       kidName: child.name,
+      revealOnlyOnArrival: true,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -668,6 +678,7 @@ router.post('/rides/:rideId/verify-safeword', async (req, res) => {
     }
 
     ride.safeWordVerified = true;
+    ride.safeWordVerifiedAt = new Date();
     await ride.save();
 
     res.json({

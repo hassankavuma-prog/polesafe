@@ -4,7 +4,7 @@
 
 const config = require('../config');
 const { Transaction, Credit, User } = require('../database/schema');
-const { reconcileMobileMoney, normalizeUgx } = require('../../lib/engine/hamnah-core');
+const { reconcileMobileMoney, normalizeUgx } = require('../../lib/engine/hamnah-core.ts');
 
 class FlutterwaveService {
 

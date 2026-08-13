@@ -1,7 +1,11 @@
 'use server';
 
 import { createSosInputSchema, dispatcherDashboardResponseSchema, incidentActionInputSchema, maskIncidentInputSchema, resolveIncidentInputSchema, unmaskIncidentInputSchema } from './schemas';
+import { buildAuditEntry } from './audit';
+import { buildFallbackRelay, buildUgandaIncidentMessage } from './formatters';
 import type { CreateSosInput, IncidentActionInput, ResolveIncidentInput } from './types';
+
+export type { SafetyFallbackChannel, IncidentResolutionState, SafetyRelayPayload } from './formatters';
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; issues?: unknown };
 const allowedAdminRoles = new Set(['polesafe_admin', 'school_admin', 'dispatcher', 'ops_dispatcher']);
@@ -35,6 +39,7 @@ export async function createSosAction(input: unknown): Promise<ActionResult<{ in
   const parsed = createSosInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid SOS input', issues: parsed.error.flatten() };
   const data: CreateSosInput = parsed.data;
+  buildAuditEntry({ actorId: data.userId, role: data.userRole }, 'sos_triggered', { targetId: data.rideId || data.kidId || 'unknown', targetType: 'incident' });
   try {
     const response = await postJson('/api/safety/sos', data);
     if (response?.success && response?.incident?.incidentNumber) {
@@ -70,6 +75,7 @@ export async function acknowledgeIncidentAction(input: unknown): Promise<ActionR
   const parsed = incidentActionInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid acknowledge payload', issues: parsed.error.flatten() };
   requireRole(parsed.data.userRole);
+  buildAuditEntry({ actorId: parsed.data.userId, role: parsed.data.userRole }, 'incident_acknowledged', { targetId: parsed.data.incidentId, targetType: 'incident' });
   try {
     const data = await postJson('/api/safety/sos/acknowledge', parsed.data);
     if (data?.success) return { ok: true, data: { success: true } };
@@ -83,6 +89,7 @@ export async function assignIncidentAction(input: unknown): Promise<ActionResult
   const parsed = incidentActionInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid assign payload', issues: parsed.error.flatten() };
   requireRole(parsed.data.userRole);
+  buildAuditEntry({ actorId: parsed.data.userId, role: parsed.data.userRole }, 'incident_assigned', { targetId: parsed.data.incidentId, targetType: 'incident' });
   try {
     const data = await postJson(`/api/safety/incidents/${parsed.data.incidentId}/assign`, parsed.data);
     if (data?.success) return { ok: true, data: { success: true } };
@@ -96,6 +103,7 @@ export async function escalateIncidentAction(input: unknown): Promise<ActionResu
   const parsed = incidentActionInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid escalate payload', issues: parsed.error.flatten() };
   requireRole(parsed.data.userRole);
+  buildAuditEntry({ actorId: parsed.data.userId, role: parsed.data.userRole }, 'incident_escalated', { targetId: parsed.data.incidentId, targetType: 'incident' });
   try {
     const data = await postJson(`/api/safety/incidents/${parsed.data.incidentId}/escalate`, parsed.data);
     if (data?.success) return { ok: true, data: { success: true } };
@@ -105,23 +113,34 @@ export async function escalateIncidentAction(input: unknown): Promise<ActionResu
   return { ok: true, data: { success: true } };
 }
 
-export async function resolveIncidentAction(input: unknown): Promise<ActionResult<{ success: true }>> {
+export async function resolveIncidentAction(input: unknown): Promise<ActionResult<{ success: true; relay?: ReturnType<typeof buildFallbackRelay> }>> {
   const parsed = resolveIncidentInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid resolve payload', issues: parsed.error.flatten() };
   requireRole(parsed.data.userRole);
+  const data: ResolveIncidentInput = parsed.data;
+  buildAuditEntry({ actorId: data.userId, role: data.userRole }, data.falseAlarmReason ? 'incident_false_alarm' : 'incident_resolved', { targetId: data.incidentId, targetType: 'incident' });
+  const relay = buildFallbackRelay({
+    incidentId: data.incidentId,
+    incidentNumber: data.incidentId,
+    channel: 'sms',
+    recipient: 'dispatcher',
+    masked: true,
+    message: buildUgandaIncidentMessage({ incidentNumber: data.incidentId, status: data.falseAlarmReason ? 'false_alarm' : 'resolved', note: data.resolutionNote || data.note, vehicleKind: 'car' }),
+  });
   try {
-    const data = await postJson('/api/safety/sos/resolve', parsed.data);
-    if (data?.success) return { ok: true, data: { success: true } };
+    const response = await postJson('/api/safety/sos/resolve', { ...data, relay });
+    if (response?.success) return { ok: true, data: { success: true, relay } };
   } catch (err: any) {
     return { ok: false, error: err?.message || 'Failed to resolve incident' };
   }
-  return { ok: true, data: { success: true } };
+  return { ok: true, data: { success: true, relay } };
 }
 
 export async function maskIncidentAction(input: unknown): Promise<ActionResult<{ success: true }>> {
   const parsed = maskIncidentInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid mask payload', issues: parsed.error.flatten() };
   requireRole(parsed.data.userRole);
+  buildAuditEntry({ actorId: parsed.data.userId, role: parsed.data.userRole }, 'incident_masked', { targetId: parsed.data.incidentId, targetType: 'incident' });
   try {
     const data = await postJson(`/api/safety/incidents/${parsed.data.incidentId}/mask`, parsed.data);
     if (data?.success) return { ok: true, data: { success: true } };
@@ -136,6 +155,7 @@ export async function unmaskIncidentAction(input: unknown): Promise<ActionResult
   if (!parsed.success) return { ok: false, error: 'Invalid unmask payload', issues: parsed.error.flatten() };
   requireRole(parsed.data.userRole);
   if (!parsed.data.verified) return { ok: false, error: 'Verified dispatcher access required' };
+  buildAuditEntry({ actorId: parsed.data.userId, role: parsed.data.userRole }, 'incident_unmasked', { targetId: parsed.data.incidentId, targetType: 'incident' });
   try {
     const data = await postJson(`/api/safety/incidents/${parsed.data.incidentId}/unmask`, parsed.data);
     if (data?.success) return { ok: true, data: { success: true } };

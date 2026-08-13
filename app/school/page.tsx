@@ -23,7 +23,7 @@ type DriverComplianceRow = {
 
 export const metadata: Metadata = {
   title: 'School Dashboard — PoleSafe',
-  description: 'School admin attendance and compliance dashboard for PoleSafe.',
+  description: 'School admin attendance and compliance dashboard for PoleSafe school rides.',
 };
 
 const school: School = {

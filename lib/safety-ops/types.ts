@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import { createSosInputSchema, dispatcherDashboardResponseSchema, geoPointSchema, incidentActionInputSchema, incidentAuditEntrySchema, incidentContactRelaySchema, incidentDeviceStatusSchema, incidentSeveritySchema, incidentStatusSchema, incidentTriggerTypeSchema, maskIncidentInputSchema, resolveIncidentInputSchema, safetyIncidentSchema } from './schemas';
+import { createSosInputSchema, complianceAttentionEventSchema, complianceSlaMetricSchema, dispatcherDashboardResponseSchema, geoPointSchema, incidentActionInputSchema, incidentAuditEntrySchema, incidentContactRelaySchema, incidentDeviceStatusSchema, incidentSeveritySchema, incidentStatusSchema, incidentTriggerTypeSchema, localVerificationRecordSchema, maskIncidentInputSchema, resolveIncidentInputSchema, safetyIncidentSchema, ugandaBookingInputSchema, unmaskIncidentInputSchema } from './schemas';
 
 export type IncidentTriggerType = z.infer<typeof incidentTriggerTypeSchema>;
 export type IncidentSeverity = z.infer<typeof incidentSeveritySchema>;
@@ -14,3 +14,8 @@ export type IncidentActionInput = z.infer<typeof incidentActionInputSchema>;
 export type ResolveIncidentInput = z.infer<typeof resolveIncidentInputSchema>;
 export type MaskIncidentInput = z.infer<typeof maskIncidentInputSchema>;
 export type DispatcherDashboardResponse = z.infer<typeof dispatcherDashboardResponseSchema>;
+export type ComplianceAttentionEvent = z.infer<typeof complianceAttentionEventSchema>;
+export type ComplianceSlaMetric = z.infer<typeof complianceSlaMetricSchema>;
+export type LocalVerificationRecord = z.infer<typeof localVerificationRecordSchema>;
+export type UgandaBookingInput = z.infer<typeof ugandaBookingInputSchema>;
+export type UnmaskIncidentInput = z.infer<typeof unmaskIncidentInputSchema>;

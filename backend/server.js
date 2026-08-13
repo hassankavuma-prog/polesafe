@@ -104,6 +104,7 @@ app.use('/api/payments', require('./routes/paymentsWebhook'));
 app.use('/api/broadcasts', require('./routes/broadcasts'));
 app.use('/api/credits', require('./routes/credits'));
 app.use('/api/trips', require('./routes/trips'));
+app.use('/api/fleet-contracts', require('./routes/fleetContracts'));
 app.use('/api/quote-requests', require('./routes/quoteRequests'));
 app.use('/api/devices', require('./routes/devices'));
 app.use('/api/hamna', require('./routes/ai'));

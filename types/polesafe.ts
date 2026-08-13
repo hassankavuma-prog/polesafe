@@ -1,204 +1,35 @@
 import type { z } from 'zod';
-import type {
-  contactRelayStatusSchema,
-  dispatcherRoleSchema,
-  incidentSeveritySchema,
-  incidentStatusSchema,
-  incidentTriggerTypeSchema,
-  networkStateSchema,
-  geoPointSchema,
-} from '../lib/safety-ops/schemas';
+import type { contactRelayStatusSchema, dispatcherRoleSchema, incidentSeveritySchema, incidentStatusSchema, incidentTriggerTypeSchema, networkStateSchema, geoPointSchema } from '../lib/safety-ops/schemas';
 
 export type UserRole = 'parent' | 'driver' | 'school_admin' | 'polesafe_admin' | 'system';
-
+export type ServiceVehicleClass = 'car' | 'boda_boda' | 'van' | 'bus';
+export type BookingRideCadence = 'daily' | 'weekly' | 'termly';
+export type BookingWeekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+export type RideConfidenceState = 'confirmed' | 'in_transit' | 'delayed' | 'arrived';
+export type RideVehicleKind = 'car' | 'boda_boda';
+export type RideAlertType = 'geofence_arrival' | 'route_deviation' | 'unscheduled_stop' | 'sos';
+export type LocalVerificationStatus = 'pending' | 'verified' | 'rejected' | 'expired';
+export interface UgandanTrustCredential { nin?: string; nationalIdNumber?: string; drivingPermitNumber?: string; ridingPermitNumber?: string; proofOfOwnershipReference?: string; motorcyclePlateNumber?: string; lc1LetterUrl?: string; stageChairmanLetterUrl?: string; passportPhotoUrl?: string; }
+export interface LocalVerificationDocument { type: 'nin' | 'driving_permit' | 'riding_permit' | 'proof_of_ownership' | 'motorcycle_plate' | 'lc1_letter' | 'stage_chairman_letter'; reference?: string; url?: string; status: LocalVerificationStatus; aiGenerated: boolean; aiConfidence?: number; attentionRequired: boolean; attentionReason?: string; }
+export interface LocalVerificationRecord { status: LocalVerificationStatus; checkedAt?: string; checkedBy?: string; notes?: string; trustDocuments?: LocalVerificationDocument[]; expiresAt?: string; nextReviewAt?: string; aiGeneratedRisk?: boolean; aiGeneratedRiskScore?: number; attentionRequired: boolean; attentionReason?: string; alertRecipients?: Array<'dispatcher' | 'parent' | 'school' | 'owner' | 'compliance'>; }
+export interface ComplianceAttentionEvent { id: string; targetType: 'driver' | 'vehicle' | 'document' | 'booking'; targetId: string; reason: string; severity: 'low' | 'medium' | 'high' | 'critical'; maskedSummary: string; attentionRequired: boolean; aiGeneratedRisk?: boolean; aiGeneratedRiskScore?: number; createdAt: string; createdBy?: string; }
+export type OperationalEventType = 'child_checkin' | 'child_checkout' | 'ride_update' | 'vehicle_telemetry' | 'payment' | 'sos' | 'school_gate' | 'sms_log';
+export interface OperationalEvent extends ConfidenceStamped { eventId: string; eventType: OperationalEventType; summary: string; occurredAt: string; sourceChannel?: string; privacyMasked: boolean; actorRole?: UserRole | 'dispatcher' | 'ops_dispatcher'; actorId?: string; organizationId?: string; schoolId?: string; childId?: string; rideId?: string; vehicleId?: string; incidentId?: string; metadata?: Record<string, unknown>; }
+export interface ComplianceSlaMetric { incidentId?: string; eventType: 'sos_acknowledged' | 'driver_contacted' | 'parent_contacted' | 'school_contacted' | 'resolved'; startedAt: string; finishedAt?: string; durationSeconds?: number; actorId?: string; actorRole?: string; }
+export interface VehicleBookingPreference { vehicleClass: ServiceVehicleClass; cadence: BookingRideCadence; paymentProvider: 'mtn_momo' | 'airtel_money' | 'card'; schoolTermReference?: string; recurringDays?: BookingWeekday[]; weeklyPattern?: BookingWeekday[]; }
 export type OrganizationKind = 'platform' | 'district' | 'school_group' | 'school';
-
-export type OperationalConfidence =
-  | 'confirmed'
-  | 'inferred'
-  | 'delayed'
-  | 'offline-received'
-  | 'manually-verified';
-
-export interface ConfidenceStamped {
-  confidence: OperationalConfidence;
-  confidenceNote?: string;
-  confidenceSource?: string;
-  confidenceUpdatedAt?: string;
-}
-
-export interface Organization {
-  id: string;
-  name: string;
-  country: string;
-  currency: string;
-  parentOrganizationId?: string | null;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export interface School extends Organization {
-  kind: 'school';
-  campuses: SchoolCampus[];
-}
-
-export interface SchoolCampus {
-  id: string;
-  organizationId: string;
-  name: string;
-  address: string;
-  region: string;
-  contactPhone: string;
-  isPrimary?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
+export type OperationalConfidence = 'confirmed' | 'inferred' | 'delayed' | 'offline-received' | 'manually-verified';
+export interface ConfidenceStamped { confidence: OperationalConfidence; confidenceNote?: string; confidenceSource?: string; confidenceUpdatedAt?: string; }
+export interface Organization { id: string; name: string; country: string; currency: string; parentOrganizationId?: string | null; createdAt: string; updatedAt?: string; }
+export interface School extends Organization { kind: 'school'; campuses: SchoolCampus[]; }
+export interface SchoolCampus { id: string; organizationId: string; name: string; address: string; region: string; contactPhone: string; isPrimary?: boolean; createdAt?: string; updatedAt?: string; }
 export type ComplianceStatus = 'pending' | 'verified' | 'rejected' | 'expired';
-
-export interface ComplianceDocument {
-  id: string;
-  type:
-    | 'national_id'
-    | 'drivers_license'
-    | 'police_clearance'
-    | 'vehicle_inspection'
-    | 'passport_photo'
-    | 'training_certificate';
-  url: string;
-  status: ComplianceStatus;
-  issuedAt?: string;
-  expiresAt?: string;
-  reviewedAt?: string;
-  reviewedBy?: string;
-}
-
-export interface DriverComplianceVault {
-  driverId: string;
-  nationalIdNumber: string;
-  nationalIdDocumentUrl?: string;
-  driversLicenseUrl?: string;
-  policeCheckCertificateUrl?: string;
-  vehicleInspectionUrl?: string;
-  status: ComplianceStatus;
-  verifiedAt?: string;
-  verifiedBy?: string;
-  documents?: ComplianceDocument[];
-}
-
-export interface SmsUssdFallbackPayload extends ConfidenceStamped {
-  messageId: string;
-  senderPhone: string;
-  gatewayProvider: 'africas_talking' | 'twilio' | 'custom_ussd';
-  rawText: string;
-  interpretedAction: 'SOS' | 'CHECKIN' | 'PICKUP_CONFIRM' | 'UNKNOWN';
-  associatedChildId?: string;
-  processedAt: string;
-  success: boolean;
-  schoolId?: string;
-  campusId?: string;
-}
-
-export interface UssdSessionPayload extends ConfidenceStamped {
-  sessionId: string;
-  senderPhone: string;
-  serviceCode: string;
-  rawText: string;
-  interpretedAction: 'OPEN_MENU' | 'REPORT_INCIDENT' | 'CONFIRM_PICKUP' | 'CONFIRM_DROPOFF' | 'UNKNOWN';
-  step?: string;
-  processedAt: string;
-  success: boolean;
-}
-
-export interface TransportLedgerTransaction extends ConfidenceStamped {
-  transactionId: string;
-  organizationId: string;
-  parentId: string;
-  amountUgx: number;
-  paymentMethod: 'flutterwave_momo' | 'airtel_money' | 'cash_credit';
-  status: 'success' | 'pending' | 'failed';
-  termReference: string;
-  createdAt: string;
-  paymentMatchStatus?: 'matched' | 'pending' | 'reconciled' | 'failed';
-  paymentProvider?: 'mtn_momo' | 'airtel_money' | 'unknown';
-}
-
-export type SafetyIncident = {
-  _id: string;
-  incidentNumber: string;
-  triggerType: z.infer<typeof incidentTriggerTypeSchema>;
-  severity: z.infer<typeof incidentSeveritySchema>;
-  status: z.infer<typeof incidentStatusSchema>;
-  reporterUserId?: string;
-  reporterRole?: z.infer<typeof dispatcherRoleSchema>;
-  childId?: string;
-  rideId?: string;
-  schoolId?: string;
-  liveLocation?: z.infer<typeof geoPointSchema> | null;
-  locationLabel?: string | null;
-  deviceStatus?: {
-    batteryPercent?: number;
-    networkState?: z.infer<typeof networkStateSchema>;
-    lastSeenAt?: Date;
-  };
-  contactRelay?: Array<{
-    contactType: 'parent' | 'driver' | 'school' | 'dispatcher' | 'police' | 'medical';
-    contactId?: string;
-    status?: z.infer<typeof contactRelayStatusSchema>;
-    sentAt?: Date;
-    acknowledgedAt?: Date;
-  }>;
-  assignedOperatorId?: string;
-  resolvedById?: string;
-  resolutionNote?: string;
-  falseAlarmReason?: string;
-  privacyMasked: boolean;
-  verified: boolean;
-  verifiedAt?: Date;
-  auditTrail: Array<{
-    action: string;
-    actorId?: string;
-    actorRole?: string;
-    note?: string;
-    timestamp: Date;
-  }>;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export interface SafetyOpsTenantContext {
-  organizationId: string;
-  schoolId?: string;
-  campusId?: string;
-  role: UserRole;
-  dispatcherRole?: z.infer<typeof dispatcherRoleSchema>;
-}
-
-export interface OperationalEvent extends ConfidenceStamped {
-  eventId: string;
-  eventType:
-    | 'child_checkin'
-    | 'child_checkout'
-    | 'ride_update'
-    | 'vehicle_telemetry'
-    | 'payment'
-    | 'sos'
-    | 'school_gate'
-    | 'sms_log';
-  actorRole?: UserRole | 'dispatcher' | 'school_admin' | 'student';
-  actorId?: string;
-  organizationId?: string;
-  schoolId?: string;
-  campusId?: string;
-  childId?: string;
-  rideId?: string;
-  vehicleId?: string;
-  incidentId?: string;
-  transactionId?: string;
-  messageId?: string;
-  occurredAt: string;
-  summary: string;
-  sourceChannel?: 'app' | 'sms' | 'ussd' | 'telemetry' | 'payment_gateway' | 'manual';
-  privacyMasked?: boolean;
-  metadata?: Record<string, unknown>;
-}
+export interface ComplianceDocument { id: string; type: 'national_id' | 'drivers_license' | 'police_clearance' | 'vehicle_inspection' | 'passport_photo' | 'training_certificate'; url: string; status: ComplianceStatus; issuedAt?: string; expiresAt?: string; reviewedAt?: string; reviewedBy?: string; aiGenerated: boolean; aiConfidence?: number; attentionRequired: boolean; attentionReason?: string; }
+export interface DriverComplianceVault { driverId: string; nationalIdNumber: string; nationalIdDocumentUrl?: string; driversLicenseUrl?: string; policeCheckCertificateUrl?: string; vehicleInspectionUrl?: string; status: ComplianceStatus; verifiedAt?: string; verifiedBy?: string; documents?: ComplianceDocument[]; localTrustVerification?: LocalVerificationRecord; credentialPack?: UgandanTrustCredential; attentionFlag?: boolean; attentionReason?: string; alertRecipients?: Array<'dispatcher' | 'parent' | 'school' | 'owner' | 'compliance'>; }
+export interface SmsUssdFallbackPayload extends ConfidenceStamped { messageId: string; senderPhone: string; gatewayProvider: 'africas_talking' | 'twilio' | 'custom_ussd'; rawText: string; interpretedAction: 'SOS' | 'CHECKIN' | 'PICKUP_CONFIRM' | 'UNKNOWN'; associatedChildId?: string; processedAt: string; success: boolean; schoolId?: string; campusId?: string; }
+export interface UssdSessionPayload extends ConfidenceStamped { sessionId: string; senderPhone: string; serviceCode: string; rawText: string; interpretedAction: 'OPEN_MENU' | 'REPORT_INCIDENT' | 'CONFIRM_PICKUP' | 'CONFIRM_DROPOFF' | 'UNKNOWN'; step?: string; processedAt: string; success: boolean; }
+export interface TransportLedgerTransaction extends ConfidenceStamped { transactionId: string; organizationId: string; parentId: string; amountUgx: number; paymentMethod: 'mtn_momo' | 'airtel_money' | 'card' | 'cash_credit'; status: 'success' | 'pending' | 'failed'; termReference: string; createdAt: string; paymentMatchStatus?: 'matched' | 'pending' | 'reconciled' | 'failed'; paymentProvider?: 'mtn_momo' | 'airtel_money' | 'card' | 'unknown'; }
+export interface BookingProfile extends ConfidenceStamped { bookingId: string; parentId: string; childId?: string; serviceVehicleClass: ServiceVehicleClass; cadence: BookingRideCadence; pickupLocation: string; dropoffLocation: string; paymentProvider: 'mtn_momo' | 'airtel_money' | 'card'; driverTrustVerification?: LocalVerificationRecord; vehicleTrustVerification?: LocalVerificationRecord; schoolTermReference?: string; recurringDays?: BookingWeekday[]; weeklyPattern?: BookingWeekday[]; complianceAttentionRequired?: boolean; complianceAttentionReason?: string; }
+export interface LiveJourneyCheckpoint { checkpointId: string; label: string; type: 'home_gate' | 'school_gate' | 'route_point' | 'stop' | 'sos'; latitude?: number; longitude?: number; reachedAt?: string; confidence?: RideConfidenceState; }
+export interface RideAlertEvent { alertId: string; rideId: string; alertType: RideAlertType; severity: 'low' | 'medium' | 'high' | 'critical'; message: string; maskedLocation?: string; parentNotified?: boolean; adminNotified?: boolean; dispatchNotified?: boolean; confidence: OperationalConfidence; confidenceNote?: string; confidenceSource?: string; confidenceUpdatedAt?: string; createdAt: string; }
+export interface LiveJourneyState extends ConfidenceStamped { rideId: string; vehicleKind: RideVehicleKind; parentId: string; driverId: string; childId?: string; routeName: string; confidenceState: RideConfidenceState; geofenceStatus?: 'approaching' | 'inside' | 'outside'; currentLocationLabel?: string; etaMinutes?: number; speedKph?: number; currentStopSeconds?: number; plannedStopSeconds?: number; checkpoints?: LiveJourneyCheckpoint[]; activeAlertTypes?: RideAlertType[]; }
