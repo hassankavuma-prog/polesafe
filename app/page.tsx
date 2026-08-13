@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
 import { ArrowRight, Bus, CheckCircle2, School, ShieldAlert, Smartphone, Users } from 'lucide-react';
 
 const highlights = [
@@ -48,6 +51,85 @@ const liveMetrics = [
   { label: 'Verified handoffs', value: '99.2%', delta: 'arrival-only', tone: 'from-emerald-500/20 to-emerald-500/5', accent: 'text-emerald-300' },
   { label: 'School gates mapped', value: '34', delta: '200m rules', tone: 'from-sky-500/20 to-sky-500/5', accent: 'text-sky-300' },
 ];
+
+function CoverageNetworkWidget() {
+  const [activeTab, setActiveTab] = useState<'kampala' | 'wakiso' | 'fleets' | 'gateways'>('kampala');
+  const tabs = [
+    { key: 'kampala', label: 'Kampala Zones' },
+    { key: 'wakiso', label: 'Wakiso Routes' },
+    { key: 'fleets', label: 'School Fleets' },
+    { key: 'gateways', label: 'Mobile Money Gateways' },
+  ] as const;
+  const nodes = {
+    kampala: ['Kampala Central', 'Makerere Hill', 'Kololo', 'Kawempe'],
+    wakiso: ['Gayaza Road', 'Entebbe Spur', 'Nansana', 'Kira'],
+    fleets: ['Main Campus Fleet', 'North Wing Fleet', 'Route A Vans', 'Route B Boda'],
+    gateways: ['MTN MoMo', 'Airtel Money', 'School Float', 'Dispatch Wallet'],
+  } as const;
+  const activeNodes = nodes[activeTab];
+  const isActive = (label: string) => {
+    if (activeTab === 'gateways') return label.includes('MTN') || label.includes('Airtel');
+    if (activeTab === 'fleets') return label.includes('Fleet') || label.includes('Route');
+    if (activeTab === 'wakiso') return label.includes('Wakiso') || label.includes('Gayaza') || label.includes('Entebbe') || label.includes('Nansana') || label.includes('Kira');
+    return label.includes('Kampala') || label.includes('Makerere') || label.includes('Kololo') || label.includes('Kawempe');
+  };
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="glass-strong relative overflow-hidden rounded-[2rem] border border-white/10 p-4 shadow-[0_18px_60px_rgba(2,6,23,0.55)] sm:p-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.18),transparent_30%),radial-gradient(circle_at_20%_20%,rgba(249,115,22,0.16),transparent_28%),radial-gradient(circle_at_80%_70%,rgba(16,185,129,0.12),transparent_28%)]" />
+        <div className="absolute inset-0 opacity-20" style={{backgroundImage:'linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px)', backgroundSize:'42px 42px'}} />
+        <div className="relative grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-sky-300">PoleSafe Operational Coverage</div>
+                <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">Live Coverage & Safety Network</h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-300">Interactive footprint across Kampala, Wakiso, school fleets, and mobile money gateways — optimized for trust, dispatch, and realtime service visibility.</p>
+              </div>
+              <div className="hidden rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 md:block">Live telemetry via MTN & Airtel</div>
+            </div>
+            <div className="mt-5 rounded-[1.75rem] border border-white/10 bg-slate-950/70 p-4 backdrop-blur-xl">
+              <svg viewBox="0 0 960 560" className="h-[320px] w-full" role="img" aria-label="PoleSafe operational coverage map">
+                <defs>
+                  <linearGradient id="ps-line" x1="0%" x2="100%" y1="0%" y2="100%">
+                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#f97316" stopOpacity="0.9" />
+                  </linearGradient>
+                  <filter id="ps-glow"><feGaussianBlur stdDeviation="4" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+                </defs>
+                <g opacity="0.25">
+                  <path d="M80 440 C180 330, 290 290, 410 260 S680 210, 900 120" fill="none" stroke="url(#ps-line)" strokeDasharray="8 12" />
+                  <path d="M120 120 C240 180, 320 210, 470 220 S700 245, 860 340" fill="none" stroke="url(#ps-line)" strokeDasharray="8 12" />
+                  <path d="M150 490 C250 430, 350 390, 510 360 S760 250, 860 200" fill="none" stroke="url(#ps-line)" strokeDasharray="8 12" />
+                </g>
+                {[{x:150,y:180,label:'Kampala Central'},{x:310,y:120,label:'Makerere Hill'},{x:410,y:300,label:'Kampala School Fleet'},{x:610,y:170,label:'Wakiso Corridor'},{x:760,y:270,label:'MTN MoMo'},{x:820,y:390,label:'Airtel Money'},{x:520,y:430,label:'North Wing Fleet'},{x:230,y:390,label:'Gate Dispatch'}].map((n,i)=> {
+                  const active = isActive(n.label);
+                  const fill = active ? (activeTab === 'gateways' ? '#f97316' : activeTab === 'fleets' ? '#34d399' : activeTab === 'wakiso' ? '#38bdf8' : '#f97316') : 'rgba(226, 232, 240, 0.35)';
+                  return <g key={i} filter="url(#ps-glow)" opacity={active ? 1 : 0.35}><circle cx={n.x} cy={n.y} r="8" fill={fill} /><circle cx={n.x} cy={n.y} r="24" fill={fill} fillOpacity="0.16" /><text x={n.x + 14} y={n.y - 12} fill="#e2e8f0" fontSize="12">{n.label}</text></g>;
+                })}
+              </svg>
+            </div>
+          </div>
+          <div className="flex flex-col justify-between gap-4">
+            <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
+              <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Active corridor</div>
+              <div className="mt-2 text-lg font-semibold text-white">{tabs.find((t) => t.key === activeTab)?.label}</div>
+              <div className="mt-4 space-y-2">
+                {activeNodes.map((node: string) => <div key={node} className="rounded-2xl border border-white/8 bg-slate-950/60 px-3 py-2 text-sm text-slate-200">{node}</div>)}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {tabs.map((tab) => (
+                <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`rounded-full border px-3 py-2 text-xs transition ${activeTab === tab.key ? 'border-sky-400/40 bg-sky-500/10 text-sky-200 shadow-[0_0_20px_rgba(56,189,248,0.15)]' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'}`}>{tab.label}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 
 export default function LandingPage() {
   return (
@@ -149,6 +231,8 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        <CoverageNetworkWidget />
 
         <section className="mx-auto max-w-7xl px-6 pb-10 lg:px-8">
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
