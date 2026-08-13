@@ -18,6 +18,17 @@ module.exports = {
   JWT_SECRET: process.env.JWT_SECRET || 'polesafe-jwt-secret-change-in-production',
   JWT_EXPIRES_IN: '30d',
 
+
+  // ============================================================
+  // 👑 ADMIN AUTH (secure env-driven seed)
+  // ============================================================
+  ADMIN: {
+    EMAIL: process.env.ADMIN_EMAIL || '',
+    PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH || '',
+    BOOTSTRAP_PASSWORD: process.env.ADMIN_BOOTSTRAP_PASSWORD || '',
+    BOOTSTRAP_SALT_ROUNDS: parseInt(process.env.ADMIN_BOOTSTRAP_SALT_ROUNDS || '12', 10),
+  },
+
   // ============================================================
   // 📱 AFRICA'S TALKING (SMS Gateway)
   // Sign up: https://africastalking.com

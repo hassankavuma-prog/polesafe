@@ -1,17 +1,44 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { z } = require('zod');
+const config = require('../config');
 const { User, Child } = require('../database/schema');
 const OTP = require('../models/OTP');
 const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'polesafe-dev-secret-change-in-production';
+const JWT_SECRET = config.JWT_SECRET || 'polesafe-dev-secret-change-in-production';
 const JWT_EXPIRY = '7d';
 const OTP_EXPIRY_MINUTES = 10;
 
 // Helper: find or create user record
 const authLookupSchema = z.object({ phone: z.string().min(7) }).strict();
+
+function normalizeAdminEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+async function maybeBootstrapAdmin() {
+  const adminEmail = normalizeAdminEmail(config.ADMIN?.EMAIL);
+  const bootstrapPassword = String(config.ADMIN?.BOOTSTRAP_PASSWORD || '').trim();
+  const passwordHash = String(config.ADMIN?.PASSWORD_HASH || '').trim();
+  if (!adminEmail || !bootstrapPassword || passwordHash) return null;
+
+  const existing = await User.findOne({ email: adminEmail }).lean();
+  if (existing) return null;
+
+  const saltRounds = Number.isFinite(config.ADMIN?.BOOTSTRAP_SALT_ROUNDS) ? config.ADMIN.BOOTSTRAP_SALT_ROUNDS : 12;
+  const hash = await bcrypt.hash(bootstrapPassword, saltRounds);
+  return { email: adminEmail, hash };
+}
+
+async function findAdminUserByEmail(email) {
+  const normalized = normalizeAdminEmail(email);
+  if (!normalized || normalizeAdminEmail(config.ADMIN?.EMAIL) !== normalized) return null;
+  const existing = await User.findOne({ email: normalized }).lean();
+  return existing;
+}
 
 async function findOrCreateUser(phone, role) {
   const query = validateTenantScopedQuery(authLookupSchema, { phone }, phone, ['auth:lookup']);
@@ -28,6 +55,91 @@ async function findOrCreateUser(phone, role) {
   }
   return user;
 }
+
+
+// POST /api/auth/admin-login
+router.post('/admin-login', async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const normalizedEmail = normalizeAdminEmail(email);
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const configuredEmail = normalizeAdminEmail(config.ADMIN?.EMAIL);
+    if (!configuredEmail || configuredEmail !== normalizedEmail) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    let adminUser = await User.findOne({ email: normalizedEmail });
+    let passwordHash = String(config.ADMIN?.PASSWORD_HASH || '').trim();
+
+    if (!passwordHash) {
+      const bootstrap = await maybeBootstrapAdmin();
+      if (bootstrap) {
+        passwordHash = bootstrap.hash;
+        if (!adminUser) {
+          adminUser = await User.create({
+            email: normalizedEmail,
+            name: 'PoleSafe Administrator',
+            phone: '',
+            role: 'polesafe_admin',
+            polesafeAdminRole: 'owner',
+            hasSmartphone: true,
+            preferredLanguage: 'en',
+          });
+        }
+      }
+    }
+
+    if (!passwordHash) {
+      return res.status(500).json({ error: 'Admin password hash is not configured' });
+    }
+
+    const matches = await bcrypt.compare(password, passwordHash);
+    if (!matches) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    if (!adminUser) {
+      adminUser = await User.create({
+        email: normalizedEmail,
+        name: 'PoleSafe Administrator',
+        phone: '',
+        role: 'polesafe_admin',
+        polesafeAdminRole: 'owner',
+        hasSmartphone: true,
+        preferredLanguage: 'en',
+      });
+    }
+
+    adminUser.role = 'polesafe_admin';
+    adminUser.polesafeAdminRole = adminUser.polesafeAdminRole || 'owner';
+    await adminUser.save();
+
+    const token = jwt.sign({
+      userId: adminUser._id.toString(),
+      phone: adminUser.phone || '',
+      role: 'polesafe_admin',
+      adminSubRole: adminUser.polesafeAdminRole,
+      email: normalizedEmail,
+    }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+
+    return res.json({
+      token,
+      user: {
+        id: adminUser._id,
+        email: normalizedEmail,
+        role: 'polesafe_admin',
+        adminSubRole: adminUser.polesafeAdminRole,
+        name: adminUser.name || 'PoleSafe Administrator',
+      },
+    });
+  } catch (err) {
+    console.error('Admin login error:', err);
+    return res.status(500).json({ error: 'Failed to login as admin' });
+  }
+});
 
 // POST /api/auth/send-otp
 router.post('/send-otp', async (req, res) => {
@@ -186,6 +298,27 @@ router.get('/dev-otps', async (req, res) => {
     })));
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch OTPs' });
+  }
+});
+
+router.post('/admin-bootstrap', async (req, res) => {
+  try {
+    const email = normalizeAdminEmail(config.ADMIN?.EMAIL);
+    const bootstrapPassword = String(config.ADMIN?.BOOTSTRAP_PASSWORD || '').trim();
+    if (!email || !bootstrapPassword) {
+      return res.status(400).json({ error: 'Admin bootstrap env vars missing' });
+    }
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res.json({ message: 'Admin already exists' });
+    }
+    const saltRounds = Number.isFinite(config.ADMIN?.BOOTSTRAP_SALT_ROUNDS) ? config.ADMIN.BOOTSTRAP_SALT_ROUNDS : 12;
+    const hash = await bcrypt.hash(bootstrapPassword, saltRounds);
+    const user = await User.create({ email, name: 'PoleSafe Administrator', phone: '', role: 'polesafe_admin', polesafeAdminRole: 'owner', hasSmartphone: true, preferredLanguage: 'en' });
+    return res.json({ message: 'Admin bootstrap ready', email, passwordHash: hash, userId: user._id });
+  } catch (err) {
+    console.error('Admin bootstrap error:', err);
+    return res.status(500).json({ error: 'Failed to bootstrap admin' });
   }
 });
 
