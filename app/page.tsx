@@ -70,10 +70,26 @@ function BookingWidget() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
   const [result, setResult] = useState<string>('');
   const [bookingMeta, setBookingMeta] = useState<{ rideId?: string; txRef?: string; flwRef?: string; checkoutUrl?: string }>({});
+  const [farePreview, setFarePreview] = useState<number | null>(null);
 
   const routeHint = useMemo(() => mode === 'school'
     ? 'School ride booking will create a trip request for the operations team to confirm.'
     : 'Community ride booking will request an on-demand ride from the live dispatch pool.', [mode]);
+
+  const estimateFare = useMemo(() => {
+    const base = mode === 'school' ? 7000 : 2500;
+    const complexity = Math.min(5, Math.max(1, Math.ceil(((form.pickup.length + form.dropoff.length) || 1) / 20)));
+    const vehicleBoost = form.vehicleType === 'bus' ? 4500 : form.vehicleType === 'taxi' ? 2000 : form.vehicleType === 'boda' ? -500 : 0;
+    return base + complexity * 1000 + vehicleBoost;
+  }, [mode, form.pickup, form.dropoff, form.vehicleType]);
+
+  async function previewFare() {
+    setFarePreview(estimateFare);
+    setStatus('idle');
+    setResult(mode === 'school'
+      ? `Estimated school ride bundle/fleet handling: ${estimateFare.toLocaleString()} UGX`
+      : `Estimated community ride fare: ${estimateFare.toLocaleString()} UGX`);
+  }
 
   async function submitBooking() {
     setStatus('submitting');
@@ -109,14 +125,15 @@ function BookingWidget() {
       if (!response.ok) throw new Error(data.error || 'Booking failed');
 
       if (mode === 'community') {
-        const amount = Number(data.price?.total || 0);
+        const amount = Number(data.price?.total || farePreview || estimateFare || 0);
         if (amount > 0) {
+          const provider = /airtel/i.test(form.notes) || /airtel/i.test(form.phone) ? 'airtel' : 'mtn';
           const payResponse = await fetch('/api/payments/momo', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               amount,
-              provider: 'mtn',
+              provider,
               narration: `PoleSafe ride booking ${data.ride?._id || ''}`,
               rideId: data.ride?._id,
             }),
@@ -124,7 +141,7 @@ function BookingWidget() {
           const payData = await payResponse.json();
           if (!payResponse.ok) throw new Error(payData.error || 'Payment initiation failed');
           setBookingMeta({ rideId: data.ride?._id, txRef: payData.txRef, flwRef: payData.flwRef });
-          setResult(`Ride requested. Fare: ${amount} UGX • Payment initiated via MTN MoMo. Confirm on your phone.`);
+          setResult(`Ride requested. Fare: ${amount} UGX • Payment initiated via ${provider === 'airtel' ? 'Airtel Money' : 'MTN MoMo'}. Confirm on your phone.`);
         } else {
           setBookingMeta({ rideId: data.ride?._id });
           setResult(`Ride requested successfully. Driver: ${data.driver?.name || 'pending'} • Fare: pending`);
@@ -184,10 +201,14 @@ function BookingWidget() {
               <div>Dropoff: {form.dropoff || '—'}</div>
               <div>Time: {form.rideTime || '—'}</div>
               <div>Vehicle: {form.vehicleType}</div>
+              <div>Estimated fare: {(farePreview || estimateFare).toLocaleString()} UGX</div>
             </div>
-            <button onClick={submitBooking} disabled={status === 'submitting'} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_0_35px_rgba(249,115,22,0.20)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-70">
-              {status === 'submitting' ? 'Submitting...' : 'Book ride now'}
-            </button>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button onClick={previewFare} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10">Preview fare</button>
+              <button onClick={submitBooking} disabled={status === 'submitting'} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_0_35px_rgba(249,115,22,0.20)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-70">
+                {status === 'submitting' ? 'Submitting...' : 'Book ride now'}
+              </button>
+            </div>
             {result && <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${status === 'done' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200' : 'border-red-500/20 bg-red-500/10 text-red-200'}`}>{result}</div>}
             {bookingMeta.rideId && status === 'done' && (
               <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-xs text-slate-300">
@@ -196,6 +217,17 @@ function BookingWidget() {
                 <div className="mt-2">
                   <Link href="/ride/tracker" className="text-sky-300 underline">Open live tracker</Link>
                 </div>
+              </div>
+            )}
+            {status === 'done' && (
+              <div className="mt-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200">
+                <div>Next step: keep this page open to jump into tracking, or use the tracker link after confirmation.</div>
+                <div className="mt-1">Payment support: MTN MoMo / Airtel Money where available.</div>
+              </div>
+            )}
+            {status === 'done' && mode === 'school' && (
+              <div className="mt-3 rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-xs text-sky-200">
+                School rides will follow arrival-only safe-word reveal, gate checks, and dispatcher approval rules.
               </div>
             )}
           </div>
