@@ -2,7 +2,8 @@
 // Full article view for the community blog with Hamna review metadata
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity, TextInput, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'http://localhost:3001/api/community';
 
@@ -25,17 +26,28 @@ const reviewTone = {
 export default function BlogDetail({ route, navigation }) {
   const postId = route.params?.postId;
   const [post, setPost] = useState(null);
+  const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [reaction, setReaction] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       try {
-        const res = await fetch(`${API_URL}/blog/${postId}`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Could not load article');
-        if (mounted) setPost(data.post);
+        const [postRes, commentsRes] = await Promise.all([
+          fetch(`${API_URL}/blog/${postId}`),
+          fetch(`${API_URL}/posts/${postId}/comments`),
+        ]);
+        const postData = await postRes.json();
+        const commentData = await commentsRes.json();
+        if (!postRes.ok) throw new Error(postData.error || 'Could not load article');
+        if (mounted) {
+          setPost(postData.post);
+          setComments(commentData.comments || []);
+        }
       } catch (e) {
         if (mounted) setError(e.message || 'Could not load article');
       } finally {
@@ -47,6 +59,59 @@ export default function BlogDetail({ route, navigation }) {
   }, [postId]);
 
   const review = useMemo(() => reviewTone[post?.reviewStatus] || reviewTone.pending, [post?.reviewStatus]);
+  const commentCount = comments.length || post?.commentCount || 0;
+
+  const submitComment = async () => {
+    const value = commentText.trim();
+    if (!value) return;
+    const token = await AsyncStorage.getItem('polesafe_token');
+    if (!token) {
+      Alert.alert('Login Required', 'Sign in to comment on blog posts.');
+      return;
+    }
+    setSubmittingComment(true);
+    try {
+      const res = await fetch(`${API_URL}/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ body: value }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to post comment');
+      setComments((prev) => [{ ...data.comment, upvoteCount: 0 }, ...prev]);
+      setCommentText('');
+      Alert.alert('Posted', 'Your reply has been submitted.');
+    } catch (e) {
+      Alert.alert('Could not post', e.message || 'Please try again.');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleReaction = async (mode) => {
+    try {
+      const token = await AsyncStorage.getItem('polesafe_token');
+      if (!token) {
+        Alert.alert('Login Required', 'Sign in to react to posts.');
+        return;
+      }
+      setReaction(mode);
+      await fetch(`${API_URL}/posts/${postId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ vote: 'up' }),
+      });
+      Alert.alert('Thanks', 'Reaction saved.');
+    } catch (e) {
+      Alert.alert('Reaction failed', e.message || 'Please try again.');
+    }
+  };
 
   if (loading) {
     return (
@@ -110,10 +175,52 @@ export default function BlogDetail({ route, navigation }) {
           <Text style={styles.statLabel}>Likes</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{post.commentCount || 0}</Text>
+          <Text style={styles.statValue}>{commentCount}</Text>
           <Text style={styles.statLabel}>Comments</Text>
         </View>
       </View>
+
+      <View style={styles.interactionCard}>
+        <View style={styles.interactionHeader}>
+          <Text style={styles.interactionTitle}>Reactions & replies</Text>
+          <View style={styles.reactionRow}>
+            <TouchableOpacity style={[styles.reactionBtn, reaction === 'like' && styles.reactionActive]} onPress={() => handleReaction('like')}>
+              <Text style={styles.reactionEmoji}>{reaction === 'like' ? '❤️' : '🤍'}</Text>
+              <Text style={styles.reactionText}>Like</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.reactionBtn, reaction === 'clap' && styles.reactionActive]} onPress={() => handleReaction('clap')}>
+              <Text style={styles.reactionEmoji}>{reaction === 'clap' ? '👏' : '🙌'}</Text>
+              <Text style={styles.reactionText}>Clap</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <Text style={styles.commentHint}>Post a reply below. Comments are moderated by Hamna before wider visibility when needed.</Text>
+        <View style={styles.commentComposer}>
+          <TextInput
+            value={commentText}
+            onChangeText={setCommentText}
+            placeholder="Write a short comment or response..."
+            placeholderTextColor="#9ca3af"
+            style={styles.commentInput}
+            multiline
+          />
+          <TouchableOpacity style={styles.commentBtn} onPress={submitComment} disabled={submittingComment}>
+            <Text style={styles.commentBtnText}>{submittingComment ? 'Posting…' : 'Post reply'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {comments.length ? (
+        <View style={styles.commentsCard}>
+          <Text style={styles.commentsTitle}>Community replies</Text>
+          {comments.slice(0, 5).map((c) => (
+            <View key={c._id} style={styles.commentItem}>
+              <Text style={styles.commentAuthor}>{c.displayName || 'Anonymous'}</Text>
+              <Text style={styles.commentBody}>{c.body}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       {post.originalLanguage && post.originalLanguage !== 'en' && (
         <View style={styles.noticeBox}>
@@ -158,6 +265,24 @@ const styles = StyleSheet.create({
   reviewPillText: { fontSize: 11, fontWeight: '700' },
   date: { marginTop: 10, fontSize: 12, color: '#9ca3af' },
   card: { backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  interactionCard: { backgroundColor: '#0f172a', borderRadius: 18, padding: 16, marginBottom: 14 },
+  interactionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  interactionTitle: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  reactionRow: { flexDirection: 'row', gap: 8 },
+  reactionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 8 },
+  reactionActive: { backgroundColor: 'rgba(34,197,94,0.22)' },
+  reactionEmoji: { fontSize: 14, marginRight: 6 },
+  reactionText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  commentHint: { color: '#cbd5e1', fontSize: 12, lineHeight: 18, marginBottom: 12 },
+  commentComposer: { gap: 10 },
+  commentInput: { backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, minHeight: 80, textAlignVertical: 'top' },
+  commentBtn: { backgroundColor: '#22c55e', borderRadius: 12, alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 10 },
+  commentBtnText: { color: '#052e16', fontWeight: '800' },
+  commentsCard: { backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 14 },
+  commentsTitle: { fontSize: 15, fontWeight: '800', color: '#111827', marginBottom: 10 },
+  commentItem: { paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
+  commentAuthor: { fontSize: 12, fontWeight: '700', color: '#166534', marginBottom: 4 },
+  commentBody: { fontSize: 13, lineHeight: 18, color: '#374151' },
   body: { fontSize: 15, lineHeight: 24, color: '#1f2937' },
   statsGrid: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 16, paddingVertical: 14, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
