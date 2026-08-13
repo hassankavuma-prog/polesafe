@@ -22,6 +22,9 @@ module.exports = {
   // ============================================================
   // 👑 ADMIN AUTH (secure env-driven seed)
   // ============================================================
+  // ADMIN_EMAIL is the private owner-controlled admin login email.
+  // Do not assume it is a public/shared contact address, and do not
+  // hardcode the owner's personal email into shared code or docs.
   ADMIN: {
     EMAIL: process.env.ADMIN_EMAIL || '',
     PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH || '',

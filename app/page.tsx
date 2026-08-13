@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { ArrowRight, Bus, CheckCircle2, School, ShieldAlert, Smartphone, Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ArrowRight, Bus, CheckCircle2, MapPin, Phone, School, ShieldAlert, Smartphone, TimerReset, Users } from 'lucide-react';
 
 const highlights = [
   {
@@ -51,6 +51,127 @@ const liveMetrics = [
   { label: 'Verified handoffs', value: '99.2%', delta: 'arrival-only', tone: 'from-emerald-500/20 to-emerald-500/5', accent: 'text-emerald-300' },
   { label: 'School gates mapped', value: '34', delta: '200m rules', tone: 'from-sky-500/20 to-sky-500/5', accent: 'text-sky-300' },
 ];
+
+type RideMode = 'community' | 'school';
+
+function BookingWidget() {
+  const [mode, setMode] = useState<RideMode>('community');
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    pickup: '',
+    dropoff: '',
+    rideTime: '',
+    childName: '',
+    schoolName: '',
+    vehicleType: 'car',
+    notes: '',
+  });
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
+  const [result, setResult] = useState<string>('');
+
+  const routeHint = useMemo(() => mode === 'school'
+    ? 'School ride booking will create a trip request for the operations team to confirm.'
+    : 'Community ride booking will request an on-demand ride from the live dispatch pool.', [mode]);
+
+  async function submitBooking() {
+    setStatus('submitting');
+    setResult('');
+    try {
+      const payload = mode === 'community'
+        ? {
+            pickupAddress: form.pickup,
+            dropoffAddress: form.dropoff,
+            pickupTime: form.rideTime || undefined,
+            passengerCount: 1,
+            vehicleType: form.vehicleType,
+            notes: `${form.name} • ${form.phone}${form.notes ? ` • ${form.notes}` : ''}`,
+          }
+        : {
+            tripName: `${form.childName || form.name} school ride`,
+            description: `${form.schoolName || 'School ride'} • ${form.phone}${form.notes ? ` • ${form.notes}` : ''}`,
+            destination: form.dropoff,
+            departureDate: form.rideTime ? form.rideTime.slice(0, 10) : new Date().toISOString().slice(0, 10),
+            departureTime: form.rideTime ? form.rideTime.slice(11, 16) : undefined,
+            vehicleType: form.vehicleType,
+            notes: `Child: ${form.childName || 'Not provided'} • Pickup: ${form.pickup}`,
+          };
+
+      const endpoint = mode === 'community' ? '/api/rides/request' : '/api/trips';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Booking failed');
+
+      setStatus('done');
+      setResult(mode === 'community'
+        ? `Ride requested successfully. Driver: ${data.driver?.name || 'pending'} • Fare: ${data.price?.total ? `${data.price.total} UGX` : 'pending'}`
+        : `School trip created successfully. Trip status: ${data.status || 'open'} • Ops will confirm next.`);
+    } catch (err: any) {
+      setStatus('error');
+      setResult(err.message || 'Booking failed');
+    }
+  }
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="glass-strong rounded-[2rem] border border-white/10 p-5 shadow-[0_18px_60px_rgba(2,6,23,0.55)] sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-emerald-300">Live booking</div>
+            <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">Book a ride from the website</h2>
+            <p className="mt-2 max-w-2xl text-sm text-slate-300">Choose community ride or school ride, enter the journey details, and send the request directly into PoleSafe backend routing.</p>
+          </div>
+          <div className="flex rounded-2xl border border-white/10 bg-white/5 p-1 text-xs text-slate-300">
+            {(['community', 'school'] as RideMode[]).map((item) => (
+              <button key={item} onClick={() => setMode(item)} className={`rounded-xl px-4 py-2 capitalize ${mode === item ? 'bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.18)]' : 'hover:bg-white/10'}`}>
+                {item} rides
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid gap-4 md:grid-cols-2">
+            <input className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500" placeholder="Your name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white"><Phone className="h-4 w-4 text-orange-300" /><input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="Phone number" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white"><MapPin className="h-4 w-4 text-sky-300" /><input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder={mode === 'school' ? 'Pickup point / home' : 'Pickup location'} value={form.pickup} onChange={(e) => setForm((f) => ({ ...f, pickup: e.target.value }))} /></div>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white"><MapPin className="h-4 w-4 text-emerald-300" /><input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder={mode === 'school' ? 'School / dropoff destination' : 'Dropoff location'} value={form.dropoff} onChange={(e) => setForm((f) => ({ ...f, dropoff: e.target.value }))} /></div>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white"><TimerReset className="h-4 w-4 text-violet-300" /><input className="w-full bg-transparent outline-none placeholder:text-slate-500" type="datetime-local" value={form.rideTime} onChange={(e) => setForm((f) => ({ ...f, rideTime: e.target.value }))} /></div>
+            <select className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none" value={form.vehicleType} onChange={(e) => setForm((f) => ({ ...f, vehicleType: e.target.value }))}>
+              <option value="car">Car</option>
+              <option value="boda">Boda Boda</option>
+              <option value="bus">Bus</option>
+              <option value="taxi">Taxi</option>
+            </select>
+            {mode === 'school' && <input className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 md:col-span-2" placeholder="Child name / school name" value={form.childName || form.schoolName} onChange={(e) => setForm((f) => ({ ...f, childName: e.target.value, schoolName: e.target.value }))} />}
+            <textarea className="min-h-[110px] rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 md:col-span-2" placeholder="Notes, landmarks, gate details, or safety instructions" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+          </div>
+
+          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5">
+            <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Booking preview</div>
+            <div className="mt-3 text-lg font-semibold text-white">{mode === 'school' ? 'School ride request' : 'Community ride request'}</div>
+            <p className="mt-2 text-sm text-slate-300">{routeHint}</p>
+            <div className="mt-4 space-y-2 text-sm text-slate-300">
+              <div>Pickup: {form.pickup || '—'}</div>
+              <div>Dropoff: {form.dropoff || '—'}</div>
+              <div>Time: {form.rideTime || '—'}</div>
+              <div>Vehicle: {form.vehicleType}</div>
+            </div>
+            <button onClick={submitBooking} disabled={status === 'submitting'} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_0_35px_rgba(249,115,22,0.20)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-70">
+              {status === 'submitting' ? 'Submitting...' : 'Book ride now'}
+            </button>
+            {result && <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${status === 'done' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200' : 'border-red-500/20 bg-red-500/10 text-red-200'}`}>{result}</div>}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function CoverageNetworkWidget() {
   const [activeTab, setActiveTab] = useState<'kampala' | 'wakiso' | 'fleets' | 'gateways'>('kampala');
@@ -161,6 +282,7 @@ export default function LandingPage() {
       </header>
 
       <main className="relative">
+        <BookingWidget />
         <section className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-16">
           <div className="max-w-3xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-orange-300 shadow-sm shadow-black/20 backdrop-blur-xl">
