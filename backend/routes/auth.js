@@ -1,16 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const { z } = require('zod');
 const { User, Child } = require('../database/schema');
 const OTP = require('../models/OTP');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'polesafe-dev-secret-change-in-production';
 const JWT_EXPIRY = '7d';
 const OTP_EXPIRY_MINUTES = 10;
 
 // Helper: find or create user record
+const authLookupSchema = z.object({ phone: z.string().min(7) }).strict();
+
 async function findOrCreateUser(phone, role) {
-  let user = await User.findOne({ phone });
+  const query = validateTenantScopedQuery(authLookupSchema, { phone }, phone, ['auth:lookup']);
+  let user = await User.findOne(query.tenantScopedQuery);
   if (!user) {
     user = await User.create({
       phone,

@@ -137,7 +137,7 @@ export default function SchoolDashboard({ navigation }) {
   }
 
   const att = dashboard?.attendance || {};
-  const schoolName = dashboard?.schoolId?.name || "St. Mary's School";
+  const schoolName = dashboard?.schoolId?.name || "St Mary's School";
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.canvas }]}>

@@ -4,9 +4,11 @@
 
 const express = require('express');
 const router = express.Router();
+const { z } = require('zod');
 const { authMiddleware } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const { Ride, User, Vehicle } = require('../database/schema');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 const fuelAdjustmentService = require('../services/fuelAdjustment');
 const schoolPremiumService = require('../services/schoolPremium');
 const mapsService = require('../services/mapsService');
@@ -167,7 +169,9 @@ router.post('/request', authMiddleware, async (req, res) => {
 // ============================================================
 router.get('/:id/track', authMiddleware, async (req, res) => {
   try {
-    const ride = await Ride.findById(req.params.id)
+    const rideQuerySchema = z.object({ id: z.string().min(1) }).strict();
+    const rideScope = validateTenantScopedQuery(rideQuerySchema, { id: req.params.id }, req.userId, ['ride:view']);
+    const ride = await Ride.findById(rideScope.tenantScopedQuery.id)
       .populate('driverId', 'name phone location')
       .populate('childId', 'name photo')
       .lean();

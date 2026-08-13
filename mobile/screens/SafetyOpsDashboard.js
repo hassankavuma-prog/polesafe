@@ -1,7 +1,7 @@
 // PoleSafe Safety Ops Dashboard — Dispatcher / Admin incident command center
 // Calm, simple, operator-friendly, low-bandwidth first.
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, ActivityIndicator, Alert, SafeAreaView,
@@ -10,8 +10,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE from '../config';
 import { BRAND, STATUS, getTheme, BORDER_RADIUS, SPACING } from '../theme';
 import GlassCard from '../components/GlassCard';
+import { io } from 'socket.io-client';
+import { onSocketConnected, onSocketDisconnected } from '../services/rideSocketService';
 
 const API_URL = API_BASE;
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || API_BASE || 'http://localhost:5000';
 
 const severityMeta = {
   low: { label: 'Low', color: '#6B7280' },
@@ -20,7 +23,7 @@ const severityMeta = {
   critical: { label: 'Critical', color: '#B91C1C' },
 };
 
-function IncidentCard({ incident, onAcknowledge, onAssign, onEscalate, onResolve, onMask }) {
+function IncidentCard({ incident, onAcknowledge, onAssign, onEscalate, onResolve, onMask, onUnmask }) {
   const sev = severityMeta[incident.severity] || severityMeta.high;
   const status = incident.status || 'active';
   return (
@@ -66,17 +69,25 @@ function IncidentCard({ incident, onAcknowledge, onAssign, onEscalate, onResolve
       <TouchableOpacity style={[styles.actionBtn, styles.maskBtn]} onPress={() => onMask(incident)}>
         <Text style={styles.maskText}>Mask Sensitive Data</Text>
       </TouchableOpacity>
+      {incident.privacyMasked ? (
+        <TouchableOpacity style={[styles.actionBtn, styles.unmaskBtn]} onPress={() => onUnmask(incident)}>
+          <Text style={styles.unmaskText}>Unmask for verified triage</Text>
+        </TouchableOpacity>
+      ) : null}
     </GlassCard>
   );
 }
 
 export default function SafetyOpsDashboard() {
   const theme = getTheme();
+  const socketRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ active: 0, triaged: 0, resolved: 0 });
   const [incidents, setIncidents] = useState([]);
   const [identity, setIdentity] = useState({ userId: null, userRole: null });
+  const [isConnected, setIsConnected] = useState(false);
+  const [latestEmergency, setLatestEmergency] = useState(null);
 
   const loadDashboard = useCallback(async () => {
     const token = await AsyncStorage.getItem('polesafe_token');
@@ -87,6 +98,17 @@ export default function SafetyOpsDashboard() {
     if (!res.ok) throw new Error(data.error || 'Failed to load safety ops dashboard');
     setStats(data.stats || { active: 0, triaged: 0, resolved: 0 });
     setIncidents(data.incidents || []);
+  }, []);
+
+  const mergeIncident = useCallback((incident) => {
+    if (!incident?._id) return;
+    setIncidents((prev) => {
+      const next = [incident, ...prev.filter((item) => item._id !== incident._id)];
+      return next.slice(0, 100);
+    });
+    if (incident.severity === 'high' || incident.severity === 'critical') {
+      setLatestEmergency(incident);
+    }
   }, []);
 
   useEffect(() => {
@@ -103,6 +125,48 @@ export default function SafetyOpsDashboard() {
       }
     })();
   }, [loadDashboard]);
+
+  useEffect(() => {
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 8000,
+    });
+
+    socketRef.current = socket;
+
+    const handleConnect = async () => {
+      setIsConnected(true);
+      socket.emit('join_dispatcher_room');
+      await onSocketConnected();
+    };
+
+    const handleDisconnect = () => {
+      setIsConnected(false);
+      onSocketDisconnected();
+    };
+
+    const handleIncidentCreated = (incident) => mergeIncident(incident);
+    const handleIncidentUpdated = (incident) => mergeIncident(incident);
+
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('incident_created', handleIncidentCreated);
+    socket.on('incident_updated', handleIncidentUpdated);
+    socket.on('connect_error', handleDisconnect);
+
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('incident_created', handleIncidentCreated);
+      socket.off('incident_updated', handleIncidentUpdated);
+      socket.off('connect_error', handleDisconnect);
+      socket.disconnect();
+    };
+  }, [mergeIncident]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -186,6 +250,21 @@ export default function SafetyOpsDashboard() {
     }
   };
 
+  const handleUnmask = async (incident) => {
+    try {
+      await postAction(`/incidents/${incident._id}/unmask`, {
+        userId: identity.userId || 'current',
+        userRole: identity.userRole || 'polesafe_admin',
+        verified: true,
+        note: 'Unmasked from dashboard after verified dispatch need',
+      });
+    } catch (err) {
+      Alert.alert('Unmask', err.message);
+    }
+  };
+
+  const clearEmergency = () => setLatestEmergency(null);
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, styles.center, { backgroundColor: theme.canvas }]}>
@@ -203,6 +282,16 @@ export default function SafetyOpsDashboard() {
       >
         <Text style={styles.header}>Safety Ops</Text>
         <Text style={styles.subheader}>Dispatcher command center for SOS and incident triage</Text>
+        <View style={styles.connectionRow}>
+          <View style={[styles.connectionPill, isConnected ? styles.connectionLive : styles.connectionOffline]}>
+            <Text style={styles.connectionText}>{isConnected ? 'Live socket connected' : 'Socket offline, using refresh fallback'}</Text>
+          </View>
+          {latestEmergency ? (
+            <TouchableOpacity style={styles.emergencyBtn} onPress={clearEmergency}>
+              <Text style={styles.emergencyText}>Clear emergency highlight</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
 
         <View style={styles.statsRow}>
           <GlassCard style={styles.statCard}><Text style={styles.statNum}>{stats.active}</Text><Text style={styles.statLabel}>Active</Text></GlassCard>
@@ -226,6 +315,7 @@ export default function SafetyOpsDashboard() {
             onEscalate={handleEscalate}
             onResolve={handleResolve}
             onMask={handleMask}
+            onUnmask={handleUnmask}
           />
         ))}
       </ScrollView>
@@ -239,6 +329,13 @@ const styles = StyleSheet.create({
   content: { padding: SPACING.md },
   header: { fontSize: 24, fontWeight: '800', color: '#111827' },
   subheader: { fontSize: 13, color: '#6B7280', marginTop: 4, marginBottom: 16 },
+  connectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' },
+  connectionPill: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999 },
+  connectionLive: { backgroundColor: '#DCFCE7' },
+  connectionOffline: { backgroundColor: '#FEF3C7' },
+  connectionText: { fontSize: 12, fontWeight: '700', color: '#111827' },
+  emergencyBtn: { borderRadius: 999, backgroundColor: '#FEE2E2', paddingHorizontal: 10, paddingVertical: 8 },
+  emergencyText: { fontSize: 12, fontWeight: '800', color: '#991B1B' },
   loadingText: { marginTop: 10, color: '#6B7280' },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   statCard: { flex: 1, paddingVertical: 14, alignItems: 'center' },
@@ -262,6 +359,8 @@ const styles = StyleSheet.create({
   resolveText: { fontSize: 13, fontWeight: '800', color: '#15803D' },
   maskBtn: { marginTop: 8, backgroundColor: '#FFF7ED' },
   maskText: { fontSize: 13, fontWeight: '800', color: '#B45309' },
+  unmaskBtn: { marginTop: 8, backgroundColor: '#E0F2FE' },
+  unmaskText: { fontSize: 13, fontWeight: '800', color: '#0369A1' },
   emptyCard: { padding: 24, alignItems: 'center' },
   emptyEmoji: { fontSize: 40, marginBottom: 8 },
   emptyTitle: { fontSize: 16, fontWeight: '800', color: '#111827' },

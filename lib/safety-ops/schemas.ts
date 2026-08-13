@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const dispatcherRoleSchema = z.enum(['parent', 'driver', 'school_admin', 'polesafe_admin', 'dispatcher', 'ops_dispatcher', 'system']);
+
 export const incidentTriggerTypeSchema = z.enum(['manual_sos', 'silent_alarm', 'fall_detection', 'driver_report', 'school_report', 'system_flag']);
 export const incidentSeveritySchema = z.enum(['low', 'medium', 'high', 'critical']);
 export const incidentStatusSchema = z.enum(['active', 'triaged', 'escalated', 'resolved', 'false_alarm', 'dismissed']);
@@ -73,8 +75,6 @@ export const createSosInputSchema = z.object({
   severity: incidentSeveritySchema.optional(),
   deviceStatus: incidentDeviceStatusSchema.optional(),
 }).strict();
-
-export const dispatcherRoleSchema = z.enum(['parent', 'driver', 'school_admin', 'polesafe_admin', 'dispatcher', 'ops_dispatcher', 'system']);
 
 export const incidentActionInputSchema = z.object({
   incidentId: z.string().min(1),

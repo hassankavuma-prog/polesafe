@@ -152,7 +152,7 @@ export default function DriverDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/8 bg-slate-950/50">
-                  {vault.documents.map((doc) => (
+                  {(vault.documents ?? []).map((doc) => (
                     <tr key={doc.id} className="text-slate-300">
                       <td className="px-4 py-3">
                         <div className="font-medium text-white">{doc.type.replaceAll('_', ' ')}</div>

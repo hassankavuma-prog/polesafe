@@ -4,6 +4,8 @@
 
 const WebSocket = require('ws');
 const { Ride } = require('../database/schema');
+const { z } = require('zod');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 const gateGeofenceService = require('./gateGeofenceService');
 const FCMService = require('./fcmService');
 
@@ -79,7 +81,9 @@ class TrackingService {
 
               // ── Gate Geofence Check ──────────────────────────────
               // Check if driver is near any registered school gate
-              const ride = await Ride.findById(rideId).populate('schoolId', 'gates name').select('schoolId driverId');
+              const rideSchema = z.object({ rideId: z.string().min(1) }).strict();
+              const rideScope = validateTenantScopedQuery(rideSchema, { rideId }, String(rideId), ['tracking:ride']);
+              const ride = await Ride.findById(rideScope.tenantScopedQuery.rideId).populate('schoolId', 'gates name').select('schoolId driverId');
               if (ride && ride.schoolId) {
                 const driverInfo = this.connections.get(userId);
                 const gateResults = await gateGeofenceService.checkDriverPosition({

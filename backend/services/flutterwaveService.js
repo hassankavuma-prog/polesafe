@@ -4,6 +4,7 @@
 
 const config = require('../config');
 const { Transaction, Credit, User } = require('../database/schema');
+const { reconcileMobileMoney, normalizeUgx } = require('../../lib/engine/hamnah-core');
 
 class FlutterwaveService {
 
@@ -24,9 +25,13 @@ class FlutterwaveService {
    * Charge a Mobile Money wallet (MTN / Airtel Uganda)
    */
   async chargeMobileMoney({ phone, amount, currency = 'UGX', provider, narration, userId }) {
+    const ugxAmount = normalizeUgx(Number(amount));
+    const reference = `PS-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const hamnahReconciliation = reconcileMobileMoney({ provider: provider === 'mtn' ? 'mtn_momo' : 'airtel_money', currency: 'UGX', reference, amount: ugxAmount, status: 'pending' });
     const payload = {
+      tx_ref: reference,
       tx_ref: `PS-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-      amount,
+      amount: ugxAmount,
       currency,
       phone_number: phone.startsWith('+') ? phone.slice(1) : phone,
       network: provider === 'mtn' ? 'MTN' : 'AIRTEL',
@@ -44,8 +49,8 @@ class FlutterwaveService {
         const transaction = await Transaction.create({
           parentId: userId,
           type: 'booking_payment',
-          amount,
-          currency,
+          amount: ugxAmount,
+          currency: 'UGX',
           method: 'mobile_money',
           provider,
           status: 'pending',
@@ -63,6 +68,7 @@ class FlutterwaveService {
           txRef: payload.tx_ref,
           transaction,
           message: 'Check your phone to enter Momo PIN',
+          hamnah: { reconciliation: hamnahReconciliation },
         };
       }
 
@@ -82,11 +88,21 @@ class FlutterwaveService {
       const response = await this._request('GET', `/transactions/${flwRef}/verify`);
 
       if (response.status === 'success' && response.data.status === 'successful') {
+        const reconciliation = reconcileMobileMoney({
+          provider: response.data?.meta?.product === 'airtel' ? 'airtel_money' : 'mtn_momo',
+          currency: 'UGX',
+          reference: response.data?.tx_ref || flwRef,
+          amount: normalizeUgx(Number(response.data?.amount || 0)),
+          status: 'successful',
+          externalId: flwRef,
+          raw: response.data,
+        });
+
         await Transaction.findOneAndUpdate(
           { flwRef },
           { status: 'completed', flutterwaveResponse: JSON.stringify(response) }
         );
-        return { success: true, transaction: response.data };
+        return { success: true, transaction: response.data, hamnah: { reconciliation } };
       }
 
       return { success: false, status: response.data?.status || 'failed' };

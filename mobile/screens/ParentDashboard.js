@@ -261,22 +261,25 @@ export default function ParentDashboard({ navigation }) {
   if (!loading && kids.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.canvas }]}>
-        <ScrollView style={[styles.container, { backgroundColor: theme.canvas }]}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <ScrollView
+          style={[styles.container, { backgroundColor: theme.canvas }]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
           <View style={[styles.container, styles.center, { paddingTop: 80 }]}>
-          <View style={styles.emptyIconWrap}>
-            <Text style={styles.emptyIcon}>🚸</Text>
+            <View style={styles.emptyIconWrap}>
+              <Text style={styles.emptyIcon}>🚸</Text>
+            </View>
+            <Text style={styles.emptyTitle}>Welcome to PoleSafe!</Text>
+            <Text style={styles.emptyDesc}>
+              Your child's safety starts here.{'\n'}Add your kids to get started.
+            </Text>
+            <PrimaryButton title="+ Add Your First Child" onPress={() => navigation.navigate('AddChild')} />
+            <TouchableOpacity style={styles.exploreBtn} onPress={() => navigation.navigate('RideHailing')}>
+              <Text style={styles.exploreText}>Or try PoleSafe Ride 🚗</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.emptyTitle}>Welcome to PoleSafe!</Text>
-          <Text style={styles.emptyDesc}>
-            Your child's safety starts here.{'\n'}Add your kids to get started.
-          </Text>
-          <PrimaryButton title="+ Add Your First Child" onPress={() => navigation.navigate('AddChild')} />
-          <TouchableOpacity style={styles.exploreBtn} onPress={() => navigation.navigate('RideHailing')}>
-            <Text style={styles.exploreText}>Or try PoleSafe Ride 🚗</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 

@@ -10,6 +10,7 @@ const Ride = require('mongoose').model('Ride');
 const smsService = require('./smsService');
 const smsTemplates = require('./smsTemplates');
 const smsSession = require('./smsSession');
+const { parseFallbackTransport, hamnahTriage } = require('../../lib/engine/hamnah-core');
 
 const COMMANDS = {
   BOOK: 'BOOK',      // BOOK Faith P.3 StMarys 7AM
@@ -38,8 +39,19 @@ async function handleIncoming(req, res) {
     }
 
     const phone = from.startsWith('+') ? from : `+${from}`;
+    const normalized = parseFallbackTransport(text, 'sms', { from: phone, requestId: id || linkId || `sms-${Date.now()}` });
+    const triage = hamnahTriage(normalized);
+    req.hamnah = { normalized, triage };
     const message = text.trim().toUpperCase();
-    const [command, ...args] = message.split(/\s+/);
+    let [command, ...args] = message.split(/\s+/);
+
+    if (triage?.role === 'dispatcher_sos' && command !== 'HELP' && command !== 'SOS') {
+      command = 'HELP';
+    } else if (triage?.role === 'finance_reconciliation' && !['PAY', 'MTN', 'AIRTEL'].includes(command)) {
+      command = 'PAY';
+    } else if (triage?.role === 'school_gate' && !['ARRIVED', 'DROPPED', 'PICKED'].includes(command)) {
+      command = 'ARRIVED';
+    }
 
     // 🧠 Hamna AI Assistant — try AI parsing first for natural language
     if (process.env.OPENROUTER_API_KEY) {

@@ -8,6 +8,8 @@ const aiService = require('../services/aiService');
 const hamnaAnalysisService = require('../services/hamnaAnalysisService');
 const User = require('mongoose').model('User');
 const Child = require('mongoose').model('Child');
+const { z } = require('zod');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 
 // ============================================================
 // POST /api/hamna/chat — Chat with Hamna (app + web)
@@ -57,7 +59,9 @@ router.post('/sms-parse', async (req, res) => {
     }
 
     // Look up user by phone to get context
-    const user = phone ? await User.findOne({ phone }) : null;
+    const smsLookupSchema = z.object({ phone: z.string().min(7) }).strict();
+    const smsScope = phone ? validateTenantScopedQuery(smsLookupSchema, { phone }, phone, ['ai:sms-parse']) : null;
+    const user = phone ? await User.findOne(smsScope.tenantScopedQuery) : null;
     const kids = user ? await Child.find({ parentId: user._id }).select('name class') : [];
 
     const context = {
@@ -126,6 +130,8 @@ router.get('/health', (req, res) => {
 // ============================================================
 router.get('/analyze-driver/:id', authMiddleware, async (req, res) => {
   try {
+    const driverSchema = z.object({ id: z.string().min(1) }).strict();
+    validateTenantScopedQuery(driverSchema, { id: req.params.id }, req.userId, ['ai:driver-analysis']);
     const analysis = await hamnaAnalysisService.analyzeDriverDocuments(req.params.id);
     res.json({ analysis });
   } catch (err) {

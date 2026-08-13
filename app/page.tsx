@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, Bus, Lock, Radio, ShieldAlert, Smartphone, Users, CheckCircle2 } from 'lucide-react';
+import { PolepayHeroSection } from '../components/polepay-firebase-section';
 
 const highlights = [
   {
@@ -34,7 +35,7 @@ export default function LandingPage() {
               <ShieldAlert className="h-5 w-5 text-orange-400" />
             </div>
             <div>
-              <div className="text-lg font-semibold tracking-tight">PoleSafe</div>
+              <div className="text-lg font-semibold tracking-tight">PolePay</div>
               <div className="text-xs text-slate-400">School Mobility & Emergency Operations</div>
             </div>
           </div>
@@ -50,8 +51,10 @@ export default function LandingPage() {
         </div>
       </header>
 
+      <PolepayHeroSection />
+
       <main>
-        <section className="mx-auto grid max-w-7xl gap-12 px-6 py-20 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-28">
+        <section className="mx-auto grid max-w-7xl gap-12 px-6 py-12 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-16">
           <div className="max-w-3xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-orange-300 shadow-sm shadow-black/20">
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -63,7 +66,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-              PoleSafe combines transport tracking, school operations, incident response, and fallback communications for real-world school mobility in Uganda.
+              PolePay combines transport tracking, school operations, incident response, and fallback communications for real-world school mobility in Uganda.
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-4">
@@ -108,7 +111,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-6 pb-20 lg:px-8">
+        <section className="mx-auto max-w-7xl px-6 pb-10 lg:px-8">
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {highlights.map((item) => {
               const Icon = item.icon;
@@ -127,7 +130,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-white/5 py-6 text-center text-xs text-slate-500">
-        PoleSafe Core Architecture • Multi-tenant school safety operations for Uganda
+        PolePay Core Architecture • Multi-tenant school safety operations for Uganda
       </footer>
     </div>
   );

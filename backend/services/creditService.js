@@ -4,7 +4,9 @@
 // Rule: not parent's fault → credit. Parent's fault → no credit.
 
 const config = require('../config');
+const { z } = require('zod');
 const { Credit, Transaction, Ride } = require('../database/schema');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 
 class CreditService {
 
@@ -23,6 +25,8 @@ class CreditService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + config.CREDIT_SYSTEM.CREDIT_EXPIRY_DAYS);
 
+    const creditQuerySchema = z.object({ parentId: z.string().min(1), rideId: z.string().min(1) }).strict();
+    validateTenantScopedQuery(creditQuerySchema, { parentId, rideId }, parentId, ['credit:issue']);
     const credit = await Credit.create({
       parentId,
       rideId,

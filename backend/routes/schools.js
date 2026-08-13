@@ -3,9 +3,11 @@
 
 const express = require('express');
 const router = express.Router();
+const { z } = require('zod');
 const { authMiddleware } = require('../middleware/auth');
 const { requireRole, requireSchoolAccess } = require('../middleware/roles');
 const { Child, Ride, School, Broadcast } = require('../database/schema');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 const broadcastService = require('../services/broadcastService');
 const creditService = require('../services/creditService');
 const smsService = require('../services/smsService');
@@ -233,7 +235,9 @@ router.post('/:id/send-attendance-sms', requireSchoolAccess, async (req, res) =>
     }
 
     // Send SMS to each parent
-    const school = await School.findById(req.params.id).lean();
+    const schoolQuerySchema = z.object({ id: z.string().min(1) }).strict();
+    const schoolScope = validateTenantScopedQuery(schoolQuerySchema, { id: req.params.id }, req.userId, ['school:dashboard']);
+    const school = await School.findById(schoolScope.tenantScopedQuery.id).lean();
     const schoolName = school?.name || 'School';
     const results = { sent: 0, failed: 0, details: [] };
 

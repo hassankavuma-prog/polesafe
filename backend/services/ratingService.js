@@ -3,7 +3,9 @@
 // Builds trust in the system
 
 const { Ride, User } = require('../database/schema');
+const { z } = require('zod');
 const notificationService = require('./notificationService');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 
 class RatingService {
 
@@ -22,7 +24,9 @@ class RatingService {
       throw new Error('Rating must be between 1 and 5');
     }
 
-    const ride = await Ride.findOne({ _id: rideId, parentId }).populate('driverId');
+    const rideSchema = z.object({ rideId: z.string().min(1), parentId: z.string().min(1) }).strict();
+    const rideScope = validateTenantScopedQuery(rideSchema, { rideId, parentId }, parentId, ['rating:driver']);
+    const ride = await Ride.findOne({ _id: rideScope.tenantScopedQuery.rideId, parentId: rideScope.tenantScopedQuery.parentId }).populate('driverId');
     if (!ride) throw new Error('Ride not found');
 
     if (ride.parentRating) {
@@ -68,7 +72,9 @@ class RatingService {
    * Driver rates a kid/parent after a ride
    */
   async rateKid({ rideId, driverId, kidBehavior, comment }) {
-    const ride = await Ride.findOne({ _id: rideId, driverId }).populate('childId');
+    const rideSchema = z.object({ rideId: z.string().min(1), driverId: z.string().min(1) }).strict();
+    const rideScope = validateTenantScopedQuery(rideSchema, { rideId, driverId }, driverId, ['rating:kid']);
+    const ride = await Ride.findOne({ _id: rideScope.tenantScopedQuery.rideId, driverId: rideScope.tenantScopedQuery.driverId }).populate('childId');
     if (!ride) throw new Error('Ride not found');
 
     ride.driverKidRating = kidBehavior; // 'good' | 'okay' | 'difficult'
@@ -140,7 +146,9 @@ class RatingService {
    * Flag a ride for review (dispute)
    */
   async flagRide({ rideId, userId, reason }) {
-    const ride = await Ride.findById(rideId);
+    const rideSchema = z.object({ rideId: z.string().min(1) }).strict();
+    const rideScope = validateTenantScopedQuery(rideSchema, { rideId }, userId, ['rating:flag']);
+    const ride = await Ride.findById(rideScope.tenantScopedQuery.rideId);
     if (!ride) throw new Error('Ride not found');
 
     ride.flagged = true;
@@ -165,7 +173,9 @@ class RatingService {
    * Submit safety checks for a completed ride
    */
   async submitSafetyChecks({ rideId, parentId, checks }) {
-    const ride = await Ride.findOne({ _id: rideId, parentId });
+    const rideSchema = z.object({ rideId: z.string().min(1), parentId: z.string().min(1) }).strict();
+    const rideScope = validateTenantScopedQuery(rideSchema, { rideId, parentId }, parentId, ['rating:safety']);
+    const ride = await Ride.findOne({ _id: rideScope.tenantScopedQuery.rideId, parentId: rideScope.tenantScopedQuery.parentId });
     if (!ride) throw new Error('Ride not found');
 
     ride.safetyChecks = {
@@ -200,7 +210,9 @@ class RatingService {
       return { rideId, tipped: false, amount: 0, message: 'No tip selected' };
     }
 
-    const ride = await Ride.findOne({ _id: rideId, parentId }).populate('driverId');
+    const rideSchema = z.object({ rideId: z.string().min(1), parentId: z.string().min(1) }).strict();
+    const rideScope = validateTenantScopedQuery(rideSchema, { rideId, parentId }, parentId, ['rating:tip']);
+    const ride = await Ride.findOne({ _id: rideScope.tenantScopedQuery.rideId, parentId: rideScope.tenantScopedQuery.parentId }).populate('driverId');
     if (!ride) throw new Error('Ride not found');
 
     ride.tipAmount = amount;

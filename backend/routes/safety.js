@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const { z } = require('zod');
 const { User, Child, Ride, SafetyIncident, AuditLog } = require('../database/schema');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 
 const makeIncidentNumber = () => `INC-${Date.now().toString(36).toUpperCase()}`;
 
@@ -33,6 +35,13 @@ const auditSafetyAccess = async ({ action, actorId, actorRole, incidentId, note,
   await logIncidentAudit({ action, actorId, actorRole, incidentId, note, metadata });
 };
 
+const emitSafetyIncidentEvent = (event, incident) => {
+  const io = global.io;
+  if (!io || !incident) return;
+  const payload = redactIncident(incident);
+  io.to('dispatcher_room').emit(event, payload);
+  io.to('safety_ops_room').emit(event, payload);
+};
 
 const logIncidentAudit = async ({ action, actorId, actorRole, incidentId, note, metadata = {} }) => {
   try {
@@ -62,7 +71,9 @@ router.post('/sos', async (req, res) => {
       return res.status(400).json({ error: 'User ID and role required' });
     }
 
-    const ride = rideId ? await Ride.findById(rideId).populate('childId schoolId') : null;
+    const rideQuerySchema = z.object({ rideId: z.string().min(1).nullable().optional() }).strict();
+    const rideScope = rideId ? validateTenantScopedQuery(rideQuerySchema, { rideId }, String(userId), ['safety:sos']) : null;
+    const ride = rideScope ? await Ride.findById(rideScope.tenantScopedQuery.rideId).populate('childId schoolId') : null;
     const incident = await SafetyIncident.create({
       incidentNumber: makeIncidentNumber(),
       triggerType: triggerType || 'manual_sos',
@@ -135,10 +146,12 @@ router.post('/sos', async (req, res) => {
     await incident.save();
     await logIncidentAudit({ action: 'incident_triaged', actorId: userId, actorRole: userRole, incidentId: incident._id, note: `contacts=${contacts.length}` });
 
+    const incidentPayload = redactIncident(incident.toObject());
+    emitSafetyIncidentEvent('incident_created', incidentPayload);
     res.json({
       success: true,
       alert: sosAlert,
-      incident: redactIncident(incident.toObject()),
+      incident: incidentPayload,
       contactsNotified: contacts.length,
     });
   } catch (err) {
@@ -171,7 +184,9 @@ router.post('/sos/acknowledge', async (req, res) => {
     incident.auditTrail.push({ action: 'incident_acknowledged', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
     await incident.save();
     await logIncidentAudit({ action: 'incident_acknowledged', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
-    res.json({ success: true, incident: redactIncident(incident.toObject()) });
+    const incidentPayload = redactIncident(incident.toObject());
+    emitSafetyIncidentEvent('incident_updated', incidentPayload);
+    res.json({ success: true, incident: incidentPayload });
   } catch (err) {
     res.status(500).json({ error: 'Failed to acknowledge alert' });
   }
@@ -192,7 +207,9 @@ router.post('/sos/resolve', async (req, res) => {
     incident.auditTrail.push({ action: 'incident_resolved', actorId: userId, actorRole: userRole, note: resolutionNote || falseAlarmReason || '', timestamp: new Date() });
     await incident.save();
     await logIncidentAudit({ action: 'incident_resolved', actorId: userId, actorRole: userRole, incidentId: incident._id, note: resolutionNote || falseAlarmReason || '' });
-    res.json({ success: true, incident: redactIncident(incident.toObject()) });
+    const incidentPayload = redactIncident(incident.toObject());
+    emitSafetyIncidentEvent('incident_updated', incidentPayload);
+    res.json({ success: true, incident: incidentPayload });
   } catch (err) {
     res.status(500).json({ error: 'Failed to resolve alert' });
   }
@@ -236,6 +253,37 @@ router.get('/dispatcher/dashboard', async (req, res) => {
   }
 });
 
+router.get('/dispatcher/summary', async (req, res) => {
+  try {
+    const role = req.userRole || req.user?.role || 'system';
+    if (req.userRole && !hasAdminAccess(role)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const [active, triaged, escalated, resolved, falseAlarms, masked] = await Promise.all([
+      SafetyIncident.countDocuments({ status: 'active' }),
+      SafetyIncident.countDocuments({ status: 'triaged' }),
+      SafetyIncident.countDocuments({ status: 'escalated' }),
+      SafetyIncident.countDocuments({ status: 'resolved' }),
+      SafetyIncident.countDocuments({ status: 'false_alarm' }),
+      SafetyIncident.countDocuments({ privacyMasked: true }),
+    ]);
+
+    const incidents = await SafetyIncident.find({ status: { $in: ['active', 'triaged', 'escalated'] } })
+      .sort({ severity: -1, createdAt: -1 })
+      .limit(10)
+      .lean();
+
+    res.json({
+      stats: { active, triaged, escalated, resolved, falseAlarms, masked },
+      incidents: incidents.map((incident) => redactIncident(incident)),
+      privacyMode: 'masked',
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load dispatcher summary' });
+  }
+});
+
 router.patch('/incidents/:id/assign', async (req, res) => {
   try {
     const { assignedOperatorId, note, userId, userRole } = req.body;
@@ -249,7 +297,9 @@ router.patch('/incidents/:id/assign', async (req, res) => {
     incident.auditTrail.push({ action: 'incident_assigned', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
     await incident.save();
     await logIncidentAudit({ action: 'incident_assigned', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
-    res.json({ success: true, incident: redactIncident(incident.toObject()) });
+    const incidentPayload = redactIncident(incident.toObject());
+    emitSafetyIncidentEvent('incident_updated', incidentPayload);
+    res.json({ success: true, incident: incidentPayload });
   } catch (err) {
     res.status(500).json({ error: 'Failed to assign incident' });
   }
@@ -268,7 +318,9 @@ router.patch('/incidents/:id/escalate', async (req, res) => {
     incident.auditTrail.push({ action: 'incident_escalated', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
     await incident.save();
     await logIncidentAudit({ action: 'incident_escalated', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
-    res.json({ success: true, incident: redactIncident(incident.toObject()) });
+    const incidentPayload = redactIncident(incident.toObject());
+    emitSafetyIncidentEvent('incident_updated', incidentPayload);
+    res.json({ success: true, incident: incidentPayload });
   } catch (err) {
     res.status(500).json({ error: 'Failed to escalate incident' });
   }
@@ -286,7 +338,9 @@ router.patch('/incidents/:id/mask', async (req, res) => {
     incident.auditTrail.push({ action: 'incident_masked', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
     await incident.save();
     await logIncidentAudit({ action: 'incident_masked', actorId: userId, actorRole: userRole, incidentId: incident._id, note });
-    res.json({ success: true, incident: redactIncident(incident.toObject()) });
+    const incidentPayload = redactIncident(incident.toObject());
+    emitSafetyIncidentEvent('incident_updated', incidentPayload);
+    res.json({ success: true, incident: incidentPayload });
   } catch (err) {
     res.status(500).json({ error: 'Failed to mask incident' });
   }
@@ -307,7 +361,9 @@ router.post('/incidents/:id/unmask', async (req, res) => {
     incident.auditTrail.push({ action: 'incident_unmasked', actorId: userId, actorRole: userRole, note, timestamp: new Date() });
     await incident.save();
     await auditSafetyAccess({ action: 'incident_unmasked', actorId: userId, actorRole: userRole, incidentId: incident._id, note, metadata: { verified: !!verified } });
-    res.json({ success: true, incident: redactIncident(incident.toObject(), { unmask: true }) });
+    const incidentPayload = redactIncident(incident.toObject(), { unmask: true });
+    emitSafetyIncidentEvent('incident_updated', incidentPayload);
+    res.json({ success: true, incident: incidentPayload });
   } catch (err) {
     res.status(500).json({ error: 'Failed to unmask incident' });
   }
@@ -338,7 +394,8 @@ router.get('/incidents/:id', async (req, res) => {
     if (!incident) return res.status(404).json({ error: 'Incident not found' });
     const unmask = hasVerifiedUnmaskAccess(req) && (req.query.unmask === 'true' || req.query.unmask === '1' || req.query.unmask === true);
     await auditSafetyAccess({ action: unmask ? 'incident_view_unmasked' : 'incident_view_masked', actorId: req.userId || req.body.userId || req.query.userId || 'unknown', actorRole: req.userRole || req.body.userRole || req.query.userRole || 'unknown', incidentId: incident._id, note: unmask ? 'unmask requested' : 'masked view', metadata: { unmask } });
-    res.json({ incident: redactIncident(incident, { unmask }) });
+    const incidentPayload = redactIncident(incident, { unmask });
+    res.json({ incident: incidentPayload });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch incident' });
   }

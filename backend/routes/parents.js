@@ -3,9 +3,11 @@
 
 const express = require('express');
 const router = express.Router();
+const { z } = require('zod');
 const { authMiddleware } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const { Child, Booking, Ride, Credit, School } = require('../database/schema');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 const creditService = require('../services/creditService');
 const fuelAdjustmentService = require('../services/fuelAdjustment');
 const schoolPremiumService = require('../services/schoolPremium');
@@ -56,7 +58,9 @@ router.post('/kids', validateAddKid, async (req, res) => {
     });
 
     // Notify school admins about the new child
-    const school = await School.findById(schoolId);
+    const schoolSchema = z.object({ schoolId: z.string().min(1) }).strict();
+    const schoolScope = validateTenantScopedQuery(schoolSchema, { schoolId }, req.userId, ['parent:child-create']);
+    const school = await School.findById(schoolScope.tenantScopedQuery.schoolId);
     let schoolNotified = false;
     if (school && school.adminIds.length > 0) {
       schoolNotified = true;
@@ -165,7 +169,9 @@ router.get('/rides', async (req, res) => {
 // ============================================================
 router.get('/rides/:id', async (req, res) => {
   try {
-    const ride = await Ride.findById(req.params.id)
+    const rideSchema = z.object({ id: z.string().min(1) }).strict();
+    const rideScope = validateTenantScopedQuery(rideSchema, { id: req.params.id }, req.userId, ['parent:ride-view']);
+    const ride = await Ride.findById(rideScope.tenantScopedQuery.id)
       .populate('childId', 'name photo schoolId')
       .populate('driverId', 'name phone location')
       .lean();
@@ -198,7 +204,9 @@ router.post('/sick-day', validateSickDay, async (req, res) => {
     }
 
     // Find this term's date range from the child's school
-    const school = await School.findById(child.schoolId);
+    const schoolSchema = z.object({ schoolId: z.string().min(1) }).strict();
+    const schoolScope = validateTenantScopedQuery(schoolSchema, { schoolId: String(child.schoolId) }, req.userId, ['parent:sick-day']);
+    const school = await School.findById(schoolScope.tenantScopedQuery.schoolId);
     const term = school?.termSchedule?.currentTerm;
     const termStart = term?.startDate || new Date(new Date().getFullYear(), 0, 1);
     const termEnd = term?.endDate || new Date(new Date().getFullYear(), 11, 31);

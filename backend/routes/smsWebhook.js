@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const smsHandler = require('../services/smsHandler');
 const smsService = require('../services/smsService');
+const { parseFallbackTransport, hamnahTriage } = require('../../lib/engine/hamnah-core');
 
 // ============================================================
 // POST /api/sms/incoming — Africa's Talking SMS callback
@@ -26,12 +27,22 @@ router.post('/incoming', async (req, res) => {
     // Sanitize phone number (remove leading +, ensure 256 format)
     const phone = from.replace(/^\+/, '').trim();
 
+    const normalized = parseFallbackTransport(text, 'sms', {
+      from: phone,
+      requestId: id || `sms-${Date.now()}`,
+      tenantId: req.body?.tenantId,
+      gateway: 'africas_talking',
+    });
+    const triage = hamnahTriage(normalized);
+    req.hamnah = { normalized, triage };
+
     // Process the SMS command through the existing handler
     const result = await smsHandler.handleIncomingSms({
       phone,
       message: text.trim(),
       messageId: id || `sms-${Date.now()}`,
       receivedAt: date ? new Date(date) : new Date(),
+      hamnah: triage,
     });
 
     console.log(`[SMS Inbound] Handled: ${result.status || 'ok'}`);

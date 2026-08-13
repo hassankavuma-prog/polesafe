@@ -3,7 +3,9 @@
 // One tap → parents (app + SMS) + drivers (app + route update) + teachers
 
 const { Broadcast, School, Ride } = require('../database/schema');
+const { z } = require('zod');
 const smsService = require('./smsService');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 
 class BroadcastService {
 
@@ -20,7 +22,9 @@ class BroadcastService {
    * @returns {object} Broadcast result
    */
   async sendBroadcast({ schoolId, adminId, type, message, newPickupTime, targetGroups }) {
-    const school = await School.findById(schoolId).lean();
+    const schoolQuerySchema = z.object({ schoolId: z.string().min(1) }).strict();
+    const schoolScope = validateTenantScopedQuery(schoolQuerySchema, { schoolId }, schoolId, ['broadcast:school']);
+    const school = await School.findById(schoolScope.tenantScopedQuery.schoolId).lean();
     if (!school) throw new Error('School not found');
 
     const Child = require('mongoose').model('Child');

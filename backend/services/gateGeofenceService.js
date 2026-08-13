@@ -7,6 +7,8 @@ const mongoose = require('mongoose');
 const School = mongoose.model('School');
 const Ride = mongoose.model('Ride');
 const FCMService = require('./fcmService');
+const { z } = require('zod');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 
 // ─── Constants ───────────────────────────────────────
 const ENTERED_GATE = 'entered_gate'; // Driver was outside, now inside geofence
@@ -42,7 +44,9 @@ class GateGeofenceService {
     if (!schoolId) return [];
 
     try {
-      const school = await School.findById(schoolId).select('gates name');
+      const schoolSchema = z.object({ schoolId: z.string().min(1) }).strict();
+      const schoolScope = validateTenantScopedQuery(schoolSchema, { schoolId }, schoolId, ['gate:geofence']);
+      const school = await School.findById(schoolScope.tenantScopedQuery.schoolId).select('gates name');
       if (!school || !school.gates || school.gates.length === 0) return [];
 
       const results = [];

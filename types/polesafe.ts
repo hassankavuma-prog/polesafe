@@ -62,10 +62,14 @@ export interface ComplianceDocument {
 export interface DriverComplianceVault {
   driverId: string;
   nationalIdNumber: string;
+  nationalIdDocumentUrl?: string;
+  driversLicenseUrl?: string;
+  policeCheckCertificateUrl?: string;
+  vehicleInspectionUrl?: string;
   status: ComplianceStatus;
-  documents: ComplianceDocument[];
   verifiedAt?: string;
   verifiedBy?: string;
+  documents?: ComplianceDocument[];
 }
 
 export interface SmsUssdFallbackPayload {

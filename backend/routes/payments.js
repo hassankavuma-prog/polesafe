@@ -8,6 +8,7 @@ const { authMiddleware } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const flutterwave = require('../services/flutterwaveService');
 const { Transaction, User, Credit } = require('../database/schema');
+const { normalizeUgx, reconcileMobileMoney, buildSecurityBoundary } = require('../../lib/engine/hamnah-core');
 
 router.use(authMiddleware);
 
@@ -31,10 +32,25 @@ router.post('/momo', requireRole('parent'), async (req, res) => {
       return res.status(400).json({ error: 'No phone number on your account' });
     }
 
+    const ugxAmount = normalizeUgx(Number(amount));
+    const reconciliation = reconcileMobileMoney({
+      provider: provider === 'mtn' ? 'mtn_momo' : 'airtel_money',
+      currency: 'UGX',
+      reference: `PAY-${Date.now()}`,
+      amount: ugxAmount,
+      status: 'pending',
+      raw: { bookingId, rideId, narration },
+    });
+
+    const paymentScope = buildSecurityBoundary(
+      { parentId: req.userId, provider, bookingId, rideId },
+      ['tenant:parent-owned', 'currency:UGX', 'provider:mobile_money']
+    );
+
     // Charge mobile money wallet
     const result = await flutterwave.chargeMobileMoney({
       phone: user.phone,
-      amount,
+      amount: ugxAmount,
       provider,
       narration: narration || 'PoleSafe Payment',
       userId: req.userId,
@@ -46,6 +62,10 @@ router.post('/momo', requireRole('parent'), async (req, res) => {
       flwRef: result.flwRef,
       txRef: result.txRef,
       message: 'Enter your Momo PIN when prompted on your phone',
+      hamnah: {
+        reconciliation,
+        securityBoundary: paymentScope,
+      },
       transaction: {
         id: result.transaction._id,
         amount: result.transaction.amount,

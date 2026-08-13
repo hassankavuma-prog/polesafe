@@ -5,6 +5,8 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { z } = require('zod');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 
 const User = mongoose.model('User');
 const Child = mongoose.model('Child');
@@ -94,7 +96,9 @@ router.get('/pending-schools', requireAdmin, async (req, res) => {
 router.post('/school/:id/approve', requireAdmin, async (req, res) => {
   try {
     const { gateCoordinates, headTeacherPhone } = req.body;
-    const school = await School.findById(req.params.id);
+    const schoolScopeSchema = z.object({ id: z.string().min(1) }).strict();
+    const schoolScope = validateTenantScopedQuery(schoolScopeSchema, { id: req.params.id }, req.userId, ['admin:school-approve']);
+    const school = await School.findById(schoolScope.tenantScopedQuery.id);
     if (!school) return res.status(404).json({ error: 'School not found' });
     if (school.verificationStatus !== 'pending') {
       return res.status(400).json({ error: `School is already ${school.verificationStatus}` });
@@ -110,7 +114,9 @@ router.post('/school/:id/approve', requireAdmin, async (req, res) => {
 
     let adminPhone = headTeacherPhone || school.headTeacherPhone;
     if (adminPhone) {
-      let adminUser = await User.findOne({ phone: adminPhone });
+      const adminUserSchema = z.object({ phone: z.string().min(7) }).strict();
+      const adminUserScope = validateTenantScopedQuery(adminUserSchema, { phone: adminPhone }, req.userId, ['admin:school-approve']);
+      let adminUser = await User.findOne(adminUserScope.tenantScopedQuery);
       if (!adminUser) {
         const pin = Math.floor(1000 + Math.random() * 9000).toString();
         const hashedPin = await bcrypt.hash(pin, 10);
@@ -158,7 +164,9 @@ router.post('/school/:id/approve', requireAdmin, async (req, res) => {
 router.post('/school/:id/reject', requireAdmin, async (req, res) => {
   try {
     const { reason } = req.body;
-    const school = await School.findByIdAndUpdate(req.params.id, {
+    const schoolScopeSchema = z.object({ id: z.string().min(1) }).strict();
+    const schoolScope = validateTenantScopedQuery(schoolScopeSchema, { id: req.params.id }, req.userId, ['admin:school-reject']);
+    const school = await School.findByIdAndUpdate(schoolScope.tenantScopedQuery.id, {
       verificationStatus: 'rejected',
       rejectionReason: reason || 'Not approved at this time',
       verifiedBy: req.userId,
@@ -187,7 +195,9 @@ router.get('/users', requireOwner, async (req, res) => {
 // POST /api/admin/user/:id/reset-pin
 router.post('/user/:id/reset-pin', requireAdmin, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const userScopeSchema = z.object({ id: z.string().min(1) }).strict();
+    const userScope = validateTenantScopedQuery(userScopeSchema, { id: req.params.id }, req.userId, ['admin:user-reset-pin']);
+    const user = await User.findById(userScope.tenantScopedQuery.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     if (req.adminSubRole !== 'owner' && user.role !== 'parent') {
@@ -219,7 +229,9 @@ router.post('/user/:id/reset-pin', requireAdmin, async (req, res) => {
 router.post('/school/:id/remove-admin', requireOwner, async (req, res) => {
   try {
     const { userId } = req.body;
-    const school = await School.findById(req.params.id);
+    const schoolScopeSchema = z.object({ id: z.string().min(1) }).strict();
+    const schoolScope = validateTenantScopedQuery(schoolScopeSchema, { id: req.params.id }, req.userId, ['admin:remove-admin']);
+    const school = await School.findById(schoolScope.tenantScopedQuery.id);
     if (!school) return res.status(404).json({ error: 'School not found' });
 
     school.adminIds = school.adminIds.filter(id => id.toString() !== userId);
@@ -234,7 +246,9 @@ router.post('/school/:id/remove-admin', requireOwner, async (req, res) => {
 // POST /api/admin/school/:id/suspend (owner only)
 router.post('/school/:id/suspend', requireOwner, async (req, res) => {
   try {
-    const school = await School.findByIdAndUpdate(req.params.id, {
+    const schoolScopeSchema = z.object({ id: z.string().min(1) }).strict();
+    const schoolScope = validateTenantScopedQuery(schoolScopeSchema, { id: req.params.id }, req.userId, ['admin:suspend']);
+    const school = await School.findByIdAndUpdate(schoolScope.tenantScopedQuery.id, {
       verificationStatus: 'suspended',
     }, { new: true });
     if (!school) return res.status(404).json({ error: 'School not found' });
@@ -247,7 +261,9 @@ router.post('/school/:id/suspend', requireOwner, async (req, res) => {
 // POST /api/admin/school/:id/unsuspend (owner only)
 router.post('/school/:id/unsuspend', requireOwner, async (req, res) => {
   try {
-    const school = await School.findByIdAndUpdate(req.params.id, {
+    const schoolScopeSchema = z.object({ id: z.string().min(1) }).strict();
+    const schoolScope = validateTenantScopedQuery(schoolScopeSchema, { id: req.params.id }, req.userId, ['admin:unsuspend']);
+    const school = await School.findByIdAndUpdate(schoolScope.tenantScopedQuery.id, {
       verificationStatus: 'verified',
     }, { new: true });
     if (!school) return res.status(404).json({ error: 'School not found' });

@@ -11,6 +11,7 @@ import {
   unmaskIncidentAction,
 } from '../../../lib/safety-ops/actions';
 import type { SafetyIncident } from '../../../lib/safety-ops/types';
+import { useSafetySocket } from './useSafetySocket';
 
 function toneFor(severity: SafetyIncident['severity']) {
   switch (severity) {
@@ -30,6 +31,15 @@ function statusLabel(status: SafetyIncident['status']) {
     case 'false_alarm': return 'False alarm';
     case 'dismissed': return 'Dismissed';
     default: return status;
+  }
+}
+
+function connectionLabel(state: 'connecting' | 'connected' | 'reconnecting' | 'offline') {
+  switch (state) {
+    case 'connected': return 'Live socket connected';
+    case 'reconnecting': return 'Reconnecting…';
+    case 'offline': return 'Socket offline, using refresh fallback';
+    default: return 'Connecting…';
   }
 }
 
@@ -105,12 +115,28 @@ export default function SafetyOpsPage() {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const { isConnected, connectionState, liveIncidents, latestEmergency, lastSocketEvent, clearLatestEmergency } = useSafetySocket();
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'triaged' | 'escalated' | 'resolved'>('all');
+  const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [lastActionLabel, setLastActionLabel] = useState<string | null>(null);
 
   const loadDashboard = async () => {
     const res = await fetchDispatcherDashboardAction();
     if (!res.ok) throw new Error(res.error);
-    setStats(res.data.stats);
-    setIncidents(res.data.incidents);
+    const data = res.data as { stats: { active: number; triaged: number; resolved: number }; incidents: SafetyIncident[] };
+    setStats(data.stats);
+    setIncidents(data.incidents);
+  };
+
+  const mergeIncident = (incoming: SafetyIncident) => {
+    setIncidents((prev) => {
+      const next = [...prev];
+      const index = next.findIndex((item) => item._id === incoming._id);
+      if (index >= 0) next[index] = incoming;
+      else next.unshift(incoming);
+      return next.slice(0, 100);
+    });
+    setSelected((current) => (current && current._id === incoming._id ? { ...current, ...incoming } : current));
   };
 
   useEffect(() => {
@@ -118,6 +144,18 @@ export default function SafetyOpsPage() {
       try { await loadDashboard(); } catch (e: any) { setError(e?.message || 'Unable to load dispatcher dashboard'); } finally { setLoading(false); }
     })();
   }, []);
+
+  useEffect(() => {
+    if (!liveIncidents.length) return;
+    liveIncidents.forEach((incident) => mergeIncident(incident));
+  }, [liveIncidents]);
+
+  useEffect(() => {
+    if (latestEmergency && !isAudioMuted) {
+      const audio = new Audio('/sounds/sos-alarm.mp3');
+      audio.play().catch(() => {});
+    }
+  }, [latestEmergency, isAudioMuted]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -131,6 +169,7 @@ export default function SafetyOpsPage() {
     setNote('');
   };
 
+
   const runAction = async () => {
     if (!selected || !modalKind) return;
     setBusy(true);
@@ -141,9 +180,17 @@ export default function SafetyOpsPage() {
         : modalKind === 'escalate' ? await escalateIncidentAction(base)
         : await resolveIncidentAction({ ...base, resolutionNote: note || 'Resolved from dispatcher console' });
       if (!result.ok) throw new Error(result.error);
+      const updated = {
+        ...selected,
+        status: modalKind === 'resolve' ? 'resolved' : modalKind === 'escalate' ? 'escalated' : 'triaged',
+        privacyMasked: selected.privacyMasked,
+      } as SafetyIncident;
+      mergeIncident(updated);
+      setLastActionLabel(`${modalKind.charAt(0).toUpperCase()}${modalKind.slice(1)} sent`);
       setModalKind(null);
       setSelected(null);
       setNote('');
+      setError(null);
       await loadDashboard();
     } catch (e: any) { setError(e?.message || 'Unable to complete action'); } finally { setBusy(false); }
   };
@@ -152,6 +199,9 @@ export default function SafetyOpsPage() {
     try {
       const result = await maskIncidentAction({ incidentId: incident._id, userId: 'current-user', userRole: 'polesafe_admin', note: 'Masked from ops console' });
       if (!result.ok) throw new Error(result.error);
+      mergeIncident({ ...incident, privacyMasked: true });
+      setLastActionLabel('Mask applied');
+      setError(null);
       await loadDashboard();
     } catch (e: any) { setError(e?.message || 'Unable to mask incident'); }
   };
@@ -160,11 +210,20 @@ export default function SafetyOpsPage() {
     try {
       const result = await unmaskIncidentAction({ incidentId: incident._id, userId: 'current-user', userRole: 'polesafe_admin', note: 'Operator requested reveal for verified triage', verified: true });
       if (!result.ok) throw new Error(result.error);
+      mergeIncident({ ...incident, privacyMasked: false });
+      setLastActionLabel('Verified unmask sent');
+      setError(null);
       await loadDashboard();
     } catch (e: any) { setError(e?.message || 'Unable to reveal incident'); }
   };
 
   const statsMemo = useMemo(() => stats, [stats]);
+  const filteredIncidents = useMemo(
+    () => incidents.filter((incident) => (statusFilter === 'all' ? true : incident.status === statusFilter)),
+    [incidents, statusFilter],
+  );
+  const incidentCountLabel = filteredIncidents.length === incidents.length ? String(incidents.length) : `${filteredIncidents.length} of ${incidents.length}`;
+
   if (loading) return <div style={styles.center}><div style={styles.loadingText}>Loading Safety Ops…</div></div>;
 
   return (
@@ -172,17 +231,70 @@ export default function SafetyOpsPage() {
       <div style={styles.container}>
         <div style={styles.title}>Safety Ops</div>
         <div style={styles.subtitle}>Dispatcher triage console for SOS incidents</div>
-        <div style={styles.statsGrid}><Stat label="Active" value={statsMemo.active} /><Stat label="Triaged" value={statsMemo.triaged} /><Stat label="Resolved" value={statsMemo.resolved} /></div>
+        <div style={styles.connectionRow}>
+          <span style={{ ...styles.connectionPill, ...(isConnected ? styles.connectionLive : styles.connectionOffline) }}>
+            {connectionLabel(connectionState)}
+          </span>
+          <span style={styles.eventText}>{lastSocketEvent || 'Waiting for dispatcher feed…'}</span>
+          <div style={styles.connectionActions}>
+            <button type="button" style={styles.audioBtn} onClick={() => setIsAudioMuted((value) => !value)}>
+              {isAudioMuted ? 'Audio Off' : 'Audio On'}
+            </button>
+            {latestEmergency ? (
+              <button type="button" style={styles.emergencyBtn} onClick={clearLatestEmergency}>
+                Clear emergency highlight
+              </button>
+            ) : null}
+          </div>
+        </div>
+        <div style={styles.filterRow}>
+          <div>
+            <div style={styles.filterLabel}>Filter status</div>
+            <div style={styles.filterHelp}>Keep the queue calm and narrow.</div>
+          </div>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} style={styles.filterSelect}>
+            <option value="all">All incidents</option>
+            <option value="active">Active</option>
+            <option value="triaged">Triaged</option>
+            <option value="escalated">Escalated</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
+        <div style={styles.countRow}>
+          <span style={styles.countLabel}>Showing</span>
+          <span style={styles.countValue}>{incidentCountLabel} incident{filteredIncidents.length === 1 ? '' : 's'}</span>
+          {lastActionLabel ? <span style={styles.actionPill}>{lastActionLabel}</span> : null}
+        </div>
+        <div style={styles.statsGrid}>
+          <Stat label="Active" value={statsMemo.active} />
+          <Stat label="Triaged" value={statsMemo.triaged} />
+          <Stat label="Resolved" value={statsMemo.resolved} />
+        </div>
         {error ? <div style={styles.errorBanner}>{error}</div> : null}
         {refreshing ? <div style={styles.refreshing}>Refreshing…</div> : null}
-        <div style={styles.refreshRow}><button type="button" style={styles.refreshBtn} onClick={refresh}><span style={styles.refreshText}>{refreshing ? 'Refreshing…' : 'Refresh'}</span></button></div>
-        {incidents.map((item) => <IncidentCard key={item._id} incident={item} onAcknowledge={(i) => openModal('acknowledge', i)} onAssign={(i) => openModal('assign', i)} onEscalate={(i) => openModal('escalate', i)} onResolve={(i) => openModal('resolve', i)} onMask={handleMask} onUnmask={handleUnmask} />)}
-        {incidents.length === 0 ? <div style={styles.emptyText}>No incidents right now.</div> : null}
+        <div style={styles.refreshRow}>
+          <button type="button" style={styles.refreshBtn} onClick={refresh}>
+            <span style={styles.refreshText}>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
+          </button>
+        </div>
+        {filteredIncidents.map((item) => (
+          <IncidentCard
+            key={item._id}
+            incident={item}
+            onAcknowledge={(i) => openModal('acknowledge', i)}
+            onAssign={(i) => openModal('assign', i)}
+            onEscalate={(i) => openModal('escalate', i)}
+            onResolve={(i) => openModal('resolve', i)}
+            onMask={handleMask}
+            onUnmask={handleUnmask}
+          />
+        ))}
+        {filteredIncidents.length === 0 ? <div style={styles.emptyText}>No incidents right now.</div> : null}
       </div>
       {selected && modalKind ? (
         <div style={styles.modalBackdrop}>
           <div style={styles.modalCard}>
-            <div style={styles.modalTitle}>{modalKind.toUpperCase()} Incident</div>
+            <div style={styles.modalTitle}>{modalKind === 'acknowledge' ? 'Acknowledge incident' : modalKind === 'assign' ? 'Assign incident' : modalKind === 'escalate' ? 'Escalate incident' : 'Resolve incident'}</div>
             <div style={styles.modalSub}>{selected.incidentNumber}</div>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Operator note" style={styles.input as React.CSSProperties} />
             <div style={styles.modalActions}>
@@ -203,6 +315,22 @@ const styles: Record<string, any> = {
   container: { padding: 16, display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 920, margin: '0 auto' },
   title: { fontSize: 28, fontWeight: 800, color: '#111827' },
   subtitle: { fontSize: 14, color: '#475569' },
+  connectionRow: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
+  connectionActions: { display: 'flex', gap: 8, flexWrap: 'wrap' },
+  connectionPill: { padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700 },
+  connectionLive: { backgroundColor: '#DCFCE7', color: '#166534' },
+  connectionOffline: { backgroundColor: '#FEF3C7', color: '#92400E' },
+  emergencyBtn: { border: 'none', borderRadius: 999, padding: '6px 10px', backgroundColor: '#FEE2E2', color: '#991B1B', fontWeight: 800, cursor: 'pointer' },
+  audioBtn: { border: 'none', borderRadius: 999, padding: '6px 10px', backgroundColor: '#E0E7FF', color: '#3730A3', fontWeight: 800, cursor: 'pointer' },
+  filterRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', backgroundColor: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: '10px 12px' },
+  filterLabel: { fontSize: 12, fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: 0.4 },
+  filterHelp: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  filterSelect: { border: '1px solid #D1D5DB', borderRadius: 10, padding: '8px 10px', backgroundColor: '#fff', color: '#111827', fontSize: 13 },
+  countRow: { display: 'flex', gap: 8, alignItems: 'center', color: '#475569', fontSize: 12 },
+  countLabel: { fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 },
+  countValue: { fontWeight: 800, color: '#111827' },
+  actionPill: { marginLeft: 'auto', backgroundColor: '#E0F2FE', color: '#075985', padding: '4px 8px', borderRadius: 999, fontWeight: 700 },
+  eventText: { fontSize: 12, color: '#475569', flex: 1, minWidth: 180 },
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 },
   statCard: { backgroundColor: '#fff', borderRadius: 16, padding: 14, border: '1px solid #E5E7EB' },
   statValue: { fontSize: 24, fontWeight: 800, color: '#111827' },
