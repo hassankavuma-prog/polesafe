@@ -219,7 +219,9 @@ router.get('/:id/track', authMiddleware, async (req, res) => {
 router.post('/:id/cancel', authMiddleware, async (req, res) => {
   try {
     const { reason } = req.body;
-    const ride = await Ride.findById(req.params.id);
+    const rideQuerySchema = z.object({ id: z.string().min(1) }).strict();
+    const rideScope = validateTenantScopedQuery(rideQuerySchema, { id: req.params.id }, req.userId, ['ride:update']);
+    const ride = await Ride.findById(rideScope.tenantScopedQuery.id);
     if (!ride) return res.status(404).json({ error: 'Ride not found' });
 
     // Apply cancellation policy — determines if fee applies
@@ -379,7 +381,8 @@ router.get('/location/:rideId', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { scheduledPickupTime, pickupLocation, dropoffLocation, days } = req.body;
-    const ride = await Ride.findById(req.params.id);
+    const rideScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.userId, ['ride:update']);
+    const ride = await Ride.findById(rideScope.tenantScopedQuery.id);
     if (!ride) return res.status(404).json({ error: 'Ride not found' });
 
     // Only allow editing pending/confirmed rides

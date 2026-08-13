@@ -135,7 +135,8 @@ router.get('/my-family', authMiddleware, async (req, res) => {
 // ============================================================
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const link = await FamilyLink.findById(req.params.id);
+    const linkScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.userId, ['family:link']);
+    const link = await FamilyLink.findById(linkScope.tenantScopedQuery.id);
     if (!link) return res.status(404).json({ error: 'Family link not found' });
 
     const isPrimary = link.primaryParentId.toString() === req.userId;

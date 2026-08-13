@@ -5,6 +5,8 @@
 const express = require('express');
 const router = express.Router();
 const { QuoteRequest, Vehicle, User, Ride, SchoolTrip } = require('../database/schema');
+const { z } = require('zod');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 const { authMiddleware } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const fs = require('fs');
@@ -192,7 +194,8 @@ router.post('/:id/quote', authMiddleware, requireRole('driver'), async (req, res
       return res.status(400).json({ error: 'pricingModel must be per_head or flat_rate' });
     }
 
-    const request = await QuoteRequest.findById(req.params.id);
+    const requestScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.user._id.toString(), ['quote:request']);
+    const request = await QuoteRequest.findById(requestScope.tenantScopedQuery.id);
     if (!request) return res.status(404).json({ error: 'Quote request not found' });
     if (request.status !== 'open') return res.status(400).json({ error: 'Request is no longer open' });
 
@@ -254,7 +257,8 @@ router.post('/:id/accept', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'quoteIndex is required' });
     }
 
-    const request = await QuoteRequest.findById(req.params.id);
+    const requestScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.user._id.toString(), ['quote:request']);
+    const request = await QuoteRequest.findById(requestScope.tenantScopedQuery.id);
     if (!request) return res.status(404).json({ error: 'Quote request not found' });
 
     if (request.requesterId.toString() !== req.user._id.toString()) {
@@ -334,7 +338,8 @@ router.post('/:id/accept', authMiddleware, async (req, res) => {
  */
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const request = await QuoteRequest.findById(req.params.id);
+    const requestScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.user._id.toString(), ['quote:request']);
+    const request = await QuoteRequest.findById(requestScope.tenantScopedQuery.id);
     if (!request) return res.status(404).json({ error: 'Quote request not found' });
 
     if (request.requesterId.toString() !== req.user._id.toString() && req.user.role !== 'polesafe_admin') {
@@ -362,7 +367,8 @@ router.post('/rides/:id/photo/selfie', authMiddleware, requireRole('driver'), as
     const { photo } = req.body;
     if (!photo) return res.status(400).json({ error: 'photo (base64) is required' });
 
-    const ride = await Ride.findById(req.params.id);
+    const rideScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.user._id.toString(), ['quote:ride']);
+    const ride = await Ride.findById(rideScope.tenantScopedQuery.id);
     if (!ride) return res.status(404).json({ error: 'Ride not found' });
     if (ride.driverId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'This is not your ride' });
@@ -389,7 +395,8 @@ router.post('/rides/:id/photo/kid', authMiddleware, requireRole('driver'), async
     const { photo, childId } = req.body;
     if (!photo) return res.status(400).json({ error: 'photo (base64) is required' });
 
-    const ride = await Ride.findById(req.params.id);
+    const rideScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.user._id.toString(), ['quote:ride']);
+    const ride = await Ride.findById(rideScope.tenantScopedQuery.id);
     if (!ride) return res.status(404).json({ error: 'Ride not found' });
     if (ride.driverId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'This is not your ride' });

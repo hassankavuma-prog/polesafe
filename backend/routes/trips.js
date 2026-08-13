@@ -4,6 +4,8 @@
 const express = require('express');
 const router = express.Router();
 const { SchoolTrip, Vehicle, User, Child, School, Ride } = require('../database/schema');
+const { z } = require('zod');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 const { authMiddleware } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const PhoneMaskingService = require('../services/phoneMaskingService');
@@ -165,7 +167,8 @@ router.get('/', authMiddleware, async (req, res) => {
  */
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const trip = await SchoolTrip.findById(req.params.id)
+    const tripScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.user._id.toString(), ['trip:view']);
+    const trip = await SchoolTrip.findById(tripScope.tenantScopedQuery.id)
       .populate('vehicleId', 'type registrationNumber capacity busLabel')
       .populate('driverId', 'name phone')
       .populate('createdBy', 'name');
@@ -344,7 +347,8 @@ router.post('/:id/assign', authMiddleware, requireRole('school_admin'), async (r
       return res.status(400).json({ error: 'childIds array is required' });
     }
 
-    const trip = await SchoolTrip.findById(req.params.id);
+    const tripScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.user._id.toString(), ['trip:view']);
+    const trip = await SchoolTrip.findById(tripScope.tenantScopedQuery.id);
     if (!trip) {
       return res.status(404).json({ error: 'Trip not found' });
     }

@@ -1,7 +1,9 @@
 // PoleSafe — Role Guard Middleware
 // Restricts endpoints to specific user roles
 
-const { User } = require('../database/schema');
+const { User, School } = require('../database/schema');
+const { z } = require('zod');
+const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 
 /**
  * Middleware factory: restrict access to specific roles
@@ -39,7 +41,9 @@ async function requireSchoolAccess(req, res, next) {
     }
 
     if (req.user.role === 'school_admin') {
-      const school = await require('mongoose').model('School').findById(schoolId);
+      const schoolSchema = z.object({ schoolId: z.string().min(1) }).strict();
+      const schoolScope = validateTenantScopedQuery(schoolSchema, { schoolId }, req.user._id.toString(), ['role:school-access']);
+      const school = await School.findById(schoolScope.tenantScopedQuery.schoolId);
       if (!school || !school.adminIds.includes(req.user._id)) {
         return res.status(403).json({ error: 'Not authorized for this school' });
       }

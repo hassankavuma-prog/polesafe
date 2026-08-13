@@ -292,7 +292,8 @@ router.get('/blog', optionalAuth, async (req, res, next) => {
 // ============================================================
 router.get('/blog/:id', optionalAuth, async (req, res, next) => {
   try {
-    const post = await BlogPost.findById(req.params.id);
+    const postScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.user?.id || 'community', ['community:blog']);
+    const post = await BlogPost.findById(postScope.tenantScopedQuery.id);
     if (!post) return res.status(404).json({ error: 'Blog post not found' });
     
     post.viewCount += 1;
@@ -428,7 +429,8 @@ router.post('/features', authMiddleware, async (req, res, next) => {
 router.post('/features/:id/vote', authMiddleware, async (req, res, next) => {
   try {
     const { vote = 'up' } = req.body;
-    const feature = await FeatureSuggestion.findById(req.params.id);
+    const featureScope = validateTenantScopedQuery(z.object({ id: z.string().min(1) }).strict(), { id: req.params.id }, req.user.id, ['community:feature']);
+    const feature = await FeatureSuggestion.findById(featureScope.tenantScopedQuery.id);
     if (!feature) return res.status(404).json({ error: 'Feature not found' });
     
     const userId = req.user.id;

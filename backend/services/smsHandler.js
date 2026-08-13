@@ -10,7 +10,7 @@ const Ride = require('mongoose').model('Ride');
 const smsService = require('./smsService');
 const smsTemplates = require('./smsTemplates');
 const smsSession = require('./smsSession');
-const { parseFallbackTransport, hamnahTriage } = require('../../lib/engine/hamnah-core');
+const { parseFallbackTransport, hamnahTriage, validateTenantScopedQuery } = require('../../lib/engine/hamnah-core');
 
 const COMMANDS = {
   BOOK: 'BOOK',      // BOOK Faith P.3 StMarys 7AM
@@ -87,7 +87,10 @@ async function handleIncoming(req, res) {
     console.log(`📨 SMS from ${phone}: "${text}"`);
 
     // Check if user exists (allow REGISTER command for new users)
-    const user = await User.findOne({ phone });
+    const { z } = require('zod');
+    const userSchema = z.object({ phone: z.string().min(7) }).strict();
+    const userScope = validateTenantScopedQuery(userSchema, { phone }, phone, ['sms:user-lookup']);
+    const user = await User.findOne(userScope.tenantScopedQuery);
     if (!user && command !== 'REGISTER') {
       await smsService.send({
         to: phone,
