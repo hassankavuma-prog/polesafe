@@ -1,7 +1,7 @@
 // PoleSafe Mobile — New Post / Blog / Feature Suggestion
 // Create a Safety Board post, blog article, or feature suggestion
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView,
@@ -10,6 +10,12 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'http://localhost:3001/api/community';
+
+const REVIEW_GUIDANCE = {
+  approved: 'Hamna can publish this if it is clear and safe.',
+  pending: 'Hamna will review this before it appears publicly.',
+  rejected: 'This was rejected before; please revise the safety and clarity.',
+};
 
 const SAFETY_CATEGORIES = [
   { id: 'route_safety', label: '🚸 Route Safety' },
@@ -48,6 +54,32 @@ export default function NewPost({ route, navigation }) {
   const [category, setCategory] = useState('general');
   const [authorName, setAuthorName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [guidance, setGuidance] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadTemplates = async () => {
+      if (!isBlog) return;
+      setLoadingTemplates(true);
+      try {
+        const res = await fetch(`${API_URL}/blog/templates`);
+        const data = await res.json();
+        if (!mounted) return;
+        setTemplates(data.templates || []);
+        setGuidance(data.defaultGuidance || []);
+      } catch (e) {
+        console.error('Failed to load blog templates:', e);
+      } finally {
+        if (mounted) setLoadingTemplates(false);
+      }
+    };
+    loadTemplates();
+    return () => { mounted = false; };
+  }, [isBlog]);
+
+  const selectedTemplate = useMemo(() => templates.find(t => t.category === category) || templates[0] || null, [templates, category]);
 
   const getCategories = () => {
     if (isBlog) return BLOG_CATEGORIES;
@@ -102,6 +134,7 @@ export default function NewPost({ route, navigation }) {
       if (isBlog) {
         payload.excerpt = excerpt.trim() || body.trim().substring(0, 250);
         payload.authorName = authorName.trim() || undefined;
+        if (selectedTemplate) payload.category = selectedTemplate.category || category;
       }
 
       const res = await fetch(endpoints.url, {
@@ -163,6 +196,9 @@ export default function NewPost({ route, navigation }) {
               📝 Your article will be reviewed by Hamna before publishing.
               You can write in Luganda, Swahili, or English.
             </Text>
+            <Text style={[styles.infoText, styles.infoTextSpacing]}>
+              {REVIEW_GUIDANCE.pending}
+            </Text>
           </View>
         )}
 
@@ -200,6 +236,13 @@ export default function NewPost({ route, navigation }) {
             maxLength={isFeature ? 150 : 200}
           />
         </View>
+
+        {isBlog && selectedTemplate ? (
+          <View style={styles.templateBox}>
+            <Text style={styles.templateTitle}>{selectedTemplate.title}</Text>
+            <Text style={styles.templatePrompt}>{selectedTemplate.prompt}</Text>
+          </View>
+        ) : null}
 
         {/* Category */}
         <View style={styles.inputGroup}>
@@ -290,6 +333,7 @@ const styles = StyleSheet.create({
     marginBottom: 16, borderLeftWidth: 3, borderLeftColor: '#1565C0',
   },
   infoText: { fontSize: 12, color: '#333', lineHeight: 16 },
+  infoTextSpacing: { marginTop: 6 },
   inputGroup: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', color: '#444', marginBottom: 6 },
   input: {
@@ -299,6 +343,9 @@ const styles = StyleSheet.create({
   },
   bodyInput: { minHeight: 180, paddingTop: 12 },
   charCount: { fontSize: 11, color: '#999', textAlign: 'right', marginTop: 4 },
+  templateBox: { backgroundColor: '#fff', borderRadius: 10, padding: 12, borderLeftWidth: 3, borderLeftColor: '#2E7D32', marginBottom: 16 },
+  templateTitle: { fontSize: 14, fontWeight: '700', color: '#1f2937' },
+  templatePrompt: { fontSize: 12, color: '#555', marginTop: 4, lineHeight: 18 },
   categoryGrid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 6,
   },
