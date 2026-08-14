@@ -8,7 +8,7 @@ import { ArrowRight, Bus, CheckCircle2, MapPin, Phone, School, ShieldAlert, Smar
 const FloatingSafetyBadge3D = dynamic(() => import('@/components/3d/FloatingSafetyBadge3D').then((mod) => mod.FloatingSafetyBadge3D), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[280px] w-full items-center justify-center rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.16),transparent_55%),linear-gradient(180deg,rgba(2,6,23,0.92),rgba(15,23,42,0.92))] px-6 text-center text-sm text-slate-300 sm:h-[340px] lg:h-[380px]">
+    <div className="glass-strong flex h-[280px] w-full items-center justify-center rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.16),transparent_55%),linear-gradient(180deg,rgba(2,6,23,0.92),rgba(15,23,42,0.92))] px-6 text-center text-sm text-slate-200 shadow-[0_18px_60px_rgba(2,6,23,0.55)] sm:h-[340px] lg:h-[380px]">
       Loading PoleSafe 3D safety badge…
     </div>
   ),
@@ -68,13 +68,13 @@ function Hero3DBlock() {
   return (
     <section className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
       <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="glass-strong rounded-[2rem] border border-white/10 p-5 shadow-[0_18px_60px_rgba(2,6,23,0.55)] sm:p-6">
+        <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-5 shadow-[0_18px_60px_rgba(2,6,23,0.55)] backdrop-blur-2xl sm:p-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs text-sky-300">
             Modern 3D homepage preview
           </div>
           <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">PoleSafe now lands with a modern 3D safety badge</h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-300">
-            The 3D badge is loaded client-side only so Netlify does not SSR-crash on Three.js, and a visible loading panel keeps the hero section styled while the bundle loads.
+            The 3D badge is loaded client-side only so Netlify does not SSR-crash on Three.js, and the hero uses plain inline styles plus a fallback loading panel so it still looks correct if Tailwind utilities are delayed.
           </p>
           <div className="mt-4 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Client-only 3D loading</div>
@@ -194,7 +194,7 @@ function BookingWidget() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="glass-strong rounded-[2rem] border border-white/10 p-5 shadow-[0_18px_60px_rgba(2,6,23,0.55)] sm:p-6">
+      <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-5 shadow-[0_18px_60px_rgba(2,6,23,0.55)] backdrop-blur-2xl sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-emerald-300">Live booking</div>
