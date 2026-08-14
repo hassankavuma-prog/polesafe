@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { apiUrl } from '@/lib/api-base';
 import { ArrowRight, Bus, CheckCircle2, MapPin, Phone, School, ShieldAlert, Smartphone, TimerReset, Users } from 'lucide-react';
 
 const highlights = [
@@ -114,7 +115,7 @@ function BookingWidget() {
             notes: `Child: ${form.childName || 'Not provided'} • Pickup: ${form.pickup}`,
           };
 
-      const endpoint = mode === 'community' ? '/api/rides/request' : '/api/trips';
+      const endpoint = apiUrl(mode === 'community' ? '/api/rides/request' : '/api/trips');
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,7 +129,7 @@ function BookingWidget() {
         const amount = Number(data.price?.total || farePreview || estimateFare || 0);
         if (amount > 0) {
           const provider = /airtel/i.test(form.notes) || /airtel/i.test(form.phone) ? 'airtel' : 'mtn';
-          const payResponse = await fetch('/api/payments/momo', {
+          const payResponse = await fetch(apiUrl('/api/payments/momo'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
