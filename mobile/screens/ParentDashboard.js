@@ -14,7 +14,6 @@ import { BRAND, STATUS, getTheme, TYPOGRAPHY, SPACING, BORDER_RADIUS, WCAG } fro
 import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
 import StatusBadge from '../components/StatusBadge';
-import RoleSwitcherAction from '../components/RoleSwitcherAction';
 const API_URL = API_BASE;
 
 // ─── Helpers ──────────────────────────────────────────
