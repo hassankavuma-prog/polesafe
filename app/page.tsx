@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { apiUrl } from '@/lib/api-base';
 import { ArrowRight, Bus, CheckCircle2, MapPin, Phone, School, ShieldAlert, Smartphone, TimerReset, Users } from 'lucide-react';
+import { FloatingSafetyBadge3D } from '@/components/3d/FloatingSafetyBadge3D';
 
 const highlights = [
   {
