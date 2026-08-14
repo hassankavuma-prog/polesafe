@@ -1,0 +1,16 @@
+node_modules/
+.expo/
+dist/
+android/
+ios/
+coverage/
+*.log
+*.tmp
+*.zip
+*.aab
+*.apk
+expo-qr.png
+FIXES_APPLIED.md
+*.bak
+*.swp
+*.orig

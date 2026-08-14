@@ -490,6 +490,13 @@ export default function PoleSafeApp() {
 
   if (isLoading) return <SplashScreen />;
 
+  const normalizedRole = (userRole || '').toLowerCase();
+
+  const RoleGate = ({ allowed, children }) => {
+    if (!allowed.includes(normalizedRole)) return null;
+    return children;
+  };
+
   // ─── Get main screen based on role ───────────────
   const getMainStack = () => {
     if (!userToken) {
@@ -497,7 +504,7 @@ export default function PoleSafeApp() {
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       );
     }
-    const role = (userRole || '').toLowerCase();
+    const role = normalizedRole;
     let Component, label;
     switch (role) {
       case 'parent':
@@ -531,8 +538,12 @@ export default function PoleSafeApp() {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false, animationEnabled: true }}>
           {getMainStack()}
-          <Stack.Screen name="DriverOnboarding" component={DriverOnboardingScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="AdminDriverReview" component={AdminDriverReview} options={{ headerShown: false }} />
+          <RoleGate allowed={['driver', 'school_admin', 'polesafe_admin']}>
+            <Stack.Screen name="DriverOnboarding" component={DriverOnboardingScreen} options={{ headerShown: false }} />
+          </RoleGate>
+          <RoleGate allowed={['school_admin', 'polesafe_admin']}>
+            <Stack.Screen name="AdminDriverReview" component={AdminDriverReview} options={{ headerShown: false }} />
+          </RoleGate>
           {SHARED_SCREENS.map(([name, component, options]) => (
             <Stack.Screen
               key={name}

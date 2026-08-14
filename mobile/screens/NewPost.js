@@ -9,7 +9,9 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://localhost:3001/api/community';
+import API_BASE from '../config';
+
+const API_URL = `${API_BASE}/api/community`;
 
 const REVIEW_GUIDANCE = {
   approved: 'Hamna can publish this if it is clear and safe.',

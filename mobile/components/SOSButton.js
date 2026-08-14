@@ -66,7 +66,7 @@ export default function SOSButton({ rideId, kidId, userRole }) {
       };
 
       await enqueueSosTrigger(payload, { rideId, childId: kidId, source: 'sos-button', priority: 'high' });
-      const online = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      const online = true;
       if (online) {
         try {
           const res = await fetch(`${API_URL}/api/safety/sos`, {

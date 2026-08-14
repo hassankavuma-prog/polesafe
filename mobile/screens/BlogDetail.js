@@ -5,7 +5,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity, TextInput, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://localhost:3001/api/community';
+import API_BASE from '../config';
+
+const API_URL = `${API_BASE}/api/community`;
 
 const categoryMap = {
   parenting: 'Parenting Tips',

@@ -10,7 +10,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://localhost:3001/api/community'; // Updated for production
+import API_BASE from '../config';
+
+const API_URL = `${API_BASE}/api/community`;
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: '📋' },

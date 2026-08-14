@@ -9,6 +9,7 @@ const { validateTenantScopedQuery } = require('../../lib/engine/hamnah-core.ts')
 const { authMiddleware } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roles');
 const PhoneMaskingService = require('../services/phoneMaskingService');
+const { transitionTripStatus } = require('../services/tripStateMachine');
 
 // ============================================================
 // 🏫 TRIP MANAGEMENT — School Admin
@@ -496,18 +497,21 @@ router.post('/:id/assign-vehicle', authMiddleware, requireRole('school_admin'), 
       }
     }
 
-    const trip = await SchoolTrip.findByIdAndUpdate(
-      req.params.id,
-      {
-        vehicleId: vehicle._id,
-        driverId: vehicle.driverId,
-        maxSeats: vehicle.capacity || 0,
-        vehicleSource: vehicle.ownerModel === 'School' ? 'fleet' : 'external',
-        busLabel: vehicle.busLabel || trip.busLabel,
-        status: 'open',
-      },
-      { new: true }
-    );
+    const trip = await SchoolTrip.findById(req.params.id);
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    trip.vehicleId = vehicle._id;
+    trip.driverId = vehicle.driverId;
+    trip.maxSeats = vehicle.capacity || 0;
+    trip.vehicleSource = vehicle.ownerModel === 'School' ? 'fleet' : 'external';
+    trip.busLabel = vehicle.busLabel || trip.busLabel;
+    if (trip.status !== 'confirmed') {
+      trip.status = 'open';
+    }
+
+    await trip.save();
 
     if (!trip) {
       return res.status(404).json({ error: 'Trip not found' });
@@ -570,18 +574,14 @@ router.get('/driver', authMiddleware, requireRole('driver'), async (req, res) =>
  */
 router.post('/:id/confirm', authMiddleware, requireRole('driver'), async (req, res) => {
   try {
-    const trip = await SchoolTrip.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        driverId: req.user._id,
-        status: 'open',
-      },
-      {
-        status: 'confirmed',
-        driverConfirmedAt: new Date(),
-      },
-      { new: true }
-    );
+    const trip = await transitionTripStatus(req.params.id, 'confirmed', {
+      role: req.user.role,
+      user: req.user,
+    });
+
+    if (trip.driverId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Trip not assigned to this driver' });
+    }
 
     if (!trip) {
       return res.status(404).json({ error: 'Trip not found or already confirmed' });
@@ -670,26 +670,20 @@ router.post('/:id/arrive', authMiddleware, requireRole('driver'), async (req, re
  */
 router.post('/:id/start', authMiddleware, requireRole('driver'), async (req, res) => {
   try {
-    const trip = await SchoolTrip.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        driverId: req.user._id,
-        status: 'confirmed',
-      },
-      {
-        status: 'in_progress',
-        startedAt: new Date(),
-        kidsRevealed: true,
-      },
-      { new: true }
-    );
+    const trip = await transitionTripStatus(req.params.id, 'in_progress', {
+      role: req.user.role,
+      user: req.user,
+      safeWord: req.body.safeWord,
+      gateGeofence: req.body.gateGeofence,
+      dismissal: req.body.dismissal,
+    });
 
     if (!trip) {
       return res.status(404).json({ error: 'Trip not found or not confirmed' });
     }
 
     const { Ride } = require('../database/schema');
-    const activeRide = await Ride.findById(rideId).populate('childId schoolId driverId parentId');
+    const activeRide = await Ride.findOne({ tripId: trip._id }).populate('childId schoolId driverId parentId');
     if (activeRide) {
       activeRide.status = activeRide.status || 'scheduled';
       activeRide.trackingStatus = 'active';
@@ -698,7 +692,7 @@ router.post('/:id/start', authMiddleware, requireRole('driver'), async (req, res
     }
 
     // Notify parents and teachers when tracking starts
-    console.log(`📍 Tracking started for ride ${rideId}`);
+    console.log(`📍 Tracking started for trip ${trip._id}`);
 
     res.json({ message: 'Trip started', trip });
   } catch (err) {
@@ -712,18 +706,10 @@ router.post('/:id/start', authMiddleware, requireRole('driver'), async (req, res
  */
 router.post('/:id/complete', authMiddleware, requireRole('driver'), async (req, res) => {
   try {
-    const trip = await SchoolTrip.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        driverId: req.user._id,
-        status: 'in_progress',
-      },
-      {
-        status: 'completed',
-        completedAt: new Date(),
-      },
-      { new: true }
-    );
+    const trip = await transitionTripStatus(req.params.id, 'completed', {
+      role: req.user.role,
+      user: req.user,
+    });
 
     if (!trip) {
       return res.status(404).json({ error: 'Trip not found or not in progress' });
@@ -993,7 +979,7 @@ router.post('/:id/quote', authMiddleware, requireRole('driver'), async (req, res
       return res.status(404).json({ error: 'Trip not found' });
     }
 
-    if (trip.status !== 'open') {
+    if (trip.status !== 'open' && trip.status !== 'confirmed') {
       return res.status(400).json({ error: 'Trip is not open for quotes' });
     }
 

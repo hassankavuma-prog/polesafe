@@ -35,17 +35,46 @@ const OPTIONAL_BUT_WARN = [
 ];
 
 const missing = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
+const isProduction = (process.env.NODE_ENV || 'development') === 'production';
 if (missing.length > 0) {
-  console.error('❌ FATAL: Missing required environment variables:');
+  console.error('❌ Missing required environment variables:');
   missing.forEach(v => console.error(`   - ${v}`));
-  console.error('💡 Set these in your .env file or environment before starting.');
-  process.exit(1);
+  if (isProduction) {
+    console.error('💡 Set these in your production environment before starting.');
+    process.exit(1);
+  }
+  console.warn('⚠️  Non-production fallback enabled: using local/default config values so the app can boot.');
 }
 
 const missingOptional = OPTIONAL_BUT_WARN.filter(v => !process.env[v]);
 if (missingOptional.length > 0) {
   console.warn('⚠️  Warning: Optional environment variables not set:');
   missingOptional.forEach(v => console.warn(`   - ${v} (feature will be disabled)`));
+}
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function connectMongoWithRetry(uri, { retries = 5, baseDelayMs = 1500 } = {}) {
+  let lastErr;
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      console.log(`🔌 Connecting to MongoDB (attempt ${attempt}/${retries})...`);
+      await mongoose.connect(uri, {
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
+      });
+      return;
+    } catch (err) {
+      lastErr = err;
+      console.error(`❌ MongoDB connection attempt ${attempt} failed:`, err.message);
+      if (attempt < retries) {
+        const delay = baseDelayMs * attempt;
+        console.warn(`⏳ Retrying in ${delay}ms...`);
+        await sleep(delay);
+      }
+    }
+  }
+  throw lastErr;
 }
 
 const app = express();
@@ -131,6 +160,10 @@ app.get('/api/health', (req, res) => {
     version: '1.0.0',
     slogan: 'From Home to School. And Beyond.',
     uptime: process.uptime(),
+    env: {
+      production: isProduction,
+      missingRequired: missing,
+    },
   });
 });
 
@@ -185,7 +218,7 @@ if (!fs.existsSync(uploadDir)) {
 // ============================================================
 // 🚀 Start
 // ============================================================
-mongoose.connect(config.MONGODB_URI).then(async () => {
+connectMongoWithRetry(config.MONGODB_URI).then(async () => {
   console.log('✅ Connected to MongoDB');
 
   // Ensure database indexes for performance

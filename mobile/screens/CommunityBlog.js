@@ -8,7 +8,9 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
-const API_URL = 'http://localhost:3001/api/community';
+import API_BASE from '../config';
+
+const API_URL = `${API_BASE}/api/community`;
 
 const BLOG_CATEGORIES = [
   { id: 'all', label: 'All', icon: '📋' },
