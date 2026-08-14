@@ -2,17 +2,13 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import dynamic from 'next/dynamic';
 import { apiUrl } from '@/lib/api-base';
 import { ArrowRight, Bus, CheckCircle2, MapPin, Phone, School, ShieldAlert, Smartphone, TimerReset, Users } from 'lucide-react';
-const FloatingSafetyBadge3D = dynamic(() => import('@/components/3d/FloatingSafetyBadge3D').then((mod) => mod.FloatingSafetyBadge3D), {
-  ssr: false,
-  loading: () => (
-    <div className="glass-strong flex h-[280px] w-full items-center justify-center rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.16),transparent_55%),linear-gradient(180deg,rgba(2,6,23,0.92),rgba(15,23,42,0.92))] px-6 text-center text-sm text-slate-200 shadow-[0_18px_60px_rgba(2,6,23,0.55)] sm:h-[340px] lg:h-[380px]">
-      Loading PoleSafe 3D safety badge…
-    </div>
-  ),
-});
+function FloatingSafetyBadge3D() {
+  return (
+    <div style={{position:'relative',height:'clamp(280px,32vw,380px)',width:'100%',overflow:'hidden',borderRadius:'2rem',border:'1px solid rgba(255,255,255,0.10)',background:'radial-gradient(circle at top, rgba(249,115,22,0.16), transparent 55%), linear-gradient(180deg, rgba(2,6,23,0.92), rgba(15,23,42,0.92))',boxShadow:'0 18px 60px rgba(2,6,23,0.55)'}}><div style={{position:'absolute',inset:0,background:'radial-gradient(circle at 50% 50%, rgba(56,189,248,0.16), transparent 58%)'}} /><div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'1.5rem',textAlign:'center',color:'#e2e8f0'}}><div><div style={{display:'inline-flex',alignItems:'center',gap:'0.5rem',border:'1px solid rgba(56,189,248,0.2)',background:'rgba(56,189,248,0.10)',color:'#7dd3fc',borderRadius:'9999px',padding:'0.35rem 0.8rem',fontSize:'12px'}}>Netlify-safe preview</div><div style={{marginTop:'0.9rem',fontSize:'1.45rem',fontWeight:700,color:'#fff'}}>PoleSafe 3D safety badge</div><div style={{marginTop:'0.5rem',fontSize:'0.95rem',lineHeight:1.5,color:'#cbd5e1',maxWidth:'28rem'}}>This fallback renders even if the Three.js bundle fails or Tailwind utilities are delayed.</div></div></div></div>
+  );
+}
 
 const highlights = [
   {
@@ -66,21 +62,17 @@ type RideMode = 'community' | 'school';
 
 function Hero3DBlock() {
   return (
-    <section className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
-      <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-5 shadow-[0_18px_60px_rgba(2,6,23,0.55)] backdrop-blur-2xl sm:p-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs text-sky-300">
-            Modern 3D homepage preview
-          </div>
-          <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">PoleSafe now lands with a modern 3D safety badge</h2>
-          <p className="mt-2 max-w-2xl text-sm text-slate-300">
-            The 3D badge is loaded client-side only so Netlify does not SSR-crash on Three.js, and the hero uses plain inline styles plus a fallback loading panel so it still looks correct if Tailwind utilities are delayed.
-          </p>
-          <div className="mt-4 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Client-only 3D loading</div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Netlify-safe SSR path</div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Fallback styling preserved</div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Still premium, not heavy</div>
+    <section style={{maxWidth:'80rem',margin:'0 auto',padding:'1rem 1rem 0'}}>
+      <div style={{display:'grid',gap:'1rem',gridTemplateColumns:'minmax(0,0.95fr) minmax(0,1.05fr)'}}>
+        <div style={{border:'1px solid rgba(255,255,255,0.10)',borderRadius:'2rem',padding:'1.25rem',background:'rgba(2,6,23,0.88)',boxShadow:'0 18px 60px rgba(2,6,23,0.55)'}}>
+          <div style={{display:'inline-flex',alignItems:'center',gap:'0.5rem',border:'1px solid rgba(56,189,248,0.2)',background:'rgba(56,189,248,0.10)',color:'#7dd3fc',borderRadius:'9999px',padding:'0.35rem 0.8rem',fontSize:'12px'}}>Modern 3D homepage preview</div>
+          <h2 style={{marginTop:'0.85rem',fontSize:'1.8rem',lineHeight:1.1,fontWeight:700,color:'#fff'}}>PoleSafe now lands with a modern 3D safety badge</h2>
+          <p style={{marginTop:'0.65rem',maxWidth:'42rem',fontSize:'0.95rem',lineHeight:1.6,color:'#cbd5e1'}}>The 3D badge now has a plain HTML/CSS fallback block so Netlify can never turn it into blank outlines, even if the client bundle is late or unavailable.</p>
+          <div style={{marginTop:'1rem',display:'grid',gap:'0.5rem',fontSize:'0.92rem',color:'#cbd5e1',gridTemplateColumns:'repeat(2,minmax(0,1fr))'}}>
+            <div style={{border:'1px solid rgba(255,255,255,0.10)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.8rem 1rem'}}>Plain CSS fallback</div>
+            <div style={{border:'1px solid rgba(255,255,255,0.10)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.8rem 1rem'}}>No SSR dependency</div>
+            <div style={{border:'1px solid rgba(255,255,255,0.10)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.8rem 1rem'}}>Netlify-safe rendering</div>
+            <div style={{border:'1px solid rgba(255,255,255,0.10)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.8rem 1rem'}}>Premium but resilient</div>
           </div>
         </div>
         <FloatingSafetyBadge3D />
