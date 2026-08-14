@@ -154,3 +154,26 @@ export function buildIncidentLifecycleNotes(lifecycle: IncidentLifecycle) {
   };
   return notes[lifecycle];
 }
+
+
+export function buildLedgerSummary(transactions: Array<{ status?: string; amount?: number; amountUgx?: number; method?: string; paymentMethod?: string; provider?: string; reference?: string; txRef?: string; }>) {
+  const completed = transactions.filter((t) => t.status === 'completed' || t.status === 'success');
+  const pending = transactions.filter((t) => t.status === 'pending');
+  const failed = transactions.filter((t) => t.status === 'failed');
+  const totalCompleted = completed.reduce((sum, tx) => sum + Number(tx.amount ?? tx.amountUgx ?? 0), 0);
+  const byMethod = completed.reduce<Record<string, number>>((acc, tx) => {
+    const method = tx.method || tx.paymentMethod || tx.provider || 'unknown';
+    acc[method] = (acc[method] || 0) + Number(tx.amount ?? tx.amountUgx ?? 0);
+    return acc;
+  }, {});
+
+  return {
+    count: transactions.length,
+    completed: completed.length,
+    pending: pending.length,
+    failed: failed.length,
+    totalCompleted,
+    byMethod,
+    lastReference: transactions[0]?.reference || transactions[0]?.txRef || null,
+  };
+}
