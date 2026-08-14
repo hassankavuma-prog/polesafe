@@ -128,12 +128,9 @@ export default function TeacherPickupVerify({ navigation }) {
       <View style={styles.instructionCard}>
         <Text style={styles.instructionTitle}>👩🏫 Classroom Pickup Procedure</Text>
         <Text style={styles.instructionText}>
-          1. PoleSafe driver arrives at the classroom door{'
-'}
-          2. Driver shows their PoleSafe ID badge{'
-'}
-          3. Tap the child below to verify + release{'
-'}
+          1. PoleSafe driver arrives at the classroom door{'\n'}
+          2. Driver shows their PoleSafe ID badge{'\n'}
+          3. Tap the child below to verify + release{'\n'}
           4. Child leaves with the verified driver
         </Text>
       </View>

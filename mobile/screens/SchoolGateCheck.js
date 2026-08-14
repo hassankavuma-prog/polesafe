@@ -78,7 +78,7 @@ export default function SchoolGateCheck({ navigation }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
