@@ -1,0 +1,20 @@
+Temporary diagnostic startup-isolation backup notes for PoleSafe.
+
+Purpose:
+- Preserve the original startup file state before a temporary isolation build.
+- Restore full PoleSafe startup tree exactly after diagnosis.
+
+Current basis:
+- Successful build commit: a0c4d3f5374eb3dfc7d8c3049890eaf36919b627
+- Diagnostic strategy: minimize startup to a safe surface only.
+- Restore after diagnosis: re-enable original imports and screens exactly as before.
+
+Original startup facts captured from inspection:
+- `mobile/PoleSafeApp.js` is the monolithic startup hub.
+- Direct import tree includes many screens plus:
+  - `./components/MoMoPromptModal`
+  - `./components/common/NetworkStatusBanner`
+  - `./services/offlineSyncService`
+  - `./screens/school/StudentRosterScreen`
+- No confirmed import-time crash line was found in static audit.
+- This diagnostic change set is temporary only.
