@@ -63,19 +63,18 @@ type RideMode = 'community' | 'school';
 function Hero3DBlock() {
   return (
     <section style={{maxWidth:'80rem',margin:'0 auto',padding:'1rem 1rem 0'}}>
-      <div style={{display:'grid',gap:'1rem',gridTemplateColumns:'minmax(0,0.95fr) minmax(0,1.05fr)'}}>
-        <div style={{border:'1px solid rgba(255,255,255,0.10)',borderRadius:'2rem',padding:'1.25rem',background:'rgba(2,6,23,0.88)',boxShadow:'0 18px 60px rgba(2,6,23,0.55)'}}>
-          <div style={{display:'inline-flex',alignItems:'center',gap:'0.5rem',border:'1px solid rgba(56,189,248,0.2)',background:'rgba(56,189,248,0.10)',color:'#7dd3fc',borderRadius:'9999px',padding:'0.35rem 0.8rem',fontSize:'12px'}}>Modern 3D homepage preview</div>
-          <h2 style={{marginTop:'0.85rem',fontSize:'1.8rem',lineHeight:1.1,fontWeight:700,color:'#fff'}}>PoleSafe now lands with a modern 3D safety badge</h2>
-          <p style={{marginTop:'0.65rem',maxWidth:'42rem',fontSize:'0.95rem',lineHeight:1.6,color:'#cbd5e1'}}>The 3D badge now has a plain HTML/CSS fallback block so Netlify can never turn it into blank outlines, even if the client bundle is late or unavailable.</p>
-          <div style={{marginTop:'1rem',display:'grid',gap:'0.5rem',fontSize:'0.92rem',color:'#cbd5e1',gridTemplateColumns:'repeat(2,minmax(0,1fr))'}}>
-            <div style={{border:'1px solid rgba(255,255,255,0.10)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.8rem 1rem'}}>Plain CSS fallback</div>
-            <div style={{border:'1px solid rgba(255,255,255,0.10)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.8rem 1rem'}}>No SSR dependency</div>
-            <div style={{border:'1px solid rgba(255,255,255,0.10)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.8rem 1rem'}}>Netlify-safe rendering</div>
-            <div style={{border:'1px solid rgba(255,255,255,0.10)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.8rem 1rem'}}>Premium but resilient</div>
+      <div style={{display:'grid',gap:'1rem',gridTemplateColumns:'1fr',alignItems:'stretch'}}>
+        <div style={{border:'1px solid rgba(255,255,255,0.14)',borderRadius:'2rem',padding:'1.5rem',background:'linear-gradient(180deg, rgba(2,6,23,0.98), rgba(15,23,42,0.96))',boxShadow:'0 20px 70px rgba(2,6,23,0.65)'}}>
+          <div style={{display:'inline-flex',alignItems:'center',gap:'0.5rem',border:'1px solid rgba(56,189,248,0.22)',background:'rgba(56,189,248,0.12)',color:'#7dd3fc',borderRadius:'9999px',padding:'0.35rem 0.8rem',fontSize:'12px'}}>PoleSafe live platform</div>
+          <h2 style={{marginTop:'0.9rem',fontSize:'2rem',lineHeight:1.05,fontWeight:800,color:'#fff'}}>School rides, community rides, and school ops — in one platform.</h2>
+          <p style={{marginTop:'0.75rem',maxWidth:'42rem',fontSize:'1rem',lineHeight:1.65,color:'#cbd5e1'}}>This version uses plain inline styles for the first screen so Netlify cannot drop the visual treatment if utility CSS is late or partial. The product still stays dark, premium, and operational.</p>
+          <div style={{marginTop:'1rem',display:'grid',gap:'0.75rem',gridTemplateColumns:'repeat(2,minmax(0,1fr))'}}>
+            <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>Arrival-only safe-word flow</div>
+            <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>200m school gate geofencing</div>
+            <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>Staggered dismissal bells</div>
+            <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>Bookings, payments, tracker handoff</div>
           </div>
         </div>
-        <FloatingSafetyBadge3D />
       </div>
     </section>
   );
