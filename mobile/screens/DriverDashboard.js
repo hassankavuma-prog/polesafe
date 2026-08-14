@@ -231,7 +231,10 @@ export default function DriverDashboard({ navigation }) {
       return;
     }
     setIsOnline(!isOnline);
-    Alert.alert(isOnline ? 'You'\''re Offline' : 'You'\''re Online', isOnline ? 'New trip requests paused.' : 'You'\''ll receive trip requests.');
+    Alert.alert(
+      isOnline ? "You're Offline" : "You're Online",
+      isOnline ? 'New trip requests paused.' : "You'll receive trip requests."
+    );
   };
 
   if (loading) {
