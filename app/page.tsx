@@ -2,9 +2,17 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { apiUrl } from '@/lib/api-base';
 import { ArrowRight, Bus, CheckCircle2, MapPin, Phone, School, ShieldAlert, Smartphone, TimerReset, Users } from 'lucide-react';
-import { FloatingSafetyBadge3D } from '@/components/3d/FloatingSafetyBadge3D';
+const FloatingSafetyBadge3D = dynamic(() => import('@/components/3d/FloatingSafetyBadge3D').then((mod) => mod.FloatingSafetyBadge3D), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[280px] w-full items-center justify-center rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.16),transparent_55%),linear-gradient(180deg,rgba(2,6,23,0.92),rgba(15,23,42,0.92))] px-6 text-center text-sm text-slate-300 sm:h-[340px] lg:h-[380px]">
+      Loading PoleSafe 3D safety badge…
+    </div>
+  ),
+});
 
 const highlights = [
   {
@@ -66,13 +74,13 @@ function Hero3DBlock() {
           </div>
           <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">PoleSafe now lands with a modern 3D safety badge</h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-300">
-            If you were not seeing it before, this is the reason: the 3D badge is now placed right at the top of the homepage so it is obvious on desktop and mobile.
+            The 3D badge is loaded client-side only so Netlify does not SSR-crash on Three.js, and a visible loading panel keeps the hero section styled while the bundle loads.
           </p>
           <div className="mt-4 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Fast, low-bandwidth canvas</div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Responsive desktop + mobile scaling</div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Graceful fallback handling</div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Still feels premium, not heavy</div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Client-only 3D loading</div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Netlify-safe SSR path</div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Fallback styling preserved</div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Still premium, not heavy</div>
           </div>
         </div>
         <FloatingSafetyBadge3D />
