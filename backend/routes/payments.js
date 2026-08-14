@@ -10,6 +10,28 @@ const flutterwave = require('../services/flutterwaveService');
 const { Transaction, User, Credit } = require('../database/schema');
 const { normalizeUgx, reconcileMobileMoney, buildSecurityBoundary } = require('../../lib/engine/hamnah-core.ts');
 
+function buildLedgerSummary(transactions = []) {
+  const completed = transactions.filter((t) => t.status === 'completed');
+  const pending = transactions.filter((t) => t.status === 'pending');
+  const failed = transactions.filter((t) => t.status === 'failed');
+  const totalCompleted = completed.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+  const byMethod = completed.reduce((acc, tx) => {
+    const method = tx.method || tx.paymentMethod || tx.provider || 'unknown';
+    acc[method] = (acc[method] || 0) + Number(tx.amount || 0);
+    return acc;
+  }, {});
+
+  return {
+    count: transactions.length,
+    completed: completed.length,
+    pending: pending.length,
+    failed: failed.length,
+    totalCompleted,
+    byMethod,
+    lastReference: transactions[0]?.reference || transactions[0]?.txRef || null,
+  };
+}
+
 router.use(authMiddleware);
 
 // ============================================================
@@ -124,16 +146,9 @@ router.get('/transactions', async (req, res) => {
       .limit(50)
       .lean();
 
-    const total = transactions
-      .filter(t => t.status === 'completed')
-      .reduce((s, t) => s + t.amount, 0);
-
     res.json({
       transactions,
-      summary: {
-        totalSpent: total,
-        count: transactions.filter(t => t.status === 'completed').length,
-      },
+      summary: buildLedgerSummary(transactions),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -150,18 +165,29 @@ router.get('/statement', async (req, res) => {
       .limit(100)
       .lean();
 
-    const completed = transactions.filter(t => t.status === 'completed');
-    const totalSpent = completed.reduce((s, t) => s + t.amount, 0);
-    const byMethod = {};
-    completed.forEach(t => {
-      byMethod[t.method] = (byMethod[t.method] || 0) + t.amount;
-    });
-
     res.json({
       period: 'All time',
-      totalSpent,
-      transactionCount: completed.length,
-      byMethod,
+      ledger: buildLedgerSummary(transactions),
+      transactions,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// GET /api/payments/ledger — Unified financial ledger surface
+// ============================================================
+router.get('/ledger', async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ parentId: req.userId })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    res.json({
+      scope: 'parent_financial_ledger',
+      ledger: buildLedgerSummary(transactions),
       transactions,
     });
   } catch (err) {
