@@ -56,6 +56,31 @@ const liveMetrics = [
 
 type RideMode = 'community' | 'school';
 
+function Hero3DBlock() {
+  return (
+    <section className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+      <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="glass-strong rounded-[2rem] border border-white/10 p-5 shadow-[0_18px_60px_rgba(2,6,23,0.55)] sm:p-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs text-sky-300">
+            Modern 3D homepage preview
+          </div>
+          <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">PoleSafe now lands with a modern 3D safety badge</h2>
+          <p className="mt-2 max-w-2xl text-sm text-slate-300">
+            If you were not seeing it before, this is the reason: the 3D badge is now placed right at the top of the homepage so it is obvious on desktop and mobile.
+          </p>
+          <div className="mt-4 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Fast, low-bandwidth canvas</div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Responsive desktop + mobile scaling</div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Graceful fallback handling</div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">Still feels premium, not heavy</div>
+          </div>
+        </div>
+        <FloatingSafetyBadge3D />
+      </div>
+    </section>
+  );
+}
+
 function BookingWidget() {
   const [mode, setMode] = useState<RideMode>('community');
   const [form, setForm] = useState({
