@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock, DollarSign, Filter, RefreshCw } from 'lucide-react';
+import { apiUrl } from '../../lib/api-base';
 import type { TransportLedgerTransaction } from '../../types/polesafe';
 
 export type LedgerPanelProps = {
-  initialTransactions: TransportLedgerTransaction[];
+  initialTransactions?: TransportLedgerTransaction[];
   activeTermLabel?: string;
   regionLabel?: string;
 };
@@ -16,14 +17,51 @@ const statusTone: Record<TransportLedgerTransaction['status'], string> = {
   failed: 'bg-red-500/10 text-red-300 ring-red-500/20',
 };
 
-export function LedgerPanel({ initialTransactions, activeTermLabel = 'Term 1 2026', regionLabel = 'Kampala Region' }: LedgerPanelProps) {
+export function LedgerPanel({ initialTransactions = [], activeTermLabel = 'Term 1 2026', regionLabel = 'Kampala Region' }: LedgerPanelProps) {
   const [transactions, setTransactions] = useState<TransportLedgerTransaction[]>(initialTransactions);
+  const [loading, setLoading] = useState(false);
+  const [source, setSource] = useState<'seed' | 'live'>('seed');
   const [statusFilter, setStatusFilter] = useState<'all' | TransportLedgerTransaction['status']>('all');
 
   const filteredTransactions = useMemo(
     () => transactions.filter((txn) => (statusFilter === 'all' ? true : txn.status === statusFilter)),
     [transactions, statusFilter],
   );
+
+  useEffect(() => {
+    const loadLedger = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(apiUrl('/api/payments/ledger'), { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        const liveTransactions = Array.isArray(data?.transactions) ? data.transactions.map((txn: any) => ({
+          transactionId: txn.reference || txn.txRef || txn._id || `LEDGER-${Math.random().toString(36).slice(2, 8)}`,
+          organizationId: txn.organizationId || 'ORG-KAMPALA-01',
+          parentId: txn.parentId || txn.userId || 'UNKNOWN',
+          amountUgx: Number(txn.amount || txn.amountUgx || 0),
+          paymentMethod: txn.method || txn.paymentMethod || txn.provider || 'unknown',
+          status: txn.status === 'completed' ? 'success' : txn.status === 'failed' ? 'failed' : 'pending',
+          termReference: txn.termReference || 'Live ledger',
+          createdAt: txn.createdAt || new Date().toISOString(),
+          confidence: txn.status === 'completed' ? 'confirmed' : txn.status === 'failed' ? 'offline-received' : 'delayed',
+          confidenceNote: txn.reference ? `Ledger ref ${txn.reference}` : 'Live ledger entry',
+          confidenceSource: 'api',
+          paymentMatchStatus: txn.status || 'pending',
+          paymentProvider: txn.provider || txn.paymentMethod || 'unknown',
+        })) : [];
+        if (liveTransactions.length > 0) {
+          setTransactions(liveTransactions);
+          setSource('live');
+        }
+      } catch {
+        setSource('seed');
+      } finally {
+        setLoading(false);
+      }
+    };
+    void loadLedger();
+  }, []);
 
   const summary = useMemo(() => {
     const totalCollectedUgx = transactions.filter((t) => t.status === 'success').reduce((acc, curr) => acc + curr.amountUgx, 0);
@@ -48,6 +86,7 @@ export function LedgerPanel({ initialTransactions, activeTermLabel = 'Term 1 202
               <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                 Financial ledger & mobile money reconciliation
               </h1>
+              <p className="mt-2 text-xs text-slate-500">Source: {source === 'live' ? 'Live API ledger' : 'Seed preview'}{loading ? ' • syncing…' : ''}</p>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
                 Track term-based transport payments, Mobile Money rails, and reconciliation status across Uganda school routes.
               </p>
