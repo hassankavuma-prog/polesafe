@@ -134,8 +134,8 @@ export default function ParentTrack({ route, navigation }) {
           <View style={styles.mapPlaceholder}>
             <Text style={styles.mapEmoji}>🗺️</Text>
             <Text style={styles.mapTitle}>Live Map</Text>
-            <Text style={styles.mapDesc}>Tracking will appear here when{'
-'}a ride is active.</Text>
+            <Text style={styles.mapDesc}>Tracking will appear here when {' '}
+              a ride is active.</Text>
           </View>
         </View>
         <Animated.View style={[styles.bottomSheet, { transform: [{ translateY: slideAnim.interpolate({ inputRange: [0, 1], outputRange: [300, 0] }) }] }]}>
@@ -143,8 +143,8 @@ export default function ParentTrack({ route, navigation }) {
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>🚸</Text>
             <Text style={styles.emptyTitle}>No Active Ride</Text>
-            <Text style={styles.emptyDesc}>When your child has an active ride,{'
-'}their location will show here.</Text>
+            <Text style={styles.emptyDesc}>When your child has an active ride, {' '}
+              their location will show here.</Text>
             <TouchableOpacity style={styles.bookRideBtn} onPress={() => navigation.navigate('Booking')}>
               <Text style={styles.bookRideText}>📅 Book a School Ride</Text>
             </TouchableOpacity>
