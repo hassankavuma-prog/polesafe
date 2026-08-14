@@ -63,17 +63,15 @@ type RideMode = 'community' | 'school';
 function Hero3DBlock() {
   return (
     <section style={{maxWidth:'80rem',margin:'0 auto',padding:'1rem 1rem 0'}}>
-      <div style={{display:'grid',gap:'1rem',gridTemplateColumns:'1fr',alignItems:'stretch'}}>
-        <div style={{border:'1px solid rgba(255,255,255,0.14)',borderRadius:'2rem',padding:'1.5rem',background:'linear-gradient(180deg, rgba(2,6,23,0.98), rgba(15,23,42,0.96))',boxShadow:'0 20px 70px rgba(2,6,23,0.65)'}}>
-          <div style={{display:'inline-flex',alignItems:'center',gap:'0.5rem',border:'1px solid rgba(56,189,248,0.22)',background:'rgba(56,189,248,0.12)',color:'#7dd3fc',borderRadius:'9999px',padding:'0.35rem 0.8rem',fontSize:'12px'}}>PoleSafe live platform</div>
-          <h2 style={{marginTop:'0.9rem',fontSize:'2rem',lineHeight:1.05,fontWeight:800,color:'#fff'}}>School rides, community rides, and school ops — in one platform.</h2>
-          <p style={{marginTop:'0.75rem',maxWidth:'42rem',fontSize:'1rem',lineHeight:1.65,color:'#cbd5e1'}}>This version uses plain inline styles for the first screen so Netlify cannot drop the visual treatment if utility CSS is late or partial. The product still stays dark, premium, and operational.</p>
-          <div style={{marginTop:'1rem',display:'grid',gap:'0.75rem',gridTemplateColumns:'repeat(2,minmax(0,1fr))'}}>
-            <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>Arrival-only safe-word flow</div>
-            <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>200m school gate geofencing</div>
-            <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>Staggered dismissal bells</div>
-            <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>Bookings, payments, tracker handoff</div>
-          </div>
+      <div style={{border:'1px solid rgba(255,255,255,0.14)',borderRadius:'2rem',padding:'1.5rem',background:'linear-gradient(180deg, rgba(2,6,23,0.98), rgba(15,23,42,0.96))',boxShadow:'0 20px 70px rgba(2,6,23,0.65)'}}>
+        <div style={{display:'inline-flex',alignItems:'center',gap:'0.5rem',border:'1px solid rgba(56,189,248,0.22)',background:'rgba(56,189,248,0.12)',color:'#7dd3fc',borderRadius:'9999px',padding:'0.35rem 0.8rem',fontSize:'12px'}}>PoleSafe live platform</div>
+        <h2 style={{marginTop:'0.9rem',fontSize:'2rem',lineHeight:1.05,fontWeight:800,color:'#fff'}}>School rides, community rides, and school ops — in one platform.</h2>
+        <p style={{marginTop:'0.75rem',maxWidth:'42rem',fontSize:'1rem',lineHeight:1.65,color:'#cbd5e1'}}>This landing screen is now pure inline CSS so Netlify cannot break the layout by missing or delaying Tailwind utilities. It is still dark, premium, and operational.</p>
+        <div style={{marginTop:'1rem',display:'grid',gap:'0.75rem',gridTemplateColumns:'repeat(2,minmax(0,1fr))'}}>
+          <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>Arrival-only safe-word flow</div>
+          <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>200m school gate geofencing</div>
+          <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>Staggered dismissal bells</div>
+          <div style={{border:'1px solid rgba(255,255,255,0.12)',borderRadius:'1rem',background:'rgba(255,255,255,0.04)',padding:'0.9rem 1rem',color:'#e2e8f0'}}>Bookings, payments, tracker handoff</div>
         </div>
       </div>
     </section>
@@ -346,7 +344,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.18),_transparent_30%),radial-gradient(circle_at_85%_20%,_rgba(56,189,248,0.12),_transparent_26%),radial-gradient(circle_at_bottom_left,_rgba(34,197,94,0.08),_transparent_24%)]" />
-      <div className="pointer-events-none fixed inset-0 soft-grid opacity-[0.18]" />
+      <div style={{pointerEvents:'none',position:'fixed',inset:0,opacity:0.18,backgroundImage:'radial-gradient(circle at 1px 1px, rgba(148,163,184,0.12) 1px, transparent 0)',backgroundSize:'24px 24px'}} />
 
       <header className="relative border-b border-white/5 bg-slate-950/60 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
