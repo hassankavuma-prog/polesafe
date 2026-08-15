@@ -4,6 +4,82 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { apiUrl } from '@/lib/api-base';
 import { ArrowRight, Bus, CheckCircle2, MapPin, Phone, School, ShieldAlert, Smartphone, TimerReset, Users } from 'lucide-react';
+function HamnaSection() {
+  const capabilities = [
+    {
+      title: 'Journey Monitoring',
+      text: 'Helps observe trip progress and highlight when a journey may need a person to take a closer look.',
+    },
+    {
+      title: 'Safety Attention',
+      text: 'Surfaces unusual situations so the team can decide whether action is needed.',
+    },
+    {
+      title: 'Compliance Review',
+      text: 'Brings documents, checks, and ride context into one place for human review.',
+    },
+    {
+      title: 'Incident Support',
+      text: 'Helps organize the details that matter during an incident without replacing human judgment.',
+    },
+  ];
+
+  const previewItems = [
+    { label: 'Route deviation', value: 'Needs review' },
+    { label: 'Prolonged stop', value: 'Monitoring' },
+    { label: 'Driver document', value: 'Human review required' },
+  ];
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="overflow-hidden rounded-[2rem] border border-sky-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+        <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="bg-slate-950 px-5 py-6 text-white sm:px-6 sm:py-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">Hamna</div>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">Meet Hamna</h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">Hamna is PoleSafe’s intelligent safety assistant that helps surface situations requiring human attention.</p>
+
+            <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
+              <p className="text-base font-semibold leading-7 text-white sm:text-lg">“Hamna helps surface what matters. People make the decisions.”</p>
+              <p className="mt-3 text-sm leading-6 text-slate-300">Hamna does not make autonomous decisions. It simply helps the right person see what deserves review.</p>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">NON-LIVE preview</div>
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+                {previewItems.map((item, index) => (
+                  <div key={item.label} className={index > 0 ? 'mt-3 border-t border-white/10 pt-3' : ''}>
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{item.label}</div>
+                    <div className="mt-1 text-sm font-semibold text-sky-200">{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Capabilities</div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {capabilities.map((item) => (
+                  <article key={item.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                    <h3 className="text-base font-semibold text-slate-900">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{item.text}</p>
+                  </article>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+                This preview is clearly labeled and intentionally non-live. It shows what Hamna may surface for human review, not autonomous action.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function FloatingSafetyBadge3D() {
   return (
     <div style={{position:'relative',height:'clamp(280px,32vw,380px)',width:'100%',overflow:'hidden',borderRadius:'2rem',border:'1px solid rgba(255,255,255,0.10)',background:'radial-gradient(circle at top, rgba(249,115,22,0.16), transparent 55%), linear-gradient(180deg, rgba(2,6,23,0.92), rgba(15,23,42,0.92))',boxShadow:'0 18px 60px rgba(2,6,23,0.55)'}}><div style={{position:'absolute',inset:0,background:'radial-gradient(circle at 50% 50%, rgba(56,189,248,0.16), transparent 58%)'}} /><div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'1.5rem',textAlign:'center',color:'#e2e8f0'}}><div><div style={{display:'inline-flex',alignItems:'center',gap:'0.5rem',border:'1px solid rgba(56,189,248,0.2)',background:'rgba(56,189,248,0.10)',color:'#7dd3fc',borderRadius:'9999px',padding:'0.35rem 0.8rem',fontSize:'12px'}}>Netlify-safe preview</div><div style={{marginTop:'0.9rem',fontSize:'1.45rem',fontWeight:700,color:'#fff'}}>PoleSafe 3D safety badge</div><div style={{marginTop:'0.5rem',fontSize:'0.95rem',lineHeight:1.5,color:'#cbd5e1',maxWidth:'28rem'}}>This fallback renders even if the Three.js bundle fails or Tailwind utilities are delayed.</div></div></div></div>
