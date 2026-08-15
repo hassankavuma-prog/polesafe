@@ -114,6 +114,199 @@ export type ProviderSettlement = { settlementId: string; providerId: string; pro
 export type ProviderWallet = { walletId: string; providerId: string; balance: number; currency?: string; settlementStatus: SettlementStatus; };
 export type RefundAdjustment = { adjustmentId: string; paymentId?: string; bookingId?: string; amount: number; currency?: string; reason?: string; status?: 'pending' | 'approved' | 'rejected' | 'completed'; };
 export type PricingConfiguration = { pricingId: string; serviceAreaId?: string; vehicleClass?: VehiclePhysicalClass; capacity?: number; serviceType?: VehicleServiceType; factors?: Array<'distance' | 'time' | 'pickup_distance' | 'scheduled' | 'recurring' | 'waiting' | 'tolls' | 'parking' | 'multiple_stops' | 'cancellation'>; riderFare?: number; providerGross?: number; platformFee?: number; providerNet?: number; };
+export type FarePolicy = {
+  pricingPolicyId: string;
+  policyName?: string;
+  market?: string;
+  serviceAreaId?: string;
+  currency?: string;
+  serviceType?: VehicleServiceType;
+  vehicleClass?: VehiclePhysicalClass;
+  providerType?: ProviderType;
+  passengerCapacity?: number;
+  tripDistance?: number;
+  estimatedTripTime?: number;
+  pickupDistance?: number;
+  expectedTraffic?: 'low' | 'moderate' | 'high' | 'extreme';
+  operatingCostReference?: number;
+  fuelIndexReference?: string;
+  marketBenchmarkReference?: string;
+  waitingTime?: number;
+  multipleStops?: boolean;
+  scheduledRide?: boolean;
+  recurringRide?: boolean;
+  serviceContext?: 'school' | 'community' | 'personal' | 'fleet_contract';
+  tolls?: number;
+  parking?: number;
+  pricingVersion?: string;
+  effectiveFrom?: string;
+  effectiveUntil?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  notes?: string;
+};
+
+export type PricingPolicy = FarePolicy & {
+  businessRule?: 'fair_rider_fare_plus_worthwhile_driver_provider_earnings_plus_sustainable_polesafe_revenue';
+  riderAffordabilityPriority?: boolean;
+  providerEarningsPriority?: boolean;
+  sustainabilityPriority?: boolean;
+};
+
+export type PricingResult = {
+  riderFare?: number;
+  providerGross?: number;
+  platformFee?: number;
+  providerNet?: number;
+  currency?: string;
+  pricingPolicyId?: string;
+  pricingVersion?: string;
+  calculatedAt?: string;
+  validUntil?: string;
+  fuelIndexReference?: string;
+  marketBenchmarkReference?: string;
+  adjustmentReason?: string;
+  manualOverrideReference?: string;
+  riderBreakdown?: {
+    fare?: number;
+    surcharges?: number;
+    discount?: number;
+    total?: number;
+  };
+  providerBreakdown?: {
+    riderFare?: number;
+    poleSafeFee?: number;
+    gross?: number;
+    net?: number;
+  };
+  transparencyVersion?: string;
+};
+
+export type FuelType = 'petrol' | 'diesel' | 'hybrid' | 'electric' | 'energy_proxy';
+
+export type FuelMarketIndex = {
+  fuelIndexId: string;
+  country?: string;
+  market?: string;
+  serviceAreaId?: string;
+  region?: string;
+  fuelType: FuelType;
+  observedPricePerLitre?: number;
+  sourceReference?: string;
+  observedAt?: string;
+  effectiveAt?: string;
+  rollingAverage?: number;
+  confidence?: number;
+  status?: 'draft' | 'observed' | 'verified' | 'suspended' | 'expired';
+  version?: string;
+};
+
+export type FuelAdjustmentPolicy = {
+  policyId: string;
+  baselineFuelIndex?: string;
+  currentFuelIndex?: string;
+  changeThreshold?: number;
+  smoothingWindow?: number;
+  maxAdjustmentPerPeriod?: number;
+  upwardAdjustmentAllowed?: boolean;
+  downwardAdjustmentAllowed?: boolean;
+  effectiveAt?: string;
+  serviceAreaId?: string;
+  manualApprovalThreshold?: number;
+  emergencyFreeze?: boolean;
+};
+
+export type MarketBenchmark = {
+  benchmarkId: string;
+  market?: string;
+  serviceAreaId?: string;
+  vehicleCategory?: VehiclePhysicalClass | RideVehicleKind | ProviderType;
+  observationWindow?: string;
+  minimumObservedFare?: number;
+  medianObservedFare?: number;
+  maximumObservedFare?: number;
+  sampleConfidence?: number;
+  sourceReference?: string;
+  observedAt?: string;
+  version?: string;
+};
+
+export type FairFareCorridor = {
+  corridorId: string;
+  minimumSustainableFare?: number;
+  targetFare?: number;
+  maximumAcceptableFare?: number;
+  minimumProviderNet?: number;
+  riderAffordabilityGuardrail?: number;
+  marketCompetitivenessGuardrail?: number;
+  platformSustainabilityGuardrail?: number;
+};
+
+export type ProviderEarningsGuardrail = {
+  guardrailId: string;
+  providerType?: ProviderType;
+  vehicleClass?: VehiclePhysicalClass;
+  serviceType?: VehicleServiceType;
+  estimatedFuelCostReference?: number;
+  pickupDeadheadCostReference?: number;
+  estimatedOperatingCost?: number;
+  minimumProviderNet?: number;
+  minimumEarningsPerDistance?: number;
+  minimumEarningsPerTime?: number;
+};
+
+export type PickupDeadheadEconomics = {
+  pickupDistance?: number;
+  pickupEstimatedTime?: number;
+  pickupOperatingCost?: number;
+  deadheadAllowanceReference?: number;
+  maxReasonablePickupDistance?: number;
+};
+
+export type PlatformFeePolicy = {
+  policyId: string;
+  market?: string;
+  serviceType?: VehicleServiceType;
+  providerType?: ProviderType;
+  vehicleClass?: VehiclePhysicalClass;
+  feeMethod?: 'percentage' | 'flat' | 'hybrid' | 'tiered' | 'provider_specific' | 'fleet_contract' | 'negotiated_large_transport';
+  effectiveDate?: string;
+  pricingVersion?: string;
+};
+
+export type PromotionPolicy = {
+  promotionId: string;
+  baseFare?: number;
+  discount?: number;
+  riderTotal?: number;
+  subsidyFundingSource?: string;
+  providerEarningsProtected?: boolean;
+};
+
+export type SurgeGuardrail = {
+  guardrailId: string;
+  maximumMultiplier?: number;
+  cap?: number;
+  reason?: string;
+  serviceAreaId?: string;
+  timeWindow?: string;
+  schoolExceptionPolicy?: string;
+  emergencyExceptionPolicy?: string;
+};
+
+export type MarketPricingAdjustmentPolicy = {
+  policyId: string;
+  scheduledReviewFrequency?: string;
+  fuelTriggeredAdjustment?: boolean;
+  marketTriggeredAdjustment?: boolean;
+  costTriggeredAdjustment?: boolean;
+  maxPercentageChangePerCycle?: number;
+  minimumChangeThreshold?: number;
+  manualApprovalThreshold?: number;
+  emergencyFreeze?: boolean;
+  rollbackPriorVersionReference?: string;
+};
+
 export type CancellationEvent = { cancellationId: string; bookingId?: string; assignmentId?: string; journeyId?: string; status: CancellationStatus; reason?: string; actorAccountId?: string; noShowType?: 'passenger' | 'driver' | 'provider' | 'school'; source?: 'booking' | 'assignment' | 'journey'; };
 export type PickupVerification = { verificationId: string; journeyId: string; childId?: string; verifiedByAccountId?: string; status: PickupHandoffVerificationStatus; verifiedAt?: string; method?: string; };
 export type HandoffVerification = { verificationId: string; journeyId: string; childId?: string; verifiedByAccountId?: string; status: PickupHandoffVerificationStatus; verifiedAt?: string; method?: string; };
