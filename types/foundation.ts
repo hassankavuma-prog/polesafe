@@ -102,3 +102,39 @@ export type SafetyEvidence = { evidenceId: string; type: EvidenceType; accessPol
 export type Incident = { incidentId: string; bookingId?: string; journeyId?: string; paymentId?: string; communicationThreadId?: string; evidenceIds?: string[]; status?: ApprovalLifecycleStatus; severity?: string; };
 export type SupportCase = { caseId: string; incidentId?: string; bookingId?: string; journeyId?: string; paymentId?: string; communicationThreadId?: string; status?: ApprovalLifecycleStatus; };
 export type AuditEvent = { auditEventId: string; actorAccountId?: string; action: string; resourceType: string; resourceId?: string; createdAt: string; metadata?: Record<string, unknown>; };
+
+export type SessionScope = 'account' | 'organization' | 'household' | 'journey' | 'support';
+export type SessionClaim = {
+  accountId: string;
+  approvedCapabilities: CapabilityEntitlement[];
+  approvedExperiences: ApprovedExperience[];
+  activeExperience?: ActiveExperience;
+  organizationScopes?: OrganizationMembership[];
+  sessionVersion: number;
+  scope?: SessionScope;
+  role?: PoleSafeRole;
+};
+
+export type RoutePolicyKey = '/parent' | '/driver' | '/school' | '/ops' | '/dispatch' | '/compliance';
+export type RoutePolicy = {
+  path: RoutePolicyKey;
+  requiredCapabilities?: CapabilityEntitlement['capability'][];
+  requiredExperiences?: ApprovedExperienceType[];
+  requiredRoles?: PoleSafeRole[];
+  requiredOrganizationTypes?: OrganizationType[];
+  requireApprovedDriver?: boolean;
+  allowDemoFallback?: boolean;
+};
+
+export const ROUTE_POLICY_MAP: Record<RoutePolicyKey, RoutePolicy> = {
+  '/parent': { path: '/parent', requiredCapabilities: ['ride', 'book_for_self', 'book_for_child', 'manage_household'], requiredExperiences: ['personal_rides', 'my_family'], requiredRoles: ['rider', 'parent'], allowDemoFallback: true },
+  '/driver': { path: '/driver', requiredCapabilities: ['drive'], requiredExperiences: ['drive'], requiredRoles: ['driver'], requireApprovedDriver: true, allowDemoFallback: true },
+  '/school': { path: '/school', requiredCapabilities: ['manage_school_transport', 'verify_school_handoff'], requiredExperiences: ['school'], requiredRoles: ['school_staff', 'admin_ops'], requiredOrganizationTypes: ['school'], allowDemoFallback: true },
+  '/ops': { path: '/ops', requiredCapabilities: ['manage_ops'], requiredExperiences: ['admin_ops'], requiredRoles: ['admin_ops', 'system'], requiredOrganizationTypes: ['polesafe_internal'], allowDemoFallback: true },
+  '/dispatch': { path: '/dispatch', requiredCapabilities: ['manage_ops', 'manage_community_transport'], requiredExperiences: ['community'], requiredRoles: ['admin_ops', 'community_staff', 'system'], requiredOrganizationTypes: ['community', 'fleet_provider', 'polesafe_internal'], allowDemoFallback: true },
+  '/compliance': { path: '/compliance', requiredCapabilities: ['manage_ops'], requiredExperiences: ['admin_ops'], requiredRoles: ['admin_ops', 'system'], requiredOrganizationTypes: ['polesafe_internal', 'community', 'school'], allowDemoFallback: true },
+};
+
+export function getRoutePolicy(path: RoutePolicyKey): RoutePolicy {
+  return ROUTE_POLICY_MAP[path];
+}
