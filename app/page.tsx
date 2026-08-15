@@ -199,58 +199,136 @@ function BookingWidget() {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="grid gap-4 md:grid-cols-2">
-            <input className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500" placeholder="Your name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white"><Phone className="h-4 w-4 text-orange-300" /><input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="Phone number" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div>
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white"><MapPin className="h-4 w-4 text-sky-300" /><input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder={mode === 'school' ? 'Pickup point / home' : 'Pickup location'} value={form.pickup} onChange={(e) => setForm((f) => ({ ...f, pickup: e.target.value }))} /></div>
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white"><MapPin className="h-4 w-4 text-emerald-300" /><input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder={mode === 'school' ? 'School / dropoff destination' : 'Dropoff location'} value={form.dropoff} onChange={(e) => setForm((f) => ({ ...f, dropoff: e.target.value }))} /></div>
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white"><TimerReset className="h-4 w-4 text-violet-300" /><input className="w-full bg-transparent outline-none placeholder:text-slate-500" type="datetime-local" value={form.rideTime} onChange={(e) => setForm((f) => ({ ...f, rideTime: e.target.value }))} /></div>
-            <select className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none" value={form.vehicleType} onChange={(e) => setForm((f) => ({ ...f, vehicleType: e.target.value }))}>
-              <option value="car">Car</option>
-              <option value="boda">Boda Boda</option>
-              <option value="bus">Bus</option>
-              <option value="taxi">Taxi</option>
-            </select>
-            {mode === 'school' && <input className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 md:col-span-2" placeholder="Child name / school name" value={form.childName || form.schoolName} onChange={(e) => setForm((f) => ({ ...f, childName: e.target.value, schoolName: e.target.value }))} />}
-            <textarea className="min-h-[110px] rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 md:col-span-2" placeholder="Notes, landmarks, gate details, or safety instructions" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:p-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">Where are you going?</div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-slate-700">Pickup location</span>
+                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 transition focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-200">
+                  <MapPin className="h-4 w-4 shrink-0 text-sky-500" />
+                  <input className="w-full bg-transparent outline-none placeholder:text-slate-400" placeholder={mode === 'school' ? 'Home, stage, or pickup point' : 'Pickup location'} value={form.pickup} onChange={(e) => setForm((f) => ({ ...f, pickup: e.target.value }))} />
+                </div>
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-slate-700">Destination</span>
+                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 transition focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-200">
+                  <MapPin className="h-4 w-4 shrink-0 text-emerald-500" />
+                  <input className="w-full bg-transparent outline-none placeholder:text-slate-400" placeholder={mode === 'school' ? 'School or dropoff destination' : 'Dropoff location'} value={form.dropoff} onChange={(e) => setForm((f) => ({ ...f, dropoff: e.target.value }))} />
+                </div>
+              </label>
+            </div>
           </div>
 
           <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5">
             <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Booking preview</div>
             <div className="mt-3 text-lg font-semibold text-white">{mode === 'school' ? 'School ride request' : 'Community ride request'}</div>
             <p className="mt-2 text-sm text-slate-300">{routeHint}</p>
-            <div className="mt-4 space-y-2 text-sm text-slate-300">
-              <div>Pickup: {form.pickup || '—'}</div>
-              <div>Dropoff: {form.dropoff || '—'}</div>
-              <div>Time: {form.rideTime || '—'}</div>
-              <div>Vehicle: {form.vehicleType}</div>
-              <div>Estimated fare: {(farePreview || estimateFare).toLocaleString()} UGX</div>
+
+            <div className="mt-4 grid gap-4">
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-700 shadow-sm">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">When?</div>
+                <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-200">
+                  <TimerReset className="h-4 w-4 shrink-0 text-sky-500" />
+                  <input className="w-full bg-transparent outline-none placeholder:text-slate-400" type="datetime-local" value={form.rideTime} onChange={(e) => setForm((f) => ({ ...f, rideTime: e.target.value }))} />
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-700 shadow-sm">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Your details</div>
+                <div className="mt-2 grid gap-3 md:grid-cols-2">
+                  <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-200">
+                    <Users className="h-4 w-4 shrink-0 text-sky-500" />
+                    <input className="w-full bg-transparent outline-none placeholder:text-slate-400" placeholder="Your name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+                  </div>
+                  <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-200">
+                    <Phone className="h-4 w-4 shrink-0 text-sky-500" />
+                    <input className="w-full bg-transparent outline-none placeholder:text-slate-400" placeholder="Phone number" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-700 shadow-sm">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Ride</div>
+                <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-200">
+                  <select className="w-full bg-transparent text-sm outline-none" value={form.vehicleType} onChange={(e) => setForm((f) => ({ ...f, vehicleType: e.target.value }))}>
+                    <option value="car">Car</option>
+                    <option value="boda">Boda Boda</option>
+                    <option value="bus">Bus</option>
+                    <option value="taxi">Taxi</option>
+                  </select>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-700 shadow-sm">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Additional information</div>
+                <p className="mt-1 text-xs text-slate-500">Optional</p>
+                <textarea className="mt-2 min-h-[96px] w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200" placeholder="Optional landmarks, gate details, or safety instructions" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+              </section>
+
+              {mode === 'school' && (
+                <section className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-slate-700 shadow-sm">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-sky-800">
+                    <School className="h-4 w-4" /> School ride details
+                  </div>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <input className="rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200" placeholder="Child name / school name" value={form.childName || form.schoolName} onChange={(e) => setForm((f) => ({ ...f, childName: e.target.value, schoolName: e.target.value }))} />
+                    <div className="rounded-xl border border-sky-200 bg-white px-4 py-3 text-xs leading-5 text-sky-800">Verified handoffs, school coordination, and child safety details stay in this section.</div>
+                  </div>
+                </section>
+              )}
             </div>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button onClick={previewFare} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10">Preview fare</button>
-              <button onClick={submitBooking} disabled={status === 'submitting'} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_0_35px_rgba(249,115,22,0.20)] transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-70">
-                {status === 'submitting' ? 'Submitting...' : 'Book ride now'}
+
+            <section className="mt-4 rounded-[1.75rem] border border-sky-200 bg-sky-50 p-5 text-slate-700 shadow-sm sm:p-6">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Estimated fare</div>
+              <div className="mt-2 flex items-end gap-3">
+                <div className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">{(farePreview || estimateFare).toLocaleString()} UGX</div>
+                <div className="pb-1 text-xs font-medium uppercase tracking-[0.24em] text-sky-700">Estimate</div>
+              </div>
+              <p className="mt-2 max-w-md text-sm text-slate-600">This is an estimate only. Final fare and payment status are confirmed after booking and provider processing.</p>
+              <div className="mt-4 grid gap-2 rounded-2xl border border-sky-100 bg-white px-4 py-3 text-sm text-slate-600 sm:grid-cols-2">
+                <div className="flex items-center justify-between gap-3"><span>Pickup</span><span className="font-medium text-slate-900">{form.pickup || '—'}</span></div>
+                <div className="flex items-center justify-between gap-3"><span>Dropoff</span><span className="font-medium text-slate-900">{form.dropoff || '—'}</span></div>
+              </div>
+            </section>
+            <div className="mt-5">
+              <button onClick={submitBooking} disabled={status === 'submitting'} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 py-4 text-base font-semibold text-white shadow-[0_12px_30px_rgba(2,132,199,0.25)] transition hover:bg-sky-500 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-not-allowed disabled:opacity-70">
+                {status === 'submitting' ? 'Submitting...' : 'Book Ride'}
               </button>
             </div>
-            {result && <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${status === 'done' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200' : 'border-red-500/20 bg-red-500/10 text-red-200'}`}>{result}</div>}
+            {result && (
+              <div className={`mt-4 rounded-2xl border px-4 py-4 text-sm ${status === 'done' ? 'border-emerald-500/20 bg-emerald-50 text-emerald-800' : 'border-amber-500/20 bg-amber-50 text-amber-800'}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 h-2.5 w-2.5 rounded-full ${status === 'done' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  <div className="min-w-0">
+                    <div className="font-semibold text-slate-900">{status === 'done' ? 'Booking confirmed' : 'Booking update'}</div>
+                    <div className="mt-1 leading-6 text-slate-700">{result}</div>
+                  </div>
+                </div>
+              </div>
+            )}
             {bookingMeta.rideId && status === 'done' && (
-              <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-xs text-slate-300">
-                <div>Booking ID: {bookingMeta.rideId}</div>
-                {bookingMeta.flwRef && <div>Payment Ref: {bookingMeta.flwRef}</div>}
-                <div className="mt-2">
-                  <Link href="/ride/tracker" className="text-sky-300 underline">Open live tracker</Link>
+              <div className="mt-3 rounded-2xl border border-emerald-200 bg-white px-4 py-4 text-sm text-slate-700 shadow-sm">
+                <div className="font-semibold text-emerald-800">Track Ride</div>
+                <div className="mt-2 space-y-1 text-slate-600">
+                  <div>Booking ID: <span className="font-medium text-slate-900">{bookingMeta.rideId}</span></div>
+                  {bookingMeta.flwRef && <div>Payment Ref: <span className="font-medium text-slate-900">{bookingMeta.flwRef}</span></div>}
+                  <div className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">Payment support: MTN MoMo / Airtel Money where available</div>
+                </div>
+                <div className="mt-3">
+                  <Link href="/ride/tracker" className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500">Open live tracker</Link>
                 </div>
               </div>
             )}
             {status === 'done' && (
-              <div className="mt-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200">
+              <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                 <div>Next step: keep this page open to jump into tracking, or use the tracker link after confirmation.</div>
-                <div className="mt-1">Payment support: MTN MoMo / Airtel Money where available.</div>
               </div>
             )}
             {status === 'done' && mode === 'school' && (
-              <div className="mt-3 rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-xs text-sky-200">
+              <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
                 School rides will follow arrival-only safe-word reveal, gate checks, and dispatcher approval rules.
               </div>
             )}
