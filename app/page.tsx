@@ -80,6 +80,147 @@ function HamnaSection() {
   );
 }
 
+function CommunityUpdatesSection() {
+  const categories = [
+    {
+      label: 'Coverage',
+      title: 'Coverage update',
+      text: 'Placeholder/demo card for a newly covered area or service expansion.',
+    },
+    {
+      label: 'Schools',
+      title: 'School partnership',
+      text: 'Placeholder/demo card for a new school collaboration or onboarding milestone.',
+    },
+    {
+      label: 'Safety',
+      title: 'Safety improvement',
+      text: 'Placeholder/demo card for a process, verification, or response improvement.',
+    },
+    {
+      label: 'Community',
+      title: 'Community announcement',
+      text: 'Placeholder/demo card for a driver opportunity, product update, or public note.',
+    },
+  ];
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+        <div className="grid gap-0 lg:grid-cols-[0.88fr_1.12fr]">
+          <div className="bg-slate-950 px-5 py-6 text-white sm:px-6 sm:py-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">Community</div>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">PoleSafe Community &amp; Updates</h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">A transparent space for service expansion, school partnerships, coverage growth, safety improvements, driver opportunities, and community announcements.</p>
+            <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Preview / demo</div>
+              <p className="mt-2 text-sm leading-6 text-slate-300">No fabricated news or live announcements are shown here. These cards are clearly labeled placeholders until a real update feed is connected.</p>
+            </div>
+            <div className="mt-6">
+              <Link href="#community-updates" className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(2,132,199,0.25)] transition hover:bg-sky-500">
+                View Community Updates
+              </Link>
+            </div>
+          </div>
+          <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8">
+            <div id="community-updates" className="grid gap-3 sm:grid-cols-2">
+              {categories.map((item) => (
+                <article key={item.title} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">{item.label}</div>
+                  <h3 className="mt-2 text-base font-semibold text-slate-900">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{item.text}</p>
+                </article>
+              ))}
+            </div>
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">Preview content only. No dates, metrics, or live announcements are invented here.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function GlobalFooter() {
+  const rideLinks = [
+    { label: 'Book a Ride', href: '/#booking' },
+    { label: 'Track Ride', href: '/ride/tracker' },
+    { label: 'Community Rides', href: '/#community-rides' },
+  ];
+  const safetyLinks = [
+    { label: 'How PoleSafe Works', href: '/#trust-safety' },
+    { label: 'School Safety', href: '/schools' },
+    { label: 'Emergency / Safety', href: '/ops/safety' },
+  ];
+  const partnerLinks = [
+    { label: 'Schools', href: '/schools' },
+    { label: 'Drivers', href: '/driver' },
+    { label: 'Fleets', href: '/ops' },
+  ];
+  const companyLinks = [
+    { label: 'About', href: '/#hero' },
+    { label: 'Community', href: '#community-updates' },
+    { label: 'Updates', href: '#community-updates' },
+    { label: 'Hamna', href: '#hamna' },
+  ];
+  const supportLinks = [
+    { label: 'Help', href: '/#support' },
+    { label: 'Contact', href: '/#support' },
+  ];
+
+  return (
+    <footer id="footer" className="border-t border-white/10 bg-slate-950 text-white">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[1.1fr_1.9fr]">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500/10 ring-1 ring-sky-400/20">
+                <ShieldAlert className="h-5 w-5 text-sky-300" />
+              </div>
+              <div>
+                <div className="text-lg font-semibold tracking-tight">PoleSafe</div>
+                <div className="text-xs text-slate-400">Uganda-first mobility safety OS</div>
+              </div>
+            </div>
+            <p className="mt-4 max-w-sm text-sm leading-6 text-slate-300">Built for Uganda today, with room to expand to more communities and markets as the platform grows.</p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-5">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Ride</div>
+              <div className="mt-3 space-y-2 text-sm">{rideLinks.map((item) => <div key={item.label}><Link href={item.href} className="text-slate-300 transition hover:text-white">{item.label}</Link></div>)}</div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Safety</div>
+              <div className="mt-3 space-y-2 text-sm">{safetyLinks.map((item) => <div key={item.label}><Link href={item.href} className="text-slate-300 transition hover:text-white">{item.label}</Link></div>)}</div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Partners</div>
+              <div className="mt-3 space-y-2 text-sm">{partnerLinks.map((item) => <div key={item.label}><Link href={item.href} className="text-slate-300 transition hover:text-white">{item.label}</Link></div>)}</div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Company</div>
+              <div className="mt-3 space-y-2 text-sm">{companyLinks.map((item) => <div key={item.label}><Link href={item.href} className="text-slate-300 transition hover:text-white">{item.label}</Link></div>)}</div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Support</div>
+              <div className="mt-3 space-y-2 text-sm">{supportLinks.map((item) => <div key={item.label}><Link href={item.href} className="text-slate-300 transition hover:text-white">{item.label}</Link></div>)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} PoleSafe. All rights reserved.</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/ops/safety" className="text-slate-300 transition hover:text-white">Service status</Link>
+            <span className="text-slate-600">•</span>
+            <span>Safety and mobility support for Uganda and beyond.</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 function FloatingSafetyBadge3D() {
   return (
     <div style={{position:'relative',height:'clamp(280px,32vw,380px)',width:'100%',overflow:'hidden',borderRadius:'2rem',border:'1px solid rgba(255,255,255,0.10)',background:'radial-gradient(circle at top, rgba(249,115,22,0.16), transparent 55%), linear-gradient(180deg, rgba(2,6,23,0.92), rgba(15,23,42,0.92))',boxShadow:'0 18px 60px rgba(2,6,23,0.55)'}}><div style={{position:'absolute',inset:0,background:'radial-gradient(circle at 50% 50%, rgba(56,189,248,0.16), transparent 58%)'}} /><div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'1.5rem',textAlign:'center',color:'#e2e8f0'}}><div><div style={{display:'inline-flex',alignItems:'center',gap:'0.5rem',border:'1px solid rgba(56,189,248,0.2)',background:'rgba(56,189,248,0.10)',color:'#7dd3fc',borderRadius:'9999px',padding:'0.35rem 0.8rem',fontSize:'12px'}}>Netlify-safe preview</div><div style={{marginTop:'0.9rem',fontSize:'1.45rem',fontWeight:700,color:'#fff'}}>PoleSafe 3D safety badge</div><div style={{marginTop:'0.5rem',fontSize:'0.95rem',lineHeight:1.5,color:'#cbd5e1',maxWidth:'28rem'}}>This fallback renders even if the Three.js bundle fails or Tailwind utilities are delayed.</div></div></div></div>
@@ -1026,9 +1167,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-white/5 py-6 text-center text-xs text-slate-500">
-        PoleSafe • Uganda-first mobility safety and operations
-      </footer>
+      <GlobalFooter />
     </div>
   );
 }
