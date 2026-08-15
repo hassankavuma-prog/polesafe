@@ -426,7 +426,7 @@ function SchoolsSection() {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3">
-              <Link href="/schools" className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(2,132,199,0.25)] transition hover:bg-sky-500">For Schools</Link>
+              <Link href="/school" className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(2,132,199,0.25)] transition hover:bg-sky-500">For Schools</Link>
               <Link href="#school-safety" className="inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100">See School Safety</Link>
             </div>
           </div>
@@ -1053,66 +1053,87 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-        <section className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-16">
+        <section className="mx-auto grid max-w-7xl gap-10 px-6 py-14 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:px-8 lg:py-18">
           <div className="max-w-3xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-orange-300 shadow-sm shadow-black/20 backdrop-blur-xl">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(74,222,128,0.7)]" />
-              Uganda-first mobility safety OS for school rides and community rides
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200 shadow-sm shadow-sky-950/20 backdrop-blur-xl">
+              <span className="h-2 w-2 rounded-full bg-sky-300 shadow-[0_0_18px_rgba(56,189,248,0.55)]" />
+              Safer journeys for families, schools, and communities
             </div>
 
             <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-6xl">
-              Verified rides, glowing operations, and school safety at command depth.
+              Safer journeys. Stronger communities.
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-              PoleSafe combines child verification, school admin dashboards, gate geo-fencing, dismissal bells, transport tracking, and fallback communications for both school rides and community rides in Uganda.
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl sm:leading-9">
+              PoleSafe connects families, schools, communities and trusted drivers through safer, trackable transportation built around verification, visibility and accountability.
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <Link
-                href="/ops/safety"
-                className="inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_0_40px_rgba(249,115,22,0.22)] transition hover:bg-orange-400"
+                href="#booking"
+                className="inline-flex items-center gap-2 rounded-2xl bg-sky-500 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(14,165,233,0.28)] transition hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
-                Launch Dispatcher Ops <ArrowRight className="h-4 w-4" />
+                Book a Ride <ArrowRight className="h-4 w-4" />
               </Link>
-              <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm text-slate-300 backdrop-blur-xl">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" /> Masked safety data and verified handoffs
-              </div>
+              <Link
+                href="/ride/tracker"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/5 px-5 py-3.5 text-sm font-semibold text-white/90 backdrop-blur-xl transition hover:border-sky-300/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              >
+                Track Ride
+              </Link>
+              <Link
+                href="/schools"
+                className="inline-flex items-center gap-2 rounded-2xl border border-sky-300/20 bg-sky-500/10 px-5 py-3.5 text-sm font-semibold text-sky-100 backdrop-blur-xl transition hover:bg-sky-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              >
+                School Transport
+              </Link>
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-3 text-sm text-slate-300">
+              {['Verified drivers', 'Journey tracking', 'Safe handoff'].map((item) => (
+                <div key={item} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-xl">
+                  <CheckCircle2 className="h-4 w-4 text-sky-300" />
+                  <span>{item}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="space-y-4 lg:pt-4">
-            <div className="glass-strong rounded-[2rem] p-5 shadow-2xl shadow-black/30 ring-accent">
-              <div className="rounded-[1.5rem] border border-white/8 bg-gradient-to-br from-slate-900/90 to-slate-950/95 p-5">
+          <div className="space-y-4 lg:pt-2">
+            <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,15,33,0.96),rgba(10,18,38,0.92))] p-5 shadow-[0_24px_80px_rgba(2,6,23,0.58)] ring-1 ring-white/5 sm:p-6">
+              <div className="rounded-[1.5rem] border border-sky-300/10 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.16),_transparent_50%),linear-gradient(180deg,rgba(15,23,42,0.92),rgba(2,6,23,0.96))] p-5 sm:p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Ops pulse</p>
-                    <h2 className="mt-2 text-2xl font-semibold text-white">Command-ready from day one</h2>
+                    <p className="text-xs uppercase tracking-[0.32em] text-sky-200/70">PoleSafe mobility</p>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Verified driver. Clear journey. Safe handoff.</h2>
                   </div>
-                  <div className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300 ring-1 ring-emerald-400/20 shadow-[0_0_22px_rgba(74,222,128,0.15)]">
-                    Live
+                  <div className="rounded-full border border-sky-300/15 bg-sky-500/10 px-3 py-1 text-xs font-medium text-sky-200 shadow-[0_0_22px_rgba(56,189,248,0.12)]">
+                    Live visibility
                   </div>
                 </div>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  {liveMetrics.map((metric) => (
-                    <div key={metric.label} className={`rounded-2xl border border-white/8 bg-gradient-to-br ${metric.tone} p-4 shadow-[0_20px_40px_rgba(2,6,23,0.32)]`}>
-                      <div className="text-xs text-slate-300">{metric.label}</div>
-                      <div className={`mt-2 text-2xl font-semibold ${metric.accent}`}>{metric.value}</div>
-                      <div className="mt-1 text-xs text-slate-400">{metric.delta}</div>
+                  {[
+                    { label: 'Verified driver', value: 'Confirmed' },
+                    { label: 'Journey tracking', value: 'Visible' },
+                    { label: 'Safe handoff', value: 'Protected' },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-2xl border border-white/8 bg-white/5 p-4 shadow-[0_16px_36px_rgba(2,6,23,0.24)]">
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{item.label}</div>
+                      <div className="mt-2 text-lg font-semibold text-sky-200">{item.value}</div>
                     </div>
                   ))}
                 </div>
 
                 <div className="mt-6 space-y-3">
                   {[
-                    'Arrival-only safe-word reveal for school rides',
-                    'School dashboards for admin teams',
-                    'Driver compliance vault, route review, and document screening',
-                    'Emergency alerts with SMS / USSD fallback for every journey',
-                  ].map((item, index) => (
+                    'School and community trips in one trusted platform',
+                    'Trackable journeys from pickup to drop-off',
+                    'Simple visibility for parents and school teams',
+                    'Safety-first ride support built around accountability',
+                  ].map((item) => (
                     <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-full ring-1 ${index === 0 ? 'bg-orange-500/10 text-orange-300 ring-orange-500/20' : index === 1 ? 'bg-sky-500/10 text-sky-300 ring-sky-500/20' : index === 2 ? 'bg-emerald-500/10 text-emerald-300 ring-emerald-500/20' : 'bg-violet-500/10 text-violet-300 ring-violet-500/20'}`}>
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-sky-300/20 bg-sky-500/10 text-sky-200">
                         <CheckCircle2 className="h-4 w-4" />
                       </div>
                       <span>{item}</span>
