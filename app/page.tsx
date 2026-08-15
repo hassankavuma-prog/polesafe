@@ -60,6 +60,93 @@ const liveMetrics = [
 
 type RideMode = 'community' | 'school';
 
+function DriversSection() {
+  const benefits = [
+    'Community ride opportunities',
+    'School transport opportunities',
+    'Clear trip information',
+    'Transparent earnings',
+    'Verified rider / booking context',
+    'Safety support',
+    'Compliance and trust',
+    'Future fleet opportunities',
+  ];
+
+  const tripPreview = [
+    { label: 'Rider / Parent', value: 'Preview name area', tone: 'text-slate-700' },
+    { label: 'Pickup', value: 'Demonstration pickup point', tone: 'text-slate-700' },
+    { label: 'Destination', value: 'Demonstration destination', tone: 'text-slate-700' },
+    { label: 'Trip status', value: 'Verified booking context', tone: 'text-emerald-700' },
+    { label: 'Estimated earnings', value: 'Preview earnings', tone: 'text-sky-700' },
+    { label: 'Vehicle / ride context', value: 'Community or school ride preview', tone: 'text-slate-700' },
+  ] as const;
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+        <div className="grid gap-0 lg:grid-cols-[1.02fr_0.98fr]">
+          <div className="bg-slate-950 px-5 py-6 text-white sm:px-6 sm:py-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">Drivers</div>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">Drive with PoleSafe</h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">PoleSafe positions drivers as trusted members of the network — serving community riders, families, and school journeys with clearer trip context and a stronger safety story.</p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/driver" className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(2,132,199,0.25)] transition hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
+                Drive with PoleSafe
+              </Link>
+              <Link href="/driver" className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
+                Driver Requirements
+              </Link>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {benefits.map((item) => (
+                <div key={item} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">{item}</div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white px-5 py-6 sm:px-6 sm:py-8">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Trip preview</div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900">Driver trip context</div>
+                </div>
+                <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Verified booking</div>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {tripPreview.map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</div>
+                    <div className={`mt-1 text-sm font-semibold ${item.tone}`}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                {['Call', 'Message', 'Safety'].map((item) => (
+                  <div key={item} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700">{item}</div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                SOS / Safety is a separate emergency concept preview, distinct from normal communication tools.
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Why drivers choose PoleSafe</div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Clear trip information, transparent earnings, and trusted ride context help drivers serve everyday community trips, school transport, and future fleet opportunities with more confidence.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function SchoolsSection() {
   const journey = [
     { title: 'Parent', note: 'Book request, contact details, and visibility start here.' },
@@ -823,6 +910,8 @@ export default function LandingPage() {
         <CoverageNetworkWidget />
 
         <SchoolsSection />
+
+        <DriversSection />
 
         <section className="mx-auto max-w-7xl px-6 pb-10 lg:px-8">
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
