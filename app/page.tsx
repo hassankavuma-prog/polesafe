@@ -580,6 +580,73 @@ export default function LandingPage() {
       <main className="relative">
         <BookingWidget />
         <TrustAndLiveSection />
+        <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="overflow-hidden rounded-[2rem] border border-sky-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+            <div className="grid gap-0 lg:grid-cols-[1.02fr_0.98fr]">
+              <div className="bg-slate-950 px-5 py-6 text-white sm:px-6 sm:py-8">
+                <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">Community Rides</div>
+                <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">Community Rides</h2>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">PoleSafe also serves everyday riders, not only school transportation.</p>
+                <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300">
+                  Use PoleSafe for commuting, appointments, airport rides, shopping, family travel, and other everyday transportation — with verified drivers, estimated fare visibility, journey tracking, and PoleSafe safety protection.
+                </p>
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link href="#booking" className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(2,132,199,0.25)] transition hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
+                    Book a Community Ride
+                  </Link>
+                  <Link href="#trust-safety" className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
+                    Learn How PoleSafe Keeps You Safe
+                  </Link>
+                </div>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  {[
+                    'Everyday transportation',
+                    'Verified drivers',
+                    'Estimated fare',
+                    'Familiar payment options',
+                    'Journey tracking',
+                    'PoleSafe safety protection',
+                  ].map((item) => (
+                    <div key={item} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">{item}</div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white px-5 py-6 sm:px-6 sm:py-8">
+                <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Ride preview</div>
+                      <div className="mt-1 text-lg font-semibold text-slate-900">Pickup to destination</div>
+                    </div>
+                    <div className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">Plan, not live</div>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    {['Pickup', 'Driver assigned', 'Journey', 'Destination'].map((step, index) => (
+                      <div key={step} className="flex items-center gap-3">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${index < 3 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-sky-200 bg-sky-50 text-sky-700'}`}>{index + 1}</div>
+                        <div className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800">{step}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Future rider tools</div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-700">
+                      {['Call', 'Message', 'Safety'].map((item) => (
+                        <span key={item} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">{item}</span>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs leading-5 text-slate-500">These are visual product-preview elements for the planned rider experience.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
         <section className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-16">
           <div className="max-w-3xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-orange-300 shadow-sm shadow-black/20 backdrop-blur-xl">
