@@ -60,6 +60,108 @@ const liveMetrics = [
 
 type RideMode = 'community' | 'school';
 
+function SchoolsSection() {
+  const journey = [
+    { title: 'Parent', note: 'Book request, contact details, and visibility start here.' },
+    { title: 'Verified Driver', note: 'School-compliant driver assignment and monitoring.' },
+    { title: 'Child Pickup', note: 'Pickup verification before the journey moves on.' },
+    { title: 'Live Journey', note: 'Trip is monitored in transit.' },
+    { title: 'School / Teacher', note: 'School-side receiving point and operations awareness.' },
+    { title: 'Verified Handoff', note: 'Student handoff confirmed with school rules.' },
+    { title: 'Parent Confirmation', note: 'Confirmation reaches the parent after handoff.' },
+  ] as const;
+
+  const opsPreview = [
+    { label: "Today's school journeys", value: 'Demo preview', tone: 'text-sky-700', bg: 'bg-sky-50', border: 'border-sky-200' },
+    { label: 'Verified drivers', value: 'Verified', tone: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+    { label: 'Students safely handed over', value: 'Handoff complete', tone: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+    { label: 'Transport status', value: 'Monitoring', tone: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
+  ] as const;
+
+  const concepts = [
+    'Student transportation visibility',
+    'Verified drivers',
+    'Pickup verification',
+    'Teacher / school handoff verification',
+    'Parent confirmation',
+    'Attendance visibility',
+    'Driver compliance',
+    'School communications / broadcasts',
+    'Safety operations',
+  ];
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:p-6">
+        <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">Schools</div>
+            <h2 className="mt-3 text-2xl font-semibold text-slate-900 sm:text-3xl">Built for schools that put safety first</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">PoleSafe gives schools, teachers, administrators, and parents a complete transport safety ecosystem — centered on visibility, verification, attendance, compliance, and communication.</p>
+
+            <div className="mt-5 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">School journey flow</div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {journey.map((step, index) => (
+                  <div key={step.title} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className={index < 3 ? 'flex h-10 w-10 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700' : index === 3 || index === 4 ? 'flex h-10 w-10 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sky-700' : 'flex h-10 w-10 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700'}>
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-900">{step.title}</div>
+                        <div className="mt-1 text-xs leading-5 text-slate-500">{step.note}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                Verified states are shown as preview labels. No live statistics are claimed here.
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link href="/schools" className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(2,132,199,0.25)] transition hover:bg-sky-500">For Schools</Link>
+              <Link href="#school-safety" className="inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100">See School Safety</Link>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-slate-950 p-5 text-white shadow-[0_18px_50px_rgba(2,6,23,0.35)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Operations preview</div>
+                  <div className="mt-2 text-lg font-semibold">School transport snapshot</div>
+                </div>
+                <div className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">Demo preview</div>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {opsPreview.map((item) => (
+                  <div key={item.label} className={`rounded-2xl border ${item.border} ${item.bg} p-4`}>
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</div>
+                    <div className={`mt-2 text-sm font-semibold ${item.tone}`}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-sm leading-6 text-slate-300">A small school-operations preview showing what the school team may monitor across the day, without implying live production statistics.</p>
+            </div>
+
+            <div id="school-safety" className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">School safety capabilities</div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {concepts.map((item) => (
+                  <span key={item} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">{item}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Hero3DBlock() {
   return (
     <section style={{maxWidth:'80rem',margin:'0 auto',padding:'1rem 1rem 0'}}>
@@ -719,6 +821,8 @@ export default function LandingPage() {
         </section>
 
         <CoverageNetworkWidget />
+
+        <SchoolsSection />
 
         <section className="mx-auto max-w-7xl px-6 pb-10 lg:px-8">
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
