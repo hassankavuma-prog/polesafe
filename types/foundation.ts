@@ -1,17 +1,7 @@
 export type IdentityStatus = 'pending' | 'active' | 'restricted' | 'suspended' | 'deleted';
 export type PoleSafeRole = 'rider' | 'parent' | 'driver' | 'school_staff' | 'community_staff' | 'admin_ops' | 'system';
 export type CapabilityStatus = 'pending' | 'approved' | 'rejected' | 'suspended' | 'revoked' | 'expired';
-export type PermissionKey =
-  | 'booking:create'
-  | 'booking:view'
-  | 'journey:view'
-  | 'child_journey:view'
-  | 'child_handoff:verify'
-  | 'driver:accept'
-  | 'vehicle:assign'
-  | 'school:manage_transport'
-  | 'community:manage_transport'
-  | 'incident:review';
+export type PermissionKey = 'booking:create' | 'booking:view' | 'journey:view' | 'child_journey:view' | 'child_handoff:verify' | 'driver:accept' | 'vehicle:assign' | 'school:manage_transport' | 'community:manage_transport' | 'incident:review';
 export type ApprovedExperienceType = 'personal_rides' | 'my_family' | 'drive' | 'school' | 'community' | 'admin_ops';
 export type ActiveExperienceState = 'selected' | 'blocked' | 'expired';
 export type ApprovalLifecycleStatus = 'pending' | 'approved' | 'rejected' | 'suspended' | 'revoked' | 'expired';
@@ -29,7 +19,6 @@ export type VehicleOwnershipType = 'individual' | 'driver' | 'fleet_company' | '
 export type VehicleInsuranceStatus = ApprovalLifecycleStatus;
 export type VehicleInspectionStatus = ApprovalLifecycleStatus;
 export type VehicleActiveStatus = 'active' | 'inactive' | 'maintenance' | 'suspended';
-
 export type AssignmentStatus = 'pending' | 'accepted' | 'declined' | 'expired' | 'withdrawn' | 'cancelled' | 'completed';
 export type DriverAvailabilityStatus = 'offline' | 'available' | 'offer_received' | 'accepted' | 'en_route_to_pickup' | 'arrived' | 'passenger_onboard' | 'in_trip' | 'handoff_pending' | 'completed';
 export type QuoteStatus = 'requested' | 'quoted' | 'countered' | 'accepted' | 'declined' | 'expired' | 'cancelled';
@@ -47,7 +36,6 @@ export type HamnaActionRisk = 'informational' | 'low' | 'confirmation_required' 
 export type EvidenceType = 'audio' | 'video' | 'image' | 'document' | 'telemetry';
 export type EvidenceAccessPolicy = 'restricted' | 'ride_scoped' | 'incident_only' | 'legal_hold';
 export type EvidenceRetentionPolicy = 'ephemeral' | 'short_term' | 'medium_term' | 'long_term' | 'configurable';
-
 export type RideConfidenceState = 'confirmed' | 'in_transit' | 'delayed' | 'arrived';
 export type RideVehicleKind = 'car' | 'boda_boda';
 export type RideRequestStatus = 'draft' | 'submitted' | 'searching' | 'quote_required' | 'quoted' | 'matched' | 'cancelled' | 'expired' | 'rejected';
@@ -60,14 +48,12 @@ export type PassengerRequirements = { totalPassengerCount: number; adultCount?: 
 export type RideStop = { id?: string; order: number; type: RideStopType; location: string; contactReference?: string; plannedArrivalAt?: string; notes?: string; status?: 'planned' | 'confirmed' | 'arrived' | 'skipped' | 'cancelled'; };
 export type RideTiming = { type: RideTimingType; tripPattern: RideTripPattern; requestedPickupAt?: string; pickupWindowStart?: string; pickupWindowEnd?: string; timezone?: string; returnPickupAt?: string; scheduleId?: string; recurrenceReference?: string; };
 export type RideLegLink = { outboundRideRequestId?: string; returnRideRequestId?: string; linkedRideRequestIds?: string[]; relation?: 'outbound' | 'return' | 'paired' | 'multi_leg'; };
-
 export type TransportPlanCadence = 'one_day' | 'weekly' | 'multi_week' | 'monthly' | 'full_term' | 'custom_range';
 export type TransportPlanFrequency = 'morning_only' | 'return_only' | 'morning_and_return';
 export type TransportPlanPauseState = 'active' | 'paused';
 export type TransportPlanExceptionType = 'student_exception' | 'guardian_self_pickup' | 'absence' | 'route_change' | 'pickup_change' | 'dropoff_change' | 'temporary_suspension' | 'special_day_override' | 'holiday' | 'exam_schedule' | 'emergency_closure';
 export type TransportPlanOccurrenceStatus = 'planned' | 'skipped' | 'changed' | 'suspended' | 'completed' | 'pending';
 export type TransportScheduleRecurrence = { cadence: TransportPlanCadence; startDate?: string; endDate?: string; termReference?: string; selectedWeekdays?: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'>; schoolHolidayExceptions?: string[]; examScheduleExceptions?: string[]; specialDayExceptions?: string[]; };
-
 export type ScheduleTargetType = 'school' | 'campus' | 'class' | 'student' | 'student_group' | 'route' | 'vehicle' | 'day_of_week' | 'date' | 'school_term' | 'date_range' | 'calendar_day';
 export type ScheduleEventType = 'morning_pickup' | 'school_arrival' | 'afternoon_dismissal' | 'return_pickup' | 'after_school_activity' | 'exam_pickup' | 'special_event' | 'boarding_term_transport' | 'custom_transport_event';
 export type ScheduleChangeType = 'create' | 'update' | 'delete' | 'activate' | 'deactivate' | 'override' | 'exception' | 'acknowledgement';
@@ -106,13 +92,17 @@ export type FleetProvider = { providerId: string; organizationId?: string; provi
 export type ServiceAreaType = 'city' | 'district' | 'region' | 'market' | 'country';
 export type ServiceArea = { id: string; name: string; type: ServiceAreaType; country?: string; region?: string; district?: string; activeStatus?: ApprovalLifecycleStatus; };
 export type RideRequest = { id: string; requestedByAccountId: string; householdId?: string; organizationId?: string; serviceType: VehicleServiceType; passengerRequirements: PassengerRequirements; pickup: RideStop; destination: RideStop; stops?: RideStop[]; timing: RideTiming; requestedVehicleClass?: VehiclePhysicalClass; requiredCapacity: number; notes?: string; bookingForSomeoneElse?: boolean; payerAccountId?: string; status: RideRequestStatus; createdAt: string; expiresAt?: string; serviceAreaId?: string; legLink?: RideLegLink; };
-export type Passenger = { passengerId: string; accountId?: string; childId?: string; displayName: string; passengerType: 'account' | 'child' | 'guest'; seatRequirement?: number; accessibilityRequirementRef?: string; };
 export type Booking = { bookingId: string; rideRequestId?: string; status: ApprovalLifecycleStatus; passengerCount?: number; reservedSeats?: number; availableSeats?: number; providerId?: string; vehicleId?: string; driverId?: string; };
 export type Assignment = { assignmentId: string; bookingId: string; driverId?: string; vehicleId?: string; providerId?: string; status: AssignmentStatus; offeredAt?: string; respondedAt?: string; };
-export type Journey = { journeyId: string; bookingId?: string; assignmentId?: string; status?: 'planned' | 'boarding' | 'in_progress' | 'arrived' | 'completed' | 'cancelled' | 'incident'; startAt?: string; endAt?: string; currentLocationLabel?: string; };
-export type JourneyCheckpoint = { checkpointId: string; journeyId: string; label: string; type: 'pickup' | 'route_point' | 'school_gate' | 'dropoff' | 'stop' | 'sos'; reachedAt?: string; confidence?: RideConfidenceState; };
-export type TransportQuoteRequest = { quoteRequestId: string; rideRequestId: string; requestedByAccountId: string; passengerCount?: number; requiredCapacity?: number; serviceType?: VehicleServiceType; serviceAreaId?: string; status?: QuoteStatus; };
-export type TransportQuote = { quoteId: string; quoteRequestId: string; providerId: string; status: QuoteStatus; quotedFare?: number; providerGross?: number; platformFee?: number; providerNet?: number; expiresAt?: string; counterofferOfQuoteId?: string; };
+export type JourneyLifecycleStatus = 'scheduled' | 'searching' | 'driver_assigned' | 'driver_en_route' | 'driver_arrived' | 'pickup_verification' | 'passenger_onboard' | 'in_trip' | 'delayed' | 'handoff_pending' | 'completed' | 'cancelled' | 'interrupted' | 'emergency';
+export type JourneyCheckpointType = 'assignment_confirmed' | 'driver_departed' | 'driver_arrived_pickup' | 'pickup_verified' | 'passenger_boarded' | 'route_checkpoint' | 'school_gate_arrival' | 'handoff_pending' | 'handoff_verified' | 'trip_completed';
+export type ChildJourneyAccessScope = 'active_journey_only' | 'active_plus_recent_history' | 'emergency_only' | 'explicitly_shared' | 'hidden';
+export type JourneyVisibilityGrant = { id?: string; journeyId: string; childId: string; guardianAccountId: string; scope: ChildJourneyAccessScope; grantedByAccountId?: string; grantedAt?: string; revokedAt?: string; source?: 'guardian_membership' | 'explicit_permission' | 'ride_relationship' | 'school_authorization'; };
+export type Journey = { journeyId: string; bookingId?: string; assignmentId?: string; driverId?: string; vehicleId?: string; providerId?: string; status?: JourneyLifecycleStatus; startedAt?: string; driverArrivedAt?: string; pickupVerificationId?: string; passengerOnboardAt?: string; handoffVerificationId?: string; handoffPendingAt?: string; completedAt?: string; cancelledAt?: string; currentLocation?: { label?: string; latitude?: number; longitude?: number; visibility?: LocationVisibilityPolicy | ChildJourneyAccessScope; }; locationFreshness?: LocationFreshness; etaMinutes?: number; activeAlertReferences?: string[]; checkpointReferences?: string[]; interruptionReason?: string; incidentIds?: string[]; childId?: string; guardianVisibilityGrants?: JourneyVisibilityGrant[]; cancellationReferenceId?: string; createdAt: string; updatedAt?: string; };
+export type JourneyCheckpoint = { checkpointId: string; journeyId: string; label: string; type: JourneyCheckpointType | 'pickup' | 'route_point' | 'school_gate' | 'dropoff' | 'stop' | 'sos'; reachedAt?: string; confidence?: RideConfidenceState; };
+export type ChildJourneyAccess = JourneyVisibilityGrant;
+export type TransportQuoteRequest = { quoteRequestId: string; rideRequestId: string; requestedByAccountId: string; passengerCount?: number; requiredCapacity?: number; serviceType?: VehicleServiceType; serviceAreaId?: string; status?: QuoteStatus; acceptedQuoteId?: string; bookingId?: string; };
+export type TransportQuote = { quoteId: string; quoteRequestId: string; providerId: string; status: QuoteStatus; quotedFare?: number; providerGross?: number; platformFee?: number; providerNet?: number; expiresAt?: string; counterofferOfQuoteId?: string; acceptedBookingId?: string; };
 export type DriverAvailability = { driverId: string; status: DriverAvailabilityStatus; updatedAt: string; metadata?: Record<string, unknown>; };
 export type RideOffer = { offerId: string; rideRequestId: string; driverId?: string; vehicleId?: string; status: AssignmentStatus; offeredAt: string; expiresAt?: string; metadata?: Record<string, unknown>; };
 export type ProviderType = 'individual_driver' | 'parent_driver' | 'fleet_operator' | 'taxi_operator' | 'van_operator' | 'bus_operator' | 'school_owned' | 'contracted_school_provider';
@@ -124,7 +114,7 @@ export type ProviderSettlement = { settlementId: string; providerId: string; pro
 export type ProviderWallet = { walletId: string; providerId: string; balance: number; currency?: string; settlementStatus: SettlementStatus; };
 export type RefundAdjustment = { adjustmentId: string; paymentId?: string; bookingId?: string; amount: number; currency?: string; reason?: string; status?: 'pending' | 'approved' | 'rejected' | 'completed'; };
 export type PricingConfiguration = { pricingId: string; serviceAreaId?: string; vehicleClass?: VehiclePhysicalClass; capacity?: number; serviceType?: VehicleServiceType; factors?: Array<'distance' | 'time' | 'pickup_distance' | 'scheduled' | 'recurring' | 'waiting' | 'tolls' | 'parking' | 'multiple_stops' | 'cancellation'>; riderFare?: number; providerGross?: number; platformFee?: number; providerNet?: number; };
-export type CancellationEvent = { cancellationId: string; bookingId?: string; journeyId?: string; status: CancellationStatus; reason?: string; actorAccountId?: string; };
+export type CancellationEvent = { cancellationId: string; bookingId?: string; assignmentId?: string; journeyId?: string; status: CancellationStatus; reason?: string; actorAccountId?: string; noShowType?: 'passenger' | 'driver' | 'provider' | 'school'; source?: 'booking' | 'assignment' | 'journey'; };
 export type PickupVerification = { verificationId: string; journeyId: string; childId?: string; verifiedByAccountId?: string; status: PickupHandoffVerificationStatus; verifiedAt?: string; method?: string; };
 export type HandoffVerification = { verificationId: string; journeyId: string; childId?: string; verifiedByAccountId?: string; status: PickupHandoffVerificationStatus; verifiedAt?: string; method?: string; };
 export type ConsentRecord = { consentId: string; childId: string; grantedByAccountId: string; grantedToAccountId?: string; scopes?: Array<'perform_pickup' | 'perform_handoff' | 'view_child_journey' | 'view_child_eta_status'>; status: ApprovalLifecycleStatus; validFrom?: string; validUntil?: string; };
@@ -140,39 +130,9 @@ export type SafetyEvidence = { evidenceId: string; type: EvidenceType; accessPol
 export type Incident = { incidentId: string; bookingId?: string; journeyId?: string; paymentId?: string; communicationThreadId?: string; evidenceIds?: string[]; status?: ApprovalLifecycleStatus; severity?: string; };
 export type SupportCase = { caseId: string; incidentId?: string; bookingId?: string; journeyId?: string; paymentId?: string; communicationThreadId?: string; status?: ApprovalLifecycleStatus; };
 export type AuditEvent = { auditEventId: string; actorAccountId?: string; action: string; resourceType: string; resourceId?: string; createdAt: string; metadata?: Record<string, unknown>; };
-
 export type SessionScope = 'account' | 'organization' | 'household' | 'journey' | 'support';
-export type SessionClaim = {
-  accountId: string;
-  approvedCapabilities: CapabilityEntitlement[];
-  approvedExperiences: ApprovedExperience[];
-  activeExperience?: ActiveExperience;
-  organizationScopes?: OrganizationMembership[];
-  sessionVersion: number;
-  scope?: SessionScope;
-  role?: PoleSafeRole;
-};
-
+export type SessionClaim = { accountId: string; approvedCapabilities: CapabilityEntitlement[]; approvedExperiences: ApprovedExperience[]; activeExperience?: ActiveExperience; organizationScopes?: OrganizationMembership[]; sessionVersion: number; scope?: SessionScope; role?: PoleSafeRole; };
 export type RoutePolicyKey = '/parent' | '/driver' | '/school' | '/ops' | '/dispatch' | '/compliance';
-export type RoutePolicy = {
-  path: RoutePolicyKey;
-  requiredCapabilities?: CapabilityEntitlement['capability'][];
-  requiredExperiences?: ApprovedExperienceType[];
-  requiredRoles?: PoleSafeRole[];
-  requiredOrganizationTypes?: OrganizationType[];
-  requireApprovedDriver?: boolean;
-  allowDemoFallback?: boolean;
-};
-
-export const ROUTE_POLICY_MAP: Record<RoutePolicyKey, RoutePolicy> = {
-  '/parent': { path: '/parent', requiredCapabilities: ['ride', 'book_for_self', 'book_for_child', 'manage_household'], requiredExperiences: ['personal_rides', 'my_family'], requiredRoles: ['rider', 'parent'], allowDemoFallback: true },
-  '/driver': { path: '/driver', requiredCapabilities: ['drive'], requiredExperiences: ['drive'], requiredRoles: ['driver'], requireApprovedDriver: true, allowDemoFallback: true },
-  '/school': { path: '/school', requiredCapabilities: ['manage_school_transport', 'verify_school_handoff'], requiredExperiences: ['school'], requiredRoles: ['school_staff', 'admin_ops'], requiredOrganizationTypes: ['school'], allowDemoFallback: true },
-  '/ops': { path: '/ops', requiredCapabilities: ['manage_ops'], requiredExperiences: ['admin_ops'], requiredRoles: ['admin_ops', 'system'], requiredOrganizationTypes: ['polesafe_internal'], allowDemoFallback: true },
-  '/dispatch': { path: '/dispatch', requiredCapabilities: ['manage_ops', 'manage_community_transport'], requiredExperiences: ['community'], requiredRoles: ['admin_ops', 'community_staff', 'system'], requiredOrganizationTypes: ['community', 'fleet_provider', 'polesafe_internal'], allowDemoFallback: true },
-  '/compliance': { path: '/compliance', requiredCapabilities: ['manage_ops'], requiredExperiences: ['admin_ops'], requiredRoles: ['admin_ops', 'system'], requiredOrganizationTypes: ['polesafe_internal', 'community', 'school'], allowDemoFallback: true },
-};
-
-export function getRoutePolicy(path: RoutePolicyKey): RoutePolicy {
-  return ROUTE_POLICY_MAP[path];
-}
+export type RoutePolicy = { path: RoutePolicyKey; requiredCapabilities?: CapabilityEntitlement['capability'][]; requiredExperiences?: ApprovedExperienceType[]; requiredRoles?: PoleSafeRole[]; requiredOrganizationTypes?: OrganizationType[]; requireApprovedDriver?: boolean; allowDemoFallback?: boolean; };
+export const ROUTE_POLICY_MAP: Record<RoutePolicyKey, RoutePolicy> = { '/parent': { path: '/parent', requiredCapabilities: ['ride', 'book_for_self', 'book_for_child', 'manage_household'], requiredExperiences: ['personal_rides', 'my_family'], requiredRoles: ['rider', 'parent'], allowDemoFallback: true }, '/driver': { path: '/driver', requiredCapabilities: ['drive'], requiredExperiences: ['drive'], requiredRoles: ['driver'], requireApprovedDriver: true, allowDemoFallback: true }, '/school': { path: '/school', requiredCapabilities: ['manage_school_transport', 'verify_school_handoff'], requiredExperiences: ['school'], requiredRoles: ['school_staff', 'admin_ops'], requiredOrganizationTypes: ['school'], allowDemoFallback: true }, '/ops': { path: '/ops', requiredCapabilities: ['manage_ops'], requiredExperiences: ['admin_ops'], requiredRoles: ['admin_ops', 'system'], requiredOrganizationTypes: ['polesafe_internal'], allowDemoFallback: true }, '/dispatch': { path: '/dispatch', requiredCapabilities: ['manage_ops', 'manage_community_transport'], requiredExperiences: ['community'], requiredRoles: ['admin_ops', 'community_staff', 'system'], requiredOrganizationTypes: ['community', 'fleet_provider', 'polesafe_internal'], allowDemoFallback: true }, '/compliance': { path: '/compliance', requiredCapabilities: ['manage_ops'], requiredExperiences: ['admin_ops'], requiredRoles: ['admin_ops', 'system'], requiredOrganizationTypes: ['polesafe_internal', 'community', 'school'], allowDemoFallback: true }, };
+export function getRoutePolicy(path: RoutePolicyKey): RoutePolicy { return ROUTE_POLICY_MAP[path]; }
