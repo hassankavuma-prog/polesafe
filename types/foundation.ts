@@ -104,6 +104,238 @@ export type ChildJourneyAccess = JourneyVisibilityGrant;
 export type TransportQuoteRequest = { quoteRequestId: string; rideRequestId: string; requestedByAccountId: string; passengerCount?: number; requiredCapacity?: number; serviceType?: VehicleServiceType; serviceAreaId?: string; status?: QuoteStatus; acceptedQuoteId?: string; bookingId?: string; };
 export type TransportQuote = { quoteId: string; quoteRequestId: string; providerId: string; status: QuoteStatus; quotedFare?: number; providerGross?: number; platformFee?: number; providerNet?: number; expiresAt?: string; counterofferOfQuoteId?: string; acceptedBookingId?: string; };
 export type DriverAvailability = { driverId: string; status: DriverAvailabilityStatus; updatedAt: string; metadata?: Record<string, unknown>; };
+export type MatchingPolicyReference = {
+  policyId?: string;
+  policyVersion?: string;
+  effectiveAt?: string;
+  expiresAt?: string;
+  rulesetReference?: string;
+  overrideReference?: string;
+};
+
+export type MatchingIdempotencyReference = {
+  idempotencyKey: string;
+  requestId?: string;
+  correlationId?: string;
+  dedupeKey?: string;
+  createdAt?: string;
+};
+
+export type MatchingConcurrencyReference = {
+  revision?: string | number;
+  version?: number;
+  etag?: string;
+  requestVersion?: string;
+  resourceVersion?: string;
+};
+
+export type DriverAvailabilityWindow = {
+  startAt: string;
+  endAt?: string;
+  timezone?: string;
+  recurringPattern?: string;
+  source?: 'driver_declared' | 'provider_declared' | 'schedule' | 'system';
+};
+
+export type MatchingLocationState = {
+  freshness?: LocationFreshness;
+  connectivityState?: 'connected' | 'intermittent' | 'weak' | 'offline' | 'unknown';
+  isStale?: boolean;
+  updatedAt?: string;
+  observedAt?: string;
+  source?: 'gps' | 'landmark' | 'saved_place' | 'school_gate' | 'campus_pickup_point' | 'stage' | 'pickup_zone' | 'named_area' | 'manual_confirmation';
+  referenceLabel?: string;
+};
+
+export type MatchingScheduleConflictReference = {
+  scheduleId?: string;
+  occurrenceId?: string;
+  conflictStatus?: ScheduleConflictStatus;
+  conflictType?: 'driver' | 'vehicle' | 'route' | 'school' | 'booked_ride' | 'assignment' | 'journey';
+  referenceIds?: string[];
+  notes?: string;
+};
+
+export type MatchingFeasibilityReference = {
+  pickupFeasible?: boolean;
+  deadheadFeasible?: boolean;
+  pickupDistanceMeters?: number;
+  pickupEstimatedMinutes?: number;
+  deadheadDistanceMeters?: number;
+  deadheadEstimatedMinutes?: number;
+  referencePoint?: string;
+  referenceType?: 'gps' | 'landmark' | 'saved_place' | 'school_gate' | 'campus_pickup_point' | 'stage' | 'pickup_zone' | 'named_area' | 'manual_confirmation';
+  notes?: string;
+};
+
+export type MatchingCapacitySnapshot = {
+  passengerCount?: number;
+  requiredSeats: number;
+  registeredCapacity?: number;
+  availableSeats?: number;
+  luggageRequirement?: string[];
+  accessibilityRequirements?: string[];
+  childTransportRequired?: boolean;
+  schoolTransportRequired?: boolean;
+  negotiatedTransportRequired?: boolean;
+};
+
+export type MatchingAvailabilitySnapshot = {
+  driverAvailability?: DriverAvailabilityStatus;
+  driverWindows?: DriverAvailabilityWindow[];
+  vehicleActiveStatus?: VehicleActiveStatus;
+  vehicleAvailability?: 'available' | 'unavailable' | 'restricted' | 'maintenance' | 'unknown';
+  providerStatus?: ApprovalLifecycleStatus;
+  serviceAreaIds?: string[];
+  scheduleConflictReferences?: MatchingScheduleConflictReference[];
+  activeJourneyConflict?: boolean;
+};
+
+export type MatchingCandidateSnapshot = {
+  driverId?: string;
+  vehicleId?: string;
+  providerId?: string;
+  fleetProviderId?: string;
+  evaluatedAt: string;
+  location?: MatchingLocationState;
+  capacity?: MatchingCapacitySnapshot;
+  availability?: MatchingAvailabilitySnapshot;
+  policy?: MatchingPolicyReference;
+  eligibility?: EligibilityEvaluation;
+  pricingResult?: PricingResult;
+  paymentMethodSupport?: PaymentMethod[];
+  idempotency?: MatchingIdempotencyReference;
+  concurrency?: MatchingConcurrencyReference;
+};
+
+export type EligibilityDecision = 'eligible' | 'ineligible' | 'manual_review' | 'unknown';
+export type EligibilityFailureReason = 'driver_not_approved' | 'vehicle_not_approved' | 'provider_inactive' | 'insufficient_capacity' | 'capability_missing' | 'child_transport_not_authorized' | 'school_transport_not_authorized' | 'service_area_mismatch' | 'driver_unavailable' | 'vehicle_unavailable' | 'schedule_conflict' | 'active_journey_conflict' | 'location_stale' | 'pickup_not_feasible' | 'payment_method_unsupported' | 'provider_restricted' | 'negotiated_transport_required' | 'policy_restriction' | 'unknown';
+
+export type EligibilityCriterion = {
+  code: string;
+  label?: string;
+  category?: 'driver' | 'vehicle' | 'provider' | 'passenger' | 'child' | 'school' | 'location' | 'schedule' | 'payment' | 'policy';
+  required?: boolean;
+  satisfied?: boolean;
+  failureReason?: EligibilityFailureReason;
+  evidenceReferences?: string[];
+  notes?: string;
+};
+
+export type EligibilityEvaluation = {
+  decision: EligibilityDecision;
+  hardEligible: boolean;
+  softEligible?: boolean;
+  evaluatedAt: string;
+  policy?: MatchingPolicyReference;
+  criteria: EligibilityCriterion[];
+  failureReasons?: EligibilityFailureReason[];
+  manualReviewReasons?: string[];
+  version?: string;
+  auditReferenceId?: string;
+};
+
+export type MatchingRequest = {
+  requestId: string;
+  rideRequestId?: string;
+  bookingId?: string;
+  journeyId?: string;
+  serviceType?: VehicleServiceType;
+  serviceAreaId?: string;
+  schoolId?: string;
+  campusId?: string;
+  routeId?: string;
+  passengerRequirements?: PassengerRequirements;
+  timing?: RideTiming;
+  pickup?: RideStop;
+  destination?: RideStop;
+  stops?: RideStop[];
+  requestedAt: string;
+  requestedByAccountId?: string;
+  requestedByOrganizationId?: string;
+  childId?: string;
+  guardianAccountId?: string;
+  paymentMethods?: PaymentMethod[];
+  pricingContext?: PricingResult;
+  policy?: MatchingPolicyReference;
+  idempotency?: MatchingIdempotencyReference;
+  concurrency?: MatchingConcurrencyReference;
+};
+
+export type MatchingContext = {
+  request: MatchingRequest;
+  providerId?: string;
+  fleetProviderId?: string;
+  driverId?: string;
+  vehicleId?: string;
+  providerType?: ProviderType;
+  providerStatus?: ApprovalLifecycleStatus;
+  driverApproval?: DriverApprovalStatus;
+  vehicleApproval?: VehicleServiceApprovalStatus;
+  driverVehicleAssignment?: DriverVehicleAssignment;
+  driverAvailability?: DriverAvailability;
+  driverAvailabilityWindows?: DriverAvailabilityWindow[];
+  serviceAreaIds?: string[];
+  availability?: MatchingAvailabilitySnapshot;
+  location?: MatchingLocationState;
+  capacity?: MatchingCapacitySnapshot;
+  feasibility?: MatchingFeasibilityReference;
+  scheduleConflictReferences?: MatchingScheduleConflictReference[];
+  candidateSnapshot?: MatchingCandidateSnapshot;
+  policy?: MatchingPolicyReference;
+  idempotency?: MatchingIdempotencyReference;
+  concurrency?: MatchingConcurrencyReference;
+};
+
+export type CandidateExclusion = {
+  reason: EligibilityFailureReason;
+  detail?: string;
+  criterionCode?: string;
+  references?: string[];
+};
+
+export type MatchingCandidate = {
+  candidateId: string;
+  requestId: string;
+  driverId?: string;
+  vehicleId?: string;
+  providerId?: string;
+  fleetProviderId?: string;
+  eligibility: EligibilityEvaluation;
+  exclusions?: CandidateExclusion[];
+  candidateSnapshot: MatchingCandidateSnapshot;
+  policy?: MatchingPolicyReference;
+  idempotency?: MatchingIdempotencyReference;
+  concurrency?: MatchingConcurrencyReference;
+  manualReviewRequired?: boolean;
+  softSignals?: {
+    etaMinutes?: number;
+    deadheadDistanceMeters?: number;
+    reliabilityScore?: number;
+    workloadScore?: number;
+    routeFitScore?: number;
+    fairOpportunityReference?: string;
+    recentOfferReferenceIds?: string[];
+    acceptanceHistoryReference?: string;
+  };
+};
+
+export type CandidateGenerationState = 'generated' | 'no_candidates' | 'manual_review';
+
+export type CandidateGenerationResult = {
+  requestId: string;
+  generatedAt: string;
+  state: CandidateGenerationState;
+  candidates?: MatchingCandidate[];
+  exclusions?: CandidateExclusion[];
+  candidateCount: number;
+  policy?: MatchingPolicyReference;
+  idempotency?: MatchingIdempotencyReference;
+  concurrency?: MatchingConcurrencyReference;
+  manualReviewReasons?: string[];
+  noCandidateReason?: EligibilityFailureReason | 'manual_review_required';
+  auditReferenceId?: string;
+};
 export type RideOffer = { offerId: string; rideRequestId: string; driverId?: string; vehicleId?: string; status: AssignmentStatus; offeredAt: string; expiresAt?: string; metadata?: Record<string, unknown>; };
 export type ProviderType = 'individual_driver' | 'parent_driver' | 'fleet_operator' | 'taxi_operator' | 'van_operator' | 'bus_operator' | 'school_owned' | 'contracted_school_provider';
 export type Provider = { providerId: string; providerType: ProviderType; organizationId?: string; displayName?: string; serviceAreaIds?: string[]; supportedServiceTypes?: VehicleServiceType[]; vehicleIds?: string[]; driverIds?: string[]; activeStatus?: ApprovalLifecycleStatus; };
