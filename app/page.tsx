@@ -78,6 +78,136 @@ function Hero3DBlock() {
   );
 }
 
+function TrustAndLiveSection() {
+  const liveCards = [
+    { label: 'Rides in progress', value: 'Live data coming soon', tone: 'text-sky-700', bg: 'bg-sky-50', border: 'border-sky-200', icon: Bus },
+    { label: 'Verified drivers', value: 'Connected', tone: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle2 },
+    { label: 'Safe handoffs', value: 'Monitoring', tone: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: ShieldAlert },
+    { label: 'Schools connected', value: 'Selected schools', tone: 'text-sky-700', bg: 'bg-sky-50', border: 'border-sky-200', icon: School },
+    { label: 'Coverage / service areas', value: 'Available in selected areas', tone: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: MapPin },
+    { label: 'System status', value: 'Monitoring', tone: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200', icon: Smartphone },
+  ];
+
+  const statusItems = [
+    { label: 'Booking', state: 'Monitoring', tone: 'text-sky-700' },
+    { label: 'Tracking', state: 'Connected', tone: 'text-emerald-700' },
+    { label: 'Payments', state: 'Connected', tone: 'text-emerald-700' },
+    { label: 'Safety systems', state: 'Monitoring', tone: 'text-amber-700' },
+  ];
+
+  const trustPillars = [
+    { icon: CheckCircle2, title: 'Verified drivers', text: 'Only approved drivers are matched to rides, so families know who is arriving.' },
+    { icon: Smartphone, title: 'Live journey visibility', text: 'Parents can follow the trip as it moves, instead of waiting in the dark.' },
+    { icon: MapPin, title: 'Safe pickup and handoff', text: 'Pickup and drop-off moments are checked so the right person gets the right child.' },
+    { icon: School, title: 'School verification', text: 'School rides use school-specific checks and handoff rules before a trip closes.' },
+    { icon: ShieldAlert, title: 'Emergency response', text: 'When something looks wrong, the team can react quickly and escalate the issue.' },
+    { icon: Bus, title: 'Ride history and accountability', text: 'Each journey leaves a clear record for review, follow-up, and trust.' },
+  ];
+
+  const journeySteps = [
+    'Parent books',
+    'Driver verified',
+    'Child pickup verified',
+    'Journey tracked',
+    'School/teacher handoff verified',
+    'Parent receives confirmation',
+  ];
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:p-6">
+        <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">PoleSafe Live</div>
+        <h2 className="mt-3 text-2xl font-semibold text-slate-900 sm:text-3xl">PoleSafe Live</h2>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">A visible trust layer for active rides, monitoring, school connections, and service coverage — built to show that PoleSafe is a live safety and mobility network.</p>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {liveCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <article key={card.label} className={`rounded-2xl border ${card.border} ${card.bg} p-4 shadow-sm`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-slate-700">{card.label}</div>
+                    <div className={`mt-2 text-lg font-semibold ${card.tone}`}>{card.value}</div>
+                  </div>
+                  <div className="rounded-xl bg-white/80 p-2 text-slate-600" aria-hidden="true">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-slate-900">Service status</div>
+              <p className="text-sm text-slate-600">Neutral operational signals for the systems families rely on.</p>
+            </div>
+            <div className="text-xs text-slate-500">Real data where available; otherwise live monitoring labels</div>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {statusItems.map((item) => (
+              <div key={item.label} className="rounded-2xl border border-white bg-white px-4 py-3 shadow-sm">
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{item.label}</div>
+                <div className={`mt-2 text-sm font-semibold ${item.tone}`}>{item.state}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
+          <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">How PoleSafe keeps every journey accountable</div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {trustPillars.map((pillar) => {
+                const Icon = pillar.icon;
+                return (
+                  <div key={pillar.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-xl bg-sky-50 p-2 text-sky-600" aria-hidden="true">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-900">{pillar.title}</div>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">{pillar.text}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-[1.75rem] border border-slate-200 bg-slate-950 p-5 text-white">
+            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">School ride safety journey</div>
+            <div className="mt-4 space-y-3">
+              {journeySteps.map((step, index) => {
+                const isDone = index < journeySteps.length - 1;
+                return (
+                  <div key={step} className="flex items-start gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-full border ${isDone ? 'border-emerald-300 bg-emerald-500 text-white' : 'border-sky-300 bg-sky-500 text-white'}`}>
+                        {index + 1}
+                      </div>
+                      {index < journeySteps.length - 1 && <div className="h-8 w-px bg-white/15" />}
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100">{step}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+              Attention: school ride handoffs stay under school verification before confirmation closes.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function BookingWidget() {
   const [mode, setMode] = useState<RideMode>('community');
   const [form, setForm] = useState({
@@ -449,6 +579,7 @@ export default function LandingPage() {
 
       <main className="relative">
         <BookingWidget />
+        <TrustAndLiveSection />
         <section className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-16">
           <div className="max-w-3xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-orange-300 shadow-sm shadow-black/20 backdrop-blur-xl">
