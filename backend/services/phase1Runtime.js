@@ -2,6 +2,45 @@ const mongoose = require('mongoose');
 const { Booking, Child, Vehicle, RideRequest, DispatchOffer, Assignment, Ride, User, GuardianAuthority } = require('../database/schema');
 const sameId = (a, b) => String(a || '') === String(b || '');
 const now = () => new Date();
+const ACCEPTANCE_ACTIVE_ASSIGNMENT_STATUSES = ['active', 'arrived', 'pickup_verified', 'onboard'];
+const ACCEPTANCE_ACTIVE_RIDE_STATUSES = ['dispatching', 'active', 'onboard'];
+const ACCEPTANCE_ELIGIBILITY_FAILURES = new Set(['driver_no_longer_eligible', 'vehicle_no_longer_eligible', 'invalid_driver_vehicle_relationship', 'insufficient_capacity', 'unsupported_service', 'active_assignment_conflict', 'active_vehicle_assignment_conflict', 'active_journey_conflict', 'active_vehicle_journey_conflict', 'manual_negotiation_required']);
+function isPositiveHardEligibility(value) {
+  return value === true || value === 'true' || value === 1 || value === '1';
+}
+function isDriverHardEligible(driver) {
+  return !!driver && driver.role === 'driver' && isPositiveHardEligibility(driver.isActive) && (isPositiveHardEligibility(driver.isDriverIdVerified) || ['approved', 'verified'].includes(String(driver.verificationStatus || ''))) && isPositiveHardEligibility(driver.isAvailable);
+}
+function isVehicleHardEligible(vehicle) {
+  return !!vehicle && isPositiveHardEligibility(vehicle.isActive) && (isPositiveHardEligibility(vehicle.isApproved) || isPositiveHardEligibility(vehicle.isVerified) || ['verified', 'approved'].includes(String(vehicle.verificationStatus || ''))) && isPositiveHardEligibility(vehicle.isAvailable) && Number.isFinite(Number(vehicle.capacity));
+}
+function getOfferEligibilityVehicleType(booking, rideRequest) {
+  return String(booking?.vehicleType || rideRequest?.vehicleType || '').trim().toLowerCase();
+}
+async function revalidateAcceptanceEligibility({ session, booking, rideRequest, offer, driverId }) {
+  const driver = await User.findById(driverId).session(session);
+  if (!isDriverHardEligible(driver)) { const err = new Error('driver_no_longer_eligible'); err.statusCode = 409; throw err; }
+  const vehicleId = offer.vehicleId || driver?.vehicleId || null;
+  const vehicle = vehicleId ? await Vehicle.findById(vehicleId).session(session) : await Vehicle.findOne({ driverId }).session(session);
+  if (!vehicle) { const err = new Error('vehicle_no_longer_eligible'); err.statusCode = 409; throw err; }
+  if (!sameId(vehicle.driverId, driverId)) { const err = new Error('invalid_driver_vehicle_relationship'); err.statusCode = 409; throw err; }
+  if (!isVehicleHardEligible(vehicle)) { const err = new Error('vehicle_no_longer_eligible'); err.statusCode = 409; throw err; }
+  const requiredSeats = Number(booking?.requiredSeats || rideRequest?.requiredSeats || booking?.seatsRequired || rideRequest?.seatsRequired || 1);
+  if (requiredSeats >= 14) { const err = new Error('manual_negotiation_required'); err.statusCode = 409; throw err; }
+  if (Number.isFinite(requiredSeats) && Number(vehicle.capacity) < requiredSeats) { const err = new Error('insufficient_capacity'); err.statusCode = 409; throw err; }
+  const requiredVehicleType = getOfferEligibilityVehicleType(booking, rideRequest);
+  if (requiredVehicleType && String(vehicle.type || '').toLowerCase() !== requiredVehicleType) { const err = new Error('unsupported_service'); err.statusCode = 409; throw err; }
+  const activeDriverAssignment = await Assignment.findOne({ driverId, status: { $in: ACCEPTANCE_ACTIVE_ASSIGNMENT_STATUSES } }).session(session);
+  if (activeDriverAssignment) { const err = new Error('active_assignment_conflict'); err.statusCode = 409; throw err; }
+  const activeVehicleAssignment = await Assignment.findOne({ vehicleId: vehicle._id, status: { $in: ACCEPTANCE_ACTIVE_ASSIGNMENT_STATUSES } }).session(session);
+  if (activeVehicleAssignment) { const err = new Error('active_vehicle_assignment_conflict'); err.statusCode = 409; throw err; }
+  const activeDriverRide = await Ride.findOne({ driverId, journeyLifecycleStatus: { $in: ACCEPTANCE_ACTIVE_RIDE_STATUSES } }).session(session);
+  if (activeDriverRide) { const err = new Error('active_journey_conflict'); err.statusCode = 409; throw err; }
+  const activeVehicleRide = await Ride.findOne({ vehicleId: vehicle._id, journeyLifecycleStatus: { $in: ACCEPTANCE_ACTIVE_RIDE_STATUSES } }).session(session);
+  if (activeVehicleRide) { const err = new Error('active_vehicle_journey_conflict'); err.statusCode = 409; throw err; }
+  return vehicle;
+}
+
 const normalizeText = (v) => (v == null ? '' : String(v).trim().replace(/\s+/g, ' ').toLowerCase());
 const normalizePickupAt = (v) => (v ? new Date(v).toISOString() : '');
 function assertActor(actor, role) { if (!actor || actor.role !== role) { const err = new Error('forbidden'); err.statusCode = 403; throw err; } }
@@ -187,11 +226,18 @@ async function acceptOffer({ actor, driverId, offerId }) {
       if (sameId(existing.driverId, driverId)) { await session.commitTransaction(); session.endSession(); return { assignment: existing.toObject ? existing.toObject() : existing, offer: offer.toObject ? offer.toObject() : offer, alreadyAccepted: true }; }
       const err = new Error('already_taken'); err.statusCode = 409; throw err;
     }
+    let vehicle;
+    try {
+      vehicle = await revalidateAcceptanceEligibility({ session, booking, rideRequest, offer, driverId });
+    } catch (eligibilityErr) {
+      if (eligibilityErr && eligibilityErr.statusCode === 409 && ACCEPTANCE_ELIGIBILITY_FAILURES.has(eligibilityErr.message)) throw eligibilityErr;
+      throw eligibilityErr;
+    }
     offer.status = 'accepted';
     offer.acceptedAt = now();
     offer.updatedAt = now();
     await offer.save({ session });
-    const assignment = await Assignment.create([{ bookingId: booking._id, rideRequestId: offer.rideRequestId || null, dispatchScopeId: null, dispatchOfferId: offer._id, assignmentSlotKey, assignmentVersion: Number(offer.dispatchVersion || 1), driverId, vehicleId: offer.vehicleId || null, status: 'active', acceptedAt: now(), arrivalAt: null, pickupVerifiedAt: null, journeyStartedAt: null }], { session }).then(d => d[0]);
+    const assignment = await Assignment.create([{ bookingId: booking._id, rideRequestId: offer.rideRequestId || null, dispatchScopeId: null, dispatchOfferId: offer._id, assignmentSlotKey, assignmentVersion: Number(offer.dispatchVersion || 1), driverId, vehicleId: vehicle._id, status: 'active', acceptedAt: now(), arrivalAt: null, pickupVerifiedAt: null, journeyStartedAt: null }], { session }).then(d => d[0]);
     let ride = await Ride.findOne({ bookingId: booking._id }).session(session);
     if (!ride) ride = new Ride({ bookingId: booking._id, childId: booking.childId, driverId, parentId: booking.parentId, schoolId: booking.schoolId, assignmentId: assignment._id, dispatchOfferId: offer._id, journeyRequestId: offer.rideRequestId || booking.journeyRequestId, runtimePhase: 'assigned', journeyLifecycleStatus: 'dispatching', pickupVerificationStatus: 'pending', runtimeEventVersion: 1, runtimeSource: 'dispatch' });
     ride.assignmentId = assignment._id;
