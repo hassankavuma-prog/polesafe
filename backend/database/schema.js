@@ -269,6 +269,31 @@ const rideSchema = new mongoose.Schema({
 
   type: { type: String, enum: ['school_morning', 'school_afternoon', 'ride_hailing', 'emergency', 'excursion'] },
 
+  // Runtime Phase 1 canonical journey linkage
+  assignmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment' },
+  dispatchOfferId: { type: mongoose.Schema.Types.ObjectId, ref: 'DispatchOffer' },
+  journeyRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'RideRequest' },
+  runtimePhase: { type: String, enum: ['booking', 'dispatch', 'assigned', 'arrived', 'pickup_verified', 'onboard'], default: 'booking' },
+  journeyLifecycleStatus: { type: String, enum: ['scheduled', 'dispatching', 'active', 'onboard', 'interrupted', 'completed', 'cancelled'], default: 'scheduled' },
+  pickupVerificationStatus: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
+  assignmentAcceptedAt: { type: Date },
+  arrivalAt: { type: Date },
+  pickupVerifiedAt: { type: Date },
+  journeyStartedAt: { type: Date },
+  activeJourneyStartedAt: { type: Date },
+  runtimeEventVersion: { type: Number, default: 0 },
+  runtimeSource: { type: String, enum: ['booking', 'dispatch', 'driver', 'system'], default: 'booking' },
+  runtimeFlags: {
+    offerExpiryAt: { type: Date },
+    acceptanceLockedAt: { type: Date },
+    pickupVerificationMethod: { type: String },
+    pickupVerificationSource: { type: String },
+    activePassengerState: { type: String, enum: ['awaiting_pickup', 'onboard', 'secured'], default: 'awaiting_pickup' },
+    activePassengerCount: { type: Number, default: 0 },
+    activeDriverConfirmed: { type: Boolean, default: false },
+    activeVehicleConfirmed: { type: Boolean, default: false },
+  },
+
   // Schedule
   scheduledPickupTime: { type: Date },
   scheduledDropoffTime: { type: Date },
@@ -291,14 +316,17 @@ const rideSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
-      'scheduled',     // Booked, not yet started
-      'en_route',      // Driver heading to pickup
-      'picked_up',     // Kid in vehicle
-      'dropped_off',   // Kid dropped at destination
-      'gate_confirmed',// School gate confirmed receipt (school rides only)
-      'cancelled',     // Cancelled
-      'missed',        // No-show
-      'completed',     // Fully done
+      'scheduled',
+      'dispatching',
+      'en_route',
+      'picked_up',
+      'dropped_off',
+      'gate_confirmed',
+      'cancelled',
+      'missed',
+      'completed',
+      'onboard',
+      'active',
     ],
     default: 'scheduled',
   },
@@ -316,16 +344,16 @@ const rideSchema = new mongoose.Schema({
   totalPrice: { type: Number },
   driverPayout: { type: Number },
   poleSafeCommission: { type: Number },
-  schoolCommission: { type: Number },  // For affiliate program
+  schoolCommission: { type: Number },
 
   // Ride-hailing specific
   isRideHailing: { type: Boolean, default: false },
-  passengerName: { type: String },    // For ride-hailing mode (non-school)
+  passengerName: { type: String },
 
   // Sick at school / early pickup
   isSickDay: { type: Boolean, default: false },
   isEarlyPickup: { type: Boolean, default: false },
-  creditedBack: { type: Boolean, default: false },  // Was parent credited?
+  creditedBack: { type: Boolean, default: false },
 
   // Tracking history
   trackingLog: [{
@@ -335,20 +363,20 @@ const rideSchema = new mongoose.Schema({
   }],
 
   // Safety: Safe Word (kid asks, driver says the word)
-  safeWord: { type: String },  // Child's safe word — revealed to driver at pickup
-  safeWordRevealedAt: { type: Date },  // When driver tapped to reveal
-  safeWordVerified: { type: Boolean, default: false },  // Kid confirmed word matches
-  safeWordVerifiedAt: { type: Date },  // When kid confirmed the word
-  classroomPickupStatus: { 
-    type: String, 
-    enum: ['pending', 'verified_by_teacher', 'completed'], 
-    default: 'pending' 
-  },  // Layer 2: Teacher verification status
-  driverVerifiedAt: { type: Date },  // When driver was verified by teacher
+  safeWord: { type: String },
+  safeWordRevealedAt: { type: Date },
+  safeWordVerified: { type: Boolean, default: false },
+  safeWordVerifiedAt: { type: Date },
+  classroomPickupStatus: {
+    type: String,
+    enum: ['pending', 'verified_by_teacher', 'completed'],
+    default: 'pending',
+  },
+  driverVerifiedAt: { type: Date },
 
   // 📸 Photo verification — driver selfie + kid pickup photos
   photos: {
-    driverSelfie: { type: String },  // URL to driver selfie upon accepting ride
+    driverSelfie: { type: String },
     selfieTakenAt: { type: Date },
     kidPickups: [{
       childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child' },
@@ -361,10 +389,10 @@ const rideSchema = new mongoose.Schema({
   selfieVerificationRequired: { type: Boolean, default: false },
 
   // Seat belt safety
-  seatBeltReminderPlayed: { type: Boolean, default: false },  // Ride mode: 10s voice played
-  seatBeltCheckpointShown: { type: Boolean, default: false },  // School mode: checkpoint displayed
-  seatBeltVerified: { type: Boolean, default: false },  // School mode: driver confirmed buckled
-  seatBeltVerifiedAt: { type: Date },  // When driver confirmed
+  seatBeltReminderPlayed: { type: Boolean, default: false },
+  seatBeltCheckpointShown: { type: Boolean, default: false },
+  seatBeltVerified: { type: Boolean, default: false },
+  seatBeltVerifiedAt: { type: Date },
 
   // Audit trail for sensitive ride actions
   auditLog: [{ action: String, userId: String, userRole: String, details: {}, timestamp: { type: Date, default: Date.now } }],
@@ -397,6 +425,79 @@ const rideSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
+
+// ============================================================
+// RIDE REQUEST — Canonical runtime intake for booking/matching
+// ============================================================
+const rideRequestSchema = new mongoose.Schema({
+  parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child', required: true },
+  bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+  schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School' },
+  requestType: { type: String, enum: ['normal', 'scheduled', 'school', 'return', 'staggered'], default: 'normal' },
+  requestKey: { type: String, required: true },
+  requestScope: { type: String, default: 'actor_child_school_vehicle_pickup', index: true },
+  requestFingerprint: { type: String },
+  vehicleType: { type: String, enum: ['car', 'boda', 'taxi', 'bus'] },
+  pickupAddress: { type: String },
+  dropoffAddress: { type: String },
+  pickupAt: { type: Date },
+  requestStatus: { type: String, enum: ['draft', 'submitted', 'matched', 'assigned', 'cancelled'], default: 'submitted' },
+  dispatchRoundId: { type: mongoose.Schema.Types.ObjectId, ref: 'DispatchRound' },
+  dispatchVersion: { type: Number, default: 1 },
+  dispatchState: { type: String, enum: ['dispatchable', 'not_dispatchable'], default: 'dispatchable' },
+  source: { type: String, enum: ['parent', 'school', 'system'], default: 'parent' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+rideRequestSchema.index({ parentId: 1, childId: 1, requestKey: 1 }, { unique: true });
+
+// ============================================================
+// DISPATCH OFFER — Driver-specific runtime offer
+// ============================================================
+const dispatchOfferSchema = new mongoose.Schema({
+  bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', required: true },
+  rideRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'RideRequest' },
+  assignmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment' },
+  driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
+  dispatchVersion: { type: Number, required: true, default: 1 },
+  status: { type: String, enum: ['active', 'accepted', 'expired', 'revoked', 'taken'], default: 'active' },
+  ranking: { type: Number, default: 0 },
+  eligibilitySnapshot: { type: mongoose.Schema.Types.Mixed },
+  expiresAt: { type: Date, required: true },
+  acceptedAt: { type: Date },
+  revokedAt: { type: Date },
+  offerVersion: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+dispatchOfferSchema.index({ bookingId: 1, dispatchVersion: 1, driverId: 1 }, { unique: true });
+dispatchOfferSchema.index({ bookingId: 1, dispatchVersion: 1, status: 1 });
+dispatchOfferSchema.index({ bookingId: 1, status: 1, expiresAt: 1 });
+
+// ============================================================
+// ASSIGNMENT — Canonical winning dispatch selection
+// ============================================================
+const assignmentSchema = new mongoose.Schema({
+  bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', required: true },
+  rideRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'RideRequest' },
+  dispatchScopeId: { type: mongoose.Schema.Types.ObjectId, ref: 'DispatchRound' },
+  dispatchOfferId: { type: mongoose.Schema.Types.ObjectId, ref: 'DispatchOffer' },
+  assignmentSlotKey: { type: String, required: true },
+  assignmentVersion: { type: Number, default: 1 },
+  driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
+  status: { type: String, enum: ['active', 'arrived', 'pickup_verified', 'onboard', 'revoked', 'completed'], default: 'active' },
+  acceptedAt: { type: Date },
+  arrivalAt: { type: Date },
+  pickupVerifiedAt: { type: Date },
+  journeyStartedAt: { type: Date },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+assignmentSchema.index({ bookingId: 1, assignmentSlotKey: 1, status: 1 }, { unique: true, partialFilterExpression: { status: 'active' } });
+assignmentSchema.index({ bookingId: 1, assignmentSlotKey: 1 });
 
 // ============================================================
 // FAVORITE DRIVER — Parent saves preferred drivers
@@ -937,6 +1038,9 @@ module.exports = {
   School: mongoose.model('School', schoolSchema),
   Vehicle: mongoose.model('Vehicle', vehicleSchema),
   Ride: mongoose.model('Ride', rideSchema),
+  RideRequest: mongoose.model('RideRequest', rideRequestSchema),
+  DispatchOffer: mongoose.model('DispatchOffer', dispatchOfferSchema),
+  Assignment: mongoose.model('Assignment', assignmentSchema),
   Booking: mongoose.model('Booking', bookingSchema),
   Transaction: mongoose.model('Transaction', transactionSchema),
   Credit: mongoose.model('Credit', creditSchema),

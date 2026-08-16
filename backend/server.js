@@ -143,6 +143,7 @@ app.use('/api/admin', authMiddleware, require('./routes/admin'));
 app.use('/api/safety', require('./routes/safety'));
 app.use('/api/community', require('./routes/community'));
 app.use('/api/family', require('./routes/family'));
+app.use('/api/runtime', require('./routes/runtime-phase1'));
 
 // ============================================================
 // 📱 SMS Webhook — incoming SMS from basic phone parents
@@ -226,12 +227,15 @@ connectMongoWithRetry(config.MONGODB_URI).then(async () => {
     const db = mongoose.connection.db;
     const collections = await db.listCollections().toArray();
     for (const col of collections) {
-      const model = mongoose.models[col.name] || 
-        Object.values(mongoose.models).find(m => m.collection.name === col.name);
+      const model = mongoose.models[col.name] || Object.values(mongoose.models).find(m => m.collection.name === col.name);
       if (model) {
         await model.createIndexes();
         console.log(`  📊 Indexes ensured: ${col.name}`);
       }
+    }
+    const txUri = process.env.MONGODB_URI || '';
+    if (!/(mongodb+srv://|[?&](replicaSet|replSet)=)/i.test(txUri)) {
+      console.warn('⚠️  Runtime Phase 1 requires transaction-capable MongoDB (replica set / Atlas-compatible deployment). Current URI does not prove transaction support.');
     }
     console.log('✅ Database indexes verified');
   } catch (idxErr) {

@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:indexes": "node scripts/db-indexes.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
