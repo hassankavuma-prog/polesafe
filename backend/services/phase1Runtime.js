@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { Booking, Child, Vehicle, RideRequest, DispatchOffer, Assignment, Ride, User } = require('../database/schema');
+const { Booking, Child, Vehicle, RideRequest, DispatchOffer, Assignment, Ride, User, GuardianAuthority } = require('../database/schema');
 const sameId = (a, b) => String(a || '') === String(b || '');
 const now = () => new Date();
 const normalizeText = (v) => (v == null ? '' : String(v).trim().replace(/\s+/g, ' ').toLowerCase());
@@ -11,6 +11,20 @@ function computeRequestKey({ actorId, childId, schoolId, vehicleType, pickupAddr
 function getDispatchVersion(booking) { return Number(booking?.dispatchVersion || 1); }
 function getAssignmentSlotKey(booking, rideRequest) { return [String(booking?._id || ''), String(rideRequest?._id || '')].join(':'); }
 function isDispatchableBooking(booking) { return !!booking && booking.status === 'active' && booking.dispatchState !== 'not_dispatchable'; }
+
+async function canBookTransportForChild({ actorId, child }) {
+  const guardianRecords = await GuardianAuthority.find({ childId: child._id }).lean();
+  if (guardianRecords.length > 0) {
+    const relationship = guardianRecords.find((record) => sameId(record.guardianAccountId, actorId));
+    if (!relationship) return false;
+    if (relationship.status !== 'active') return false;
+    if (relationship.verificationStatus !== 'verified') return false;
+    const scopes = Array.isArray(relationship.scopes) ? relationship.scopes : [];
+    return scopes.includes('book_for_child');
+  }
+  return sameId(child.parentId, actorId);
+}
+
 async function beginDispatchRound({ bookingId, reason = 'manual' } = {}) { const session = await mongoose.startSession(); try { session.startTransaction(); const currentBooking = await Booking.findById(bookingId).session(session); if (!currentBooking) { const err = new Error('booking_not_found'); err.statusCode = 404; throw err; } const expectedVersion = Number(currentBooking.dispatchVersion || 1); const nextVersion = expectedVersion + 1; const booking = await Booking.findOneAndUpdate({ _id: bookingId, dispatchVersion: expectedVersion, status: 'active', dispatchState: { $ne: 'not_dispatchable' } }, { $inc: { dispatchVersion: 1 }, $set: { updatedAt: now() } }, { new: true, session }); if (!booking) { const err = new Error('concurrency_lost'); err.statusCode = 409; throw err; } const supersedeResult = await DispatchOffer.updateMany({ bookingId: booking._id, status: 'active', dispatchVersion: { $lt: nextVersion } }, { $set: { status: 'superseded', revokedAt: now(), updatedAt: now() } }, { session }); if (supersedeResult == null) { const err = new Error('dispatch_supercession_failed'); err.statusCode = 500; throw err; } await session.commitTransaction(); session.endSession(); return { booking: booking.toObject ? booking.toObject() : booking, dispatchVersion: nextVersion, reason }; } catch (err) { await session.abortTransaction().catch(() => {}); session.endSession(); throw err; } }
 async function createRideRequestAndBooking({ actor, childId, schoolId, vehicleType = 'car', pickupAddress = '', dropoffAddress = '', pickupAt = null, requestKey }) {
   if (!actor) { const err = new Error('unauthorized'); err.statusCode = 401; throw err; }
@@ -18,7 +32,8 @@ async function createRideRequestAndBooking({ actor, childId, schoolId, vehicleTy
   if (!actorId) { const err = new Error('unauthorized'); err.statusCode = 401; throw err; }
   const child = await Child.findById(childId).lean();
   if (!child) { const err = new Error('child_not_found'); err.statusCode = 404; throw err; }
-  if (!sameId(child.parentId, actorId)) { const err = new Error('unauthorized_booking_context'); err.statusCode = 403; throw err; }
+  const authorized = await canBookTransportForChild({ actorId, child });
+  if (!authorized) { const err = new Error('unauthorized_booking_context'); err.statusCode = 403; throw err; }
   const key = computeRequestKey({ actorId, childId, schoolId: schoolId || child.schoolId || null, vehicleType, pickupAddress, dropoffAddress, pickupAt });
   const requestFingerprint = [String(actorId).trim(), String(childId).trim(), String(schoolId || child.schoolId || '').trim(), normalizeText(vehicleType), normalizeText(pickupAddress), normalizeText(dropoffAddress), normalizePickupAt(pickupAt)].join('|');
   const session = await mongoose.startSession();

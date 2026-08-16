@@ -129,6 +129,19 @@ const userSchema = new mongoose.Schema({
 });
 
 // ============================================================
+// GUARDIAN AUTHORITY — child guardian booking authority
+// ============================================================
+const guardianAuthoritySchema = new mongoose.Schema({
+  childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child', required: true },
+  guardianAccountId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  status: { type: String, enum: ['active', 'inactive', 'revoked'], default: 'active' },
+  verificationStatus: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
+  scopes: { type: [String], default: [] },
+}, { timestamps: true });
+
+guardianAuthoritySchema.index({ childId: 1, guardianAccountId: 1 }, { unique: true });
+
+// ============================================================
 // CHILD — Kid profile linked to a parent
 // ============================================================
 const childSchema = new mongoose.Schema({
@@ -1034,6 +1047,7 @@ safetyIncidentSchema.index({ assignedOperatorId: 1, status: 1 });
 // Export models
 module.exports = {
   User: mongoose.model('User', userSchema),
+  GuardianAuthority: mongoose.model('GuardianAuthority', guardianAuthoritySchema),
   Child: mongoose.model('Child', childSchema),
   School: mongoose.model('School', schoolSchema),
   Vehicle: mongoose.model('Vehicle', vehicleSchema),
