@@ -76,14 +76,64 @@ async function evaluateMatching({ booking, rideRequest }) {
   const nextVersion = getDispatchVersion(bookingDoc);
   const requestKey = requestDoc.requestKey || computeRequestKey({ actorId: requestDoc.parentId, childId: requestDoc.childId, schoolId: requestDoc.schoolId, vehicleType: requestDoc.vehicleType, pickupAddress: requestDoc.pickupAddress, dropoffAddress: requestDoc.dropoffAddress, pickupAt: requestDoc.pickupAt });
   const dispatchOffer = await DispatchOffer.findOne({ bookingId: bookingDoc._id, dispatchVersion: nextVersion, driverId: requestDoc.driverId || undefined }).lean();
-  const offerIds = [];
+  const requiredSeats = Number(bookingDoc?.requiredSeats || requestDoc?.requiredSeats || bookingDoc?.seatsRequired || requestDoc?.seatsRequired || 1);
+  if (requiredSeats >= 14) {
+    return { booking: bookingDoc, rideRequest: requestDoc, offers: [], manualNegotiationRequired: true, requestKey, dispatchOffer: dispatchOffer || null };
+  }
+  const exclusions = [];
+  const addExclusion = (candidate, reason, details = {}) => {
+    exclusions.push({
+      candidateId: String(candidate?._id || ''),
+      reason,
+      ...details,
+    });
+  };
   const drivers = await User.find({ role: 'driver' }).lean();
-  const vehicles = await Vehicle.find({ driverId: { $in: drivers.map(d => d._id) }, isApproved: true, isAvailable: true, type: requestDoc.vehicleType || 'car' }).lean();
-  const vehicleByDriver = new Map(vehicles.map(v => [String(v.driverId), v]));
-  const ranking = [];
+  const candidateDrivers = [];
   for (const driver of drivers) {
-    const vehicle = vehicleByDriver.get(String(driver._id));
-    if (!vehicle) continue;
+    const driverExists = !!driver;
+    const correctRole = driverExists && driver.role === 'driver';
+    const driverActive = driverExists && driver.isActive === true;
+    const driverApproved = driverExists && (driver.isDriverIdVerified === true || driver.verificationStatus === 'approved' || driver.verificationStatus === 'verified');
+    const driverAvailable = driverExists && driver.isAvailable === true;
+    if (!driverExists || !correctRole) { addExclusion(driver, 'unknown_required_eligibility'); continue; }
+    if (!driverActive) { addExclusion(driver, 'driver_not_active'); continue; }
+    if (!driverApproved) { addExclusion(driver, 'driver_not_approved'); continue; }
+    if (!driverAvailable) { addExclusion(driver, 'driver_unavailable'); continue; }
+
+    const vehicles = await Vehicle.find({ driverId: driver._id }).lean();
+    const vehicle = vehicles.find((v) => sameId(v.driverId, driver._id));
+    if (!vehicle) { addExclusion(driver, 'unknown_required_eligibility'); continue; }
+
+    const vehicleExists = !!vehicle;
+    const vehicleActive = vehicleExists && vehicle.isActive === true;
+    const vehicleApproved = vehicleExists && vehicle.isApproved === true;
+    const vehicleVerified = vehicleExists && (vehicle.isVerified === true || vehicle.verificationStatus === 'verified' || vehicle.verificationStatus === 'approved');
+    const vehicleAvailable = vehicleExists && vehicle.isAvailable === true;
+    const capacity = vehicleExists ? Number(vehicle.capacity) : NaN;
+    const typeMatch = !requestDoc.vehicleType || String(vehicle.type || '').toLowerCase() === String(requestDoc.vehicleType || '').toLowerCase();
+    const driverVehicleMatch = sameId(vehicle.driverId, driver._id);
+    if (!vehicleActive) { addExclusion(vehicle, 'vehicle_not_active', { driverId: String(driver._id) }); continue; }
+    if (!(vehicleApproved || vehicleVerified)) { addExclusion(vehicle, 'vehicle_not_approved', { driverId: String(driver._id) }); continue; }
+    if (!vehicleAvailable) { addExclusion(vehicle, 'vehicle_unavailable', { driverId: String(driver._id) }); continue; }
+    if (!driverVehicleMatch) { addExclusion(vehicle, 'invalid_driver_vehicle_relationship', { driverId: String(driver._id) }); continue; }
+    if (!typeMatch) { addExclusion(vehicle, 'unsupported_service', { driverId: String(driver._id) }); continue; }
+    if (!Number.isFinite(capacity)) { addExclusion(vehicle, 'unknown_vehicle_capacity', { driverId: String(driver._id) }); continue; }
+    if (capacity < requiredSeats) { addExclusion(vehicle, 'insufficient_capacity', { driverId: String(driver._id) }); continue; }
+
+    const activeAssignments = await Assignment.find({ driverId: driver._id, status: { $in: ['active', 'arrived', 'pickup_verified', 'onboard'] } }).lean();
+    if (activeAssignments.length > 0) { addExclusion(vehicle, 'active_assignment_conflict', { driverId: String(driver._id) }); continue; }
+    const activeVehicleAssignments = await Assignment.find({ vehicleId: vehicle._id, status: { $in: ['active', 'arrived', 'pickup_verified', 'onboard'] } }).lean();
+    if (activeVehicleAssignments.length > 0) { addExclusion(vehicle, 'active_vehicle_assignment_conflict'); continue; }
+    const activeRides = await Ride.find({ driverId: driver._id, journeyLifecycleStatus: { $in: ['dispatching', 'active', 'onboard'] } }).lean();
+    if (activeRides.length > 0) { addExclusion(vehicle, 'active_journey_conflict', { driverId: String(driver._id) }); continue; }
+    const activeVehicleRides = await Ride.find({ vehicleId: vehicle._id, journeyLifecycleStatus: { $in: ['dispatching', 'active', 'onboard'] } }).lean();
+    if (activeVehicleRides.length > 0) { addExclusion(vehicle, 'active_vehicle_journey_conflict'); continue; }
+
+    candidateDrivers.push({ driver, vehicle });
+  }
+  const ranking = [];
+  for (const { driver, vehicle } of candidateDrivers) {
     const offer = {
       bookingId: bookingDoc._id,
       rideRequestId: requestDoc._id,
@@ -101,7 +151,7 @@ async function evaluateMatching({ booking, rideRequest }) {
     };
     ranking.push({ driver, vehicle, score: 0, offer });
   }
-  ranking.sort((a, b) => String(a.driver._id).localeCompare(String(b.driver._id)));
+  ranking.sort((a, b) => String(a.driver._id).localeCompare(String(b.driver._id)) || String(a.vehicle._id).localeCompare(String(b.vehicle._id)));
   const created = [];
   for (const row of ranking) {
     const found = await DispatchOffer.findOne({ bookingId: bookingDoc._id, dispatchVersion: nextVersion, driverId: row.driver._id });
@@ -109,7 +159,7 @@ async function evaluateMatching({ booking, rideRequest }) {
     created.push(await DispatchOffer.create([row.offer]).then(d => d[0]));
   }
   await RideRequest.updateOne({ _id: requestDoc._id }, { $set: { dispatchVersion: nextVersion, dispatchState: 'dispatchable', updatedAt: now() } });
-  return { booking: bookingDoc, rideRequest: requestDoc, offers: created.map(o => o.toObject ? o.toObject() : o) };
+  return { booking: bookingDoc, rideRequest: requestDoc, offers: created.map(o => o.toObject ? o.toObject() : o), exclusions };
 }
 
 async function listDriverOffers(driverId) {
