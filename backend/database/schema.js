@@ -526,6 +526,7 @@ favoriteDriverSchema.index({ parentId: 1, driverId: 1 }, { unique: true });
 // BOOKING — Weekly/monthly/termly subscription
 // ============================================================
 const bookingSchema = new mongoose.Schema({
+  dispatchVersion: { type: Number, required: true, default: 1, min: 1 },
   parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   childId: { type: mongoose.Schema.Types.ObjectId, ref: 'Child', required: true },
   driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

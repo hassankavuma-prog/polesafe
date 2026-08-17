@@ -9,19 +9,21 @@ function isPositiveHardEligibility(value) {
   return value === true || value === 'true' || value === 1 || value === '1';
 }
 function isDriverHardEligible(driver) {
-  return !!driver && driver.role === 'driver' && isPositiveHardEligibility(driver.isActive) && (isPositiveHardEligibility(driver.isDriverIdVerified) || ['approved', 'verified'].includes(String(driver.verificationStatus || ''))) && isPositiveHardEligibility(driver.isAvailable);
+  return !!driver && driver.role === 'driver' && (isPositiveHardEligibility(driver.isDriverIdVerified) || ['approved', 'verified'].includes(String(driver.verificationStatus || '')));
 }
+
 function isVehicleHardEligible(vehicle) {
-  return !!vehicle && isPositiveHardEligibility(vehicle.isActive) && (isPositiveHardEligibility(vehicle.isApproved) || isPositiveHardEligibility(vehicle.isVerified) || ['verified', 'approved'].includes(String(vehicle.verificationStatus || ''))) && isPositiveHardEligibility(vehicle.isAvailable) && Number.isFinite(Number(vehicle.capacity));
+  return !!vehicle && isPositiveHardEligibility(vehicle.isApproved) && isPositiveHardEligibility(vehicle.isAvailable) && Number.isFinite(Number(vehicle.capacity));
 }
+
 function getOfferEligibilityVehicleType(booking, rideRequest) {
   return String(booking?.vehicleType || rideRequest?.vehicleType || '').trim().toLowerCase();
 }
 async function revalidateAcceptanceEligibility({ session, booking, rideRequest, offer, driverId }) {
   const driver = await User.findById(driverId).session(session);
   if (!isDriverHardEligible(driver)) { const err = new Error('driver_no_longer_eligible'); err.statusCode = 409; throw err; }
-  const vehicleId = offer.vehicleId || driver?.vehicleId || null;
-  const vehicle = vehicleId ? await Vehicle.findById(vehicleId).session(session) : await Vehicle.findOne({ driverId }).session(session);
+  if (!offer?.vehicleId) { const err = new Error('vehicle_no_longer_eligible'); err.statusCode = 409; throw err; }
+  const vehicle = await Vehicle.findById(offer.vehicleId).session(session);
   if (!vehicle) { const err = new Error('vehicle_no_longer_eligible'); err.statusCode = 409; throw err; }
   if (!sameId(vehicle.driverId, driverId)) { const err = new Error('invalid_driver_vehicle_relationship'); err.statusCode = 409; throw err; }
   if (!isVehicleHardEligible(vehicle)) { const err = new Error('vehicle_no_longer_eligible'); err.statusCode = 409; throw err; }
@@ -64,7 +66,7 @@ async function canBookTransportForChild({ actorId, child }) {
   return sameId(child.parentId, actorId);
 }
 
-async function beginDispatchRound({ bookingId, reason = 'manual' } = {}) { const session = await mongoose.startSession(); try { session.startTransaction(); const currentBooking = await Booking.findById(bookingId).session(session); if (!currentBooking) { const err = new Error('booking_not_found'); err.statusCode = 404; throw err; } const expectedVersion = Number(currentBooking.dispatchVersion || 1); const nextVersion = expectedVersion + 1; const booking = await Booking.findOneAndUpdate({ _id: bookingId, dispatchVersion: expectedVersion, status: 'active', dispatchState: { $ne: 'not_dispatchable' } }, { $inc: { dispatchVersion: 1 }, $set: { updatedAt: now() } }, { new: true, session }); if (!booking) { const err = new Error('concurrency_lost'); err.statusCode = 409; throw err; } const supersedeResult = await DispatchOffer.updateMany({ bookingId: booking._id, status: 'active', dispatchVersion: { $lt: nextVersion } }, { $set: { status: 'superseded', revokedAt: now(), updatedAt: now() } }, { session }); if (supersedeResult == null) { const err = new Error('dispatch_supercession_failed'); err.statusCode = 500; throw err; } await session.commitTransaction(); session.endSession(); return { booking: booking.toObject ? booking.toObject() : booking, dispatchVersion: nextVersion, reason }; } catch (err) { await session.abortTransaction().catch(() => {}); session.endSession(); throw err; } }
+async function beginDispatchRound({ bookingId, reason = 'manual' } = {}) { const session = await mongoose.startSession(); try { session.startTransaction(); const currentBooking = await Booking.findById(bookingId).session(session); if (!currentBooking) { const err = new Error('booking_not_found'); err.statusCode = 404; throw err; } const expectedVersion = currentBooking.dispatchVersion == null ? 1 : Number(currentBooking.dispatchVersion); const nextVersion = expectedVersion + 1; const casFilter = { _id: bookingId, dispatchVersion: expectedVersion, status: 'active' }; const booking = await Booking.findOneAndUpdate(casFilter, { $inc: { dispatchVersion: 1 }, $set: { updatedAt: now() } }, { new: true, session }); if (!booking) { const err = new Error('concurrency_lost'); err.statusCode = 409; throw err; } const supersedeResult = await DispatchOffer.updateMany({ bookingId: booking._id, status: 'active', dispatchVersion: { $lt: nextVersion } }, { $set: { status: 'superseded', revokedAt: now(), updatedAt: now() } }, { session }); if (supersedeResult == null) { const err = new Error('dispatch_supercession_failed'); err.statusCode = 500; throw err; } await session.commitTransaction(); session.endSession(); return { booking: booking.toObject ? booking.toObject() : booking, dispatchVersion: nextVersion, reason }; } catch (err) { await session.abortTransaction().catch(() => {}); session.endSession(); throw err; } }
 async function createRideRequestAndBooking({ actor, childId, schoolId, vehicleType = 'car', pickupAddress = '', dropoffAddress = '', pickupAt = null, requestKey }) {
   if (!actor) { const err = new Error('unauthorized'); err.statusCode = 401; throw err; }
   const actorId = getActorId(actor);
@@ -132,28 +134,21 @@ async function evaluateMatching({ booking, rideRequest }) {
   for (const driver of drivers) {
     const driverExists = !!driver;
     const correctRole = driverExists && driver.role === 'driver';
-    const driverActive = driverExists && driver.isActive === true;
     const driverApproved = driverExists && (driver.isDriverIdVerified === true || driver.verificationStatus === 'approved' || driver.verificationStatus === 'verified');
-    const driverAvailable = driverExists && driver.isAvailable === true;
     if (!driverExists || !correctRole) { addExclusion(driver, 'unknown_required_eligibility'); continue; }
-    if (!driverActive) { addExclusion(driver, 'driver_not_active'); continue; }
     if (!driverApproved) { addExclusion(driver, 'driver_not_approved'); continue; }
-    if (!driverAvailable) { addExclusion(driver, 'driver_unavailable'); continue; }
 
     const vehicles = await Vehicle.find({ driverId: driver._id }).lean();
     const vehicle = vehicles.find((v) => sameId(v.driverId, driver._id));
     if (!vehicle) { addExclusion(driver, 'unknown_required_eligibility'); continue; }
 
     const vehicleExists = !!vehicle;
-    const vehicleActive = vehicleExists && vehicle.isActive === true;
     const vehicleApproved = vehicleExists && vehicle.isApproved === true;
-    const vehicleVerified = vehicleExists && (vehicle.isVerified === true || vehicle.verificationStatus === 'verified' || vehicle.verificationStatus === 'approved');
     const vehicleAvailable = vehicleExists && vehicle.isAvailable === true;
     const capacity = vehicleExists ? Number(vehicle.capacity) : NaN;
     const typeMatch = !requestDoc.vehicleType || String(vehicle.type || '').toLowerCase() === String(requestDoc.vehicleType || '').toLowerCase();
     const driverVehicleMatch = sameId(vehicle.driverId, driver._id);
-    if (!vehicleActive) { addExclusion(vehicle, 'vehicle_not_active', { driverId: String(driver._id) }); continue; }
-    if (!(vehicleApproved || vehicleVerified)) { addExclusion(vehicle, 'vehicle_not_approved', { driverId: String(driver._id) }); continue; }
+    if (!vehicleApproved) { addExclusion(vehicle, 'vehicle_not_approved', { driverId: String(driver._id) }); continue; }
     if (!vehicleAvailable) { addExclusion(vehicle, 'vehicle_unavailable', { driverId: String(driver._id) }); continue; }
     if (!driverVehicleMatch) { addExclusion(vehicle, 'invalid_driver_vehicle_relationship', { driverId: String(driver._id) }); continue; }
     if (!typeMatch) { addExclusion(vehicle, 'unsupported_service', { driverId: String(driver._id) }); continue; }
