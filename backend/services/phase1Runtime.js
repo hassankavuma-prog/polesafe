@@ -2,6 +2,20 @@ const mongoose = require('mongoose');
 const { Booking, Child, Vehicle, RideRequest, DispatchOffer, Assignment, Ride, User, GuardianAuthority } = require('../database/schema');
 const sameId = (a, b) => String(a || '') === String(b || '');
 const now = () => new Date();
+function getActorId(actor) { return actor?._id || actor?.id || actor?.userId; }
+function assertDriver(actor) { if (!actor || actor.role !== 'driver') { const err = new Error('forbidden'); err.statusCode = 403; throw err; } }
+function getRideCategory(ride) {
+  const type = String(ride?.type || '').trim().toLowerCase();
+  if (['school_morning', 'school_afternoon'].includes(type)) return 'school_transport';
+  if (type === 'ride_hailing' || ride?.isRideHailing) return 'passenger_transport';
+  return 'unknown';
+}
+function getPreJourneySafetyPolicy(ride) {
+  const transportType = getRideCategory(ride);
+  return { policyVersion: 1, transportType, reminderRequired: transportType !== 'unknown', acknowledgementRequired: transportType === 'school_transport' };
+}
+function getPreJourneySafety(ride) { return ride?.preJourneySafety || {}; }
+function isStartIdempotent(ride, assignment) { return !!ride?.journeyStartedAt && !!assignment?.journeyStartedAt; }
 const ACCEPTANCE_ACTIVE_ASSIGNMENT_STATUSES = ['active', 'arrived', 'pickup_verified', 'onboard'];
 const ACCEPTANCE_ACTIVE_RIDE_STATUSES = ['dispatching', 'active', 'onboard'];
 const ACCEPTANCE_ELIGIBILITY_FAILURES = new Set(['driver_no_longer_eligible', 'vehicle_no_longer_eligible', 'invalid_driver_vehicle_relationship', 'insufficient_capacity', 'unsupported_service', 'active_assignment_conflict', 'active_vehicle_assignment_conflict', 'active_journey_conflict', 'active_vehicle_journey_conflict', 'manual_negotiation_required']);
@@ -47,7 +61,6 @@ const normalizeText = (v) => (v == null ? '' : String(v).trim().replace(/\s+/g, 
 const normalizePickupAt = (v) => (v ? new Date(v).toISOString() : '');
 function assertActor(actor, role) { if (!actor || actor.role !== role) { const err = new Error('forbidden'); err.statusCode = 403; throw err; } }
 function assertDriver(actor) { assertActor(actor, 'driver'); }
-function getActorId(actor) { return actor?._id || actor?.id || actor?.userId; }
 function computeRequestKey({ actorId, childId, schoolId, vehicleType, pickupAddress, dropoffAddress, pickupAt }) { return [String(actorId).trim(), String(childId).trim(), String(schoolId || '').trim(), normalizeText(vehicleType), normalizeText(pickupAddress), normalizeText(dropoffAddress), normalizePickupAt(pickupAt)].join('|'); }
 function getDispatchVersion(booking) { return Number(booking?.dispatchVersion || 1); }
 function getAssignmentSlotKey(booking, rideRequest) { return [String(booking?._id || ''), String(rideRequest?._id || '')].join(':'); }
@@ -289,12 +302,63 @@ async function verifyPickup({ actor, driverId, assignmentId, method }) {
   if (!assignment) { const err = new Error('assignment_not_found'); err.statusCode = 404; throw err; }
   if (!sameId(assignment.driverId, driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
   if (!assignment.arrivalAt) { const err = new Error('arrival_required'); err.statusCode = 409; throw err; }
+  if (assignment.pickupVerifiedAt) {
+    const ride = await Ride.findOne({ assignmentId: assignment._id });
+    return { assignment: assignment.toObject ? assignment.toObject() : assignment, ride: ride?.toObject ? ride.toObject() : ride, alreadyVerified: true };
+  }
   assignment.status = 'pickup_verified';
   assignment.pickupVerifiedAt = now();
   assignment.updatedAt = now();
   await assignment.save();
-  await Ride.updateOne({ assignmentId: assignment._id }, { $set: { pickupVerifiedAt: assignment.pickupVerifiedAt, runtimePhase: 'pickup_verified', pickupVerificationStatus: 'verified', runtimeFlags: { pickupVerificationMethod: method || 'driver_confirmed', pickupVerificationSource: 'driver', activePassengerState: 'secured' }, updatedAt: now() } });
-  return { assignment: assignment.toObject ? assignment.toObject() : assignment };
+  const ride = await Ride.findOne({ assignmentId: assignment._id });
+  if (ride) {
+    ride.pickupVerifiedAt = assignment.pickupVerifiedAt;
+    ride.runtimePhase = 'pickup_verified';
+    ride.pickupVerificationStatus = 'verified';
+    ride.runtimeFlags = { ...(ride.runtimeFlags || {}), pickupVerificationMethod: method || 'driver_confirmed', pickupVerificationSource: 'driver', activePassengerState: 'secured' };
+    ride.updatedAt = now();
+    await ride.save();
+  }
+  return { assignment: assignment.toObject ? assignment.toObject() : assignment, ride: ride?.toObject ? ride.toObject() : ride };
+}
+
+async function recordPreJourneySafetyReminder({ actor, driverId, assignmentId }) {
+  assertDriver(actor);
+  if (!sameId(getActorId(actor), driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  const assignment = await Assignment.findById(assignmentId);
+  if (!assignment) { const err = new Error('assignment_not_found'); err.statusCode = 404; throw err; }
+  if (!sameId(assignment.driverId, driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  if (!assignment.arrivalAt) { const err = new Error('arrival_required'); err.statusCode = 409; throw err; }
+  if (!assignment.pickupVerifiedAt) { const err = new Error('pickup_verification_required'); err.statusCode = 409; throw err; }
+  const ride = await Ride.findOne({ assignmentId: assignment._id });
+  if (!ride) { const err = new Error('ride_not_found'); err.statusCode = 404; throw err; }
+  const policy = getPreJourneySafetyPolicy(ride);
+  if (ride.preJourneySafety?.seatBeltReminderStatus === 'recorded') return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment, alreadyRecorded: true, reminderAt: ride.preJourneySafety.seatBeltReminderAt };
+
+  ride.preJourneySafety = { ...(ride.preJourneySafety || {}), policyVersion: policy.policyVersion, transportType: policy.transportType, seatBeltReminderRequired: policy.reminderRequired, seatBeltReminderStatus: 'recorded', seatBeltReminderAt: now(), driverAcknowledgementRequired: policy.acknowledgementRequired, assignmentId: assignment._id, vehicleId: assignment.vehicleId || ride.vehicleId || null, driverAcknowledged: !!ride.preJourneySafety?.driverAcknowledged, driverAcknowledgedAt: ride.preJourneySafety?.driverAcknowledgedAt || null, driverAcknowledgedBy: ride.preJourneySafety?.driverAcknowledgedBy || null };
+  ride.updatedAt = now();
+  await ride.save();
+  return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment };
+}
+
+async function acknowledgePreJourneySafety({ actor, driverId, assignmentId }) {
+  assertDriver(actor);
+  if (!sameId(getActorId(actor), driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  const assignment = await Assignment.findById(assignmentId);
+  if (!assignment) { const err = new Error('assignment_not_found'); err.statusCode = 404; throw err; }
+  if (!sameId(assignment.driverId, driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  if (!assignment.arrivalAt) { const err = new Error('arrival_required'); err.statusCode = 409; throw err; }
+  if (!assignment.pickupVerifiedAt) { const err = new Error('pickup_verification_required'); err.statusCode = 409; throw err; }
+  const ride = await Ride.findOne({ assignmentId: assignment._id });
+  if (!ride) { const err = new Error('ride_not_found'); err.statusCode = 404; throw err; }
+  const policy = getPreJourneySafetyPolicy(ride);
+  if (!ride.preJourneySafety?.seatBeltReminderStatus || ride.preJourneySafety.seatBeltReminderStatus !== 'recorded') { const err = new Error('pre_journey_reminder_required'); err.statusCode = 409; throw err; }
+  if (!policy.acknowledgementRequired) return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment, acknowledgementRequired: false, alreadyAcknowledged: !!ride.preJourneySafety?.driverAcknowledged };
+  if (ride.preJourneySafety?.driverAcknowledged && ride.preJourneySafety?.driverAcknowledgedAt) return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment, alreadyAcknowledged: true };
+  ride.preJourneySafety = { ...(ride.preJourneySafety || {}), policyVersion: policy.policyVersion, transportType: policy.transportType, seatBeltReminderRequired: true, seatBeltReminderStatus: 'recorded', seatBeltReminderAt: ride.preJourneySafety?.seatBeltReminderAt || now(), driverAcknowledgementRequired: true, driverAcknowledged: true, driverAcknowledgedAt: now(), driverAcknowledgedBy: driverId, assignmentId: assignment._id, vehicleId: assignment.vehicleId || ride.vehicleId || null };
+  ride.updatedAt = now();
+  await ride.save();
+  return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment };
 }
 
 async function startJourney({ actor, driverId, assignmentId }) {
@@ -303,13 +367,28 @@ async function startJourney({ actor, driverId, assignmentId }) {
   const assignment = await Assignment.findById(assignmentId);
   if (!assignment) { const err = new Error('assignment_not_found'); err.statusCode = 404; throw err; }
   if (!sameId(assignment.driverId, driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  if (!assignment.arrivalAt) { const err = new Error('arrival_required'); err.statusCode = 409; throw err; }
   if (!assignment.pickupVerifiedAt) { const err = new Error('pickup_verification_required'); err.statusCode = 409; throw err; }
+  const ride = await Ride.findOne({ assignmentId: assignment._id });
+  if (!ride) { const err = new Error('ride_not_found'); err.statusCode = 404; throw err; }
+  if (ride.journeyStartedAt && assignment.journeyStartedAt) return { assignment: assignment.toObject ? assignment.toObject() : assignment, ride: ride.toObject ? ride.toObject() : ride, alreadyStarted: true };
+  const policy = getPreJourneySafetyPolicy(ride);
+  const evidence = ride.preJourneySafety || {};
+  if (!evidence.seatBeltReminderStatus || evidence.seatBeltReminderStatus !== 'recorded') { const err = new Error('pre_journey_reminder_required'); err.statusCode = 409; throw err; }
+  if (policy.acknowledgementRequired && (!evidence.driverAcknowledged || !evidence.driverAcknowledgedAt)) { const err = new Error('driver_acknowledgement_required'); err.statusCode = 409; throw err; }
   assignment.status = 'onboard';
   assignment.journeyStartedAt = now();
   assignment.updatedAt = now();
   await assignment.save();
-  await Ride.updateOne({ assignmentId: assignment._id }, { $set: { journeyStartedAt: assignment.journeyStartedAt, activeJourneyStartedAt: assignment.journeyStartedAt, runtimePhase: 'onboard', journeyLifecycleStatus: 'onboard', status: 'onboard', runtimeSource: 'driver', updatedAt: now() } });
-  return { assignment: assignment.toObject ? assignment.toObject() : assignment };
+  ride.journeyStartedAt = assignment.journeyStartedAt;
+  ride.activeJourneyStartedAt = assignment.journeyStartedAt;
+  ride.runtimePhase = 'onboard';
+  ride.journeyLifecycleStatus = 'onboard';
+  ride.status = 'onboard';
+  ride.runtimeSource = 'driver';
+  ride.updatedAt = now();
+  await ride.save();
+  return { assignment: assignment.toObject ? assignment.toObject() : assignment, ride: ride.toObject ? ride.toObject() : ride };
 }
 
-module.exports = { computeRequestKey, beginDispatchRound, createRideRequestAndBooking, evaluateMatching, listDriverOffers, acceptOffer, markArrival, verifyPickup, startJourney };
+module.exports = { computeRequestKey, beginDispatchRound, createRideRequestAndBooking, evaluateMatching, listDriverOffers, acceptOffer, markArrival, verifyPickup, recordPreJourneySafetyReminder, acknowledgePreJourneySafety, startJourney, getPreJourneySafetyPolicy };

@@ -65,6 +65,24 @@ router.post('/phase1/assignments/:assignmentId/pickup-verify', requireRole('driv
   }
 });
 
+router.post('/phase1/assignments/:assignmentId/pre-journey-reminder', requireRole('driver'), async (req, res) => {
+  try {
+    const result = await phase1.recordPreJourneySafetyReminder({ actor: req.user, driverId: req.user._id, assignmentId: req.params.assignmentId });
+    res.json(result);
+  } catch (err) {
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
+});
+
+router.post('/phase1/assignments/:assignmentId/pre-journey-acknowledge', requireRole('driver'), async (req, res) => {
+  try {
+    const result = await phase1.acknowledgePreJourneySafety({ actor: req.user, driverId: req.user._id, assignmentId: req.params.assignmentId });
+    res.json(result);
+  } catch (err) {
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
+});
+
 router.post('/phase1/assignments/:assignmentId/start', requireRole('driver'), async (req, res) => {
   try {
     const result = await phase1.startJourney({ actor: req.user, driverId: req.user._id, assignmentId: req.params.assignmentId });

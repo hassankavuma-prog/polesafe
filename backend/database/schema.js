@@ -306,6 +306,19 @@ const rideSchema = new mongoose.Schema({
     activeDriverConfirmed: { type: Boolean, default: false },
     activeVehicleConfirmed: { type: Boolean, default: false },
   },
+  preJourneySafety: {
+    policyVersion: { type: Number, default: null },
+    transportType: { type: String, enum: ['school_transport', 'passenger_transport', 'unknown'], default: 'unknown' },
+    seatBeltReminderRequired: { type: Boolean, default: false },
+    seatBeltReminderStatus: { type: String, enum: ['pending', 'recorded'], default: 'pending' },
+    seatBeltReminderAt: { type: Date },
+    driverAcknowledgementRequired: { type: Boolean, default: false },
+    driverAcknowledged: { type: Boolean, default: false },
+    driverAcknowledgedAt: { type: Date },
+    driverAcknowledgedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    assignmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment' },
+    vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
+  },
 
   // Schedule
   scheduledPickupTime: { type: Date },
