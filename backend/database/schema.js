@@ -307,6 +307,15 @@ const rideSchema = new mongoose.Schema({
     activeVehicleConfirmed: { type: Boolean, default: false },
   },
   preJourneySafety: {
+    occurrenceId: { type: String },
+    occurrenceVersion: { type: Number, default: 0 },
+    occurrenceContext: {
+      rideId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ride' },
+      assignmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment' },
+      driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
+    },
+    occurrenceCreatedAt: { type: Date },
     policyVersion: { type: Number, default: null },
     transportType: { type: String, enum: ['school_transport', 'passenger_transport', 'unknown'], default: 'unknown' },
     seatBeltReminderRequired: { type: Boolean, default: false },

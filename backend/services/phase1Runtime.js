@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const { Booking, Child, Vehicle, RideRequest, DispatchOffer, Assignment, Ride, User, GuardianAuthority } = require('../database/schema');
 const sameId = (a, b) => String(a || '') === String(b || '');
 const now = () => new Date();
+const SAFETY_OCCURRENCE_REQUEST_PREFIX = 'pre-journey-safety-occurrence';
 function getActorId(actor) { return actor?._id || actor?.id || actor?.userId; }
 function assertDriver(actor) { if (!actor || actor.role !== 'driver') { const err = new Error('forbidden'); err.statusCode = 403; throw err; } }
 function getRideCategory(ride) {
@@ -15,6 +16,66 @@ function getPreJourneySafetyPolicy(ride) {
   return { policyVersion: 1, transportType, reminderRequired: transportType !== 'unknown', acknowledgementRequired: transportType === 'school_transport' };
 }
 function getPreJourneySafety(ride) { return ride?.preJourneySafety || {}; }
+function getPreJourneySafetyOccurrenceContext({ ride, assignment, driverId, vehicleId }) {
+  return {
+    rideId: ride?._id || null,
+    assignmentId: assignment?._id || ride?.assignmentId || null,
+    driverId: driverId || ride?.driverId || null,
+    vehicleId: vehicleId || assignment?.vehicleId || ride?.preJourneySafety?.vehicleId || null,
+  };
+}
+function getPreJourneySafetyOccurrenceRequestKey({ rideId, assignmentId, driverId, vehicleId }) {
+  return [SAFETY_OCCURRENCE_REQUEST_PREFIX, String(rideId || ''), String(assignmentId || ''), String(driverId || ''), String(vehicleId || '')].join('|');
+}
+function getPreJourneySafetyOccurrenceSignature({ occurrenceContext, policyVersion }) {
+  return [String(policyVersion || 0), String(occurrenceContext?.rideId || ''), String(occurrenceContext?.assignmentId || ''), String(occurrenceContext?.driverId || ''), String(occurrenceContext?.vehicleId || '')].join('|');
+}
+function isValidOccurrenceRecord(preJourneySafety, ride, assignment, driverId, vehicleId) {
+  const context = getPreJourneySafetyOccurrenceContext({ ride, assignment, driverId, vehicleId });
+  return !!preJourneySafety?.occurrenceId && preJourneySafety?.occurrenceVersion >= 1 && sameId(preJourneySafety?.occurrenceContext?.rideId, context.rideId) && sameId(preJourneySafety?.occurrenceContext?.assignmentId, context.assignmentId) && sameId(preJourneySafety?.occurrenceContext?.driverId, context.driverId) && sameId(preJourneySafety?.occurrenceContext?.vehicleId, context.vehicleId);
+}
+async function ensurePreJourneySafetyOccurrence({ ride, assignment, driverId, vehicleId, session } = {}) {
+  const rideQuery = ride?._id ? null : Ride.findById(ride);
+  if (rideQuery && session) rideQuery.session(session);
+  const currentRide = ride?._id ? ride : await rideQuery;
+  if (!currentRide) { const err = new Error('ride_not_found'); err.statusCode = 404; throw err; }
+  const assignmentQuery = assignment?._id ? null : currentRide.assignmentId ? Assignment.findById(currentRide.assignmentId) : null;
+  if (assignmentQuery && session) assignmentQuery.session(session);
+  const currentAssignment = assignment?._id ? assignment : assignmentQuery ? await assignmentQuery : null;
+  if (!currentAssignment) { const err = new Error('assignment_not_found'); err.statusCode = 404; throw err; }
+  if (!sameId(currentAssignment.driverId, driverId || currentRide.driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  const resolvedVehicleId = vehicleId || currentAssignment.vehicleId || currentRide.preJourneySafety?.vehicleId || null;
+  const policy = getPreJourneySafetyPolicy(currentRide);
+  const occurrenceContext = getPreJourneySafetyOccurrenceContext({ ride: currentRide, assignment: currentAssignment, driverId: driverId || currentRide.driverId, vehicleId: resolvedVehicleId });
+  const current = getPreJourneySafety(currentRide);
+  if (isValidOccurrenceRecord(current, currentRide, currentAssignment, occurrenceContext.driverId, occurrenceContext.vehicleId)) {
+    const signature = getPreJourneySafetyOccurrenceSignature({ occurrenceContext: current.occurrenceContext, policyVersion: current.policyVersion });
+    return { ride: currentRide, assignment: currentAssignment, occurrence: current, signature, occurrenceContext, policy };
+  }
+  const occurrence = {
+    occurrenceId: `spo_${currentRide._id}_${currentAssignment._id}_${policy.policyVersion}_1`,
+    occurrenceVersion: 1,
+    occurrenceContext,
+    occurrenceCreatedAt: now(),
+    policyVersion: policy.policyVersion,
+    transportType: policy.transportType,
+    seatBeltReminderRequired: policy.reminderRequired,
+    seatBeltReminderStatus: 'pending',
+    seatBeltReminderAt: null,
+    driverAcknowledgementRequired: policy.acknowledgementRequired,
+    driverAcknowledged: false,
+    driverAcknowledgedAt: null,
+    driverAcknowledgedBy: null,
+    assignmentId: currentAssignment._id,
+    vehicleId: resolvedVehicleId,
+    driverId: occurrenceContext.driverId,
+  };
+  currentRide.preJourneySafety = { ...(current || {}), ...occurrence };
+  currentRide.updatedAt = now();
+  if (session) await currentRide.save({ session }); else await currentRide.save();
+  const signature = getPreJourneySafetyOccurrenceSignature({ occurrenceContext, policyVersion: policy.policyVersion });
+  return { ride: currentRide, assignment: currentAssignment, occurrence: currentRide.preJourneySafety, signature, occurrenceContext, policy };
+}
 function isStartIdempotent(ride, assignment) { return !!ride?.journeyStartedAt && !!assignment?.journeyStartedAt; }
 const ACCEPTANCE_ACTIVE_ASSIGNMENT_STATUSES = ['active', 'arrived', 'pickup_verified', 'onboard'];
 const ACCEPTANCE_ACTIVE_RIDE_STATUSES = ['dispatching', 'active', 'onboard'];
@@ -332,13 +393,14 @@ async function recordPreJourneySafetyReminder({ actor, driverId, assignmentId })
   if (!assignment.pickupVerifiedAt) { const err = new Error('pickup_verification_required'); err.statusCode = 409; throw err; }
   const ride = await Ride.findOne({ assignmentId: assignment._id });
   if (!ride) { const err = new Error('ride_not_found'); err.statusCode = 404; throw err; }
-  const policy = getPreJourneySafetyPolicy(ride);
-  if (ride.preJourneySafety?.seatBeltReminderStatus === 'recorded') return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment, alreadyRecorded: true, reminderAt: ride.preJourneySafety.seatBeltReminderAt };
+  const ensured = await ensurePreJourneySafetyOccurrence({ ride, assignment, driverId, vehicleId: assignment.vehicleId });
+  const current = ensured.occurrence;
+  if (current.seatBeltReminderStatus === 'recorded') return { ride: ensured.ride.toObject ? ensured.ride.toObject() : ensured.ride, assignment: assignment.toObject ? assignment.toObject() : assignment, alreadyRecorded: true, reminderAt: current.seatBeltReminderAt };
 
-  ride.preJourneySafety = { ...(ride.preJourneySafety || {}), policyVersion: policy.policyVersion, transportType: policy.transportType, seatBeltReminderRequired: policy.reminderRequired, seatBeltReminderStatus: 'recorded', seatBeltReminderAt: now(), driverAcknowledgementRequired: policy.acknowledgementRequired, assignmentId: assignment._id, vehicleId: assignment.vehicleId || ride.vehicleId || null, driverAcknowledged: !!ride.preJourneySafety?.driverAcknowledged, driverAcknowledgedAt: ride.preJourneySafety?.driverAcknowledgedAt || null, driverAcknowledgedBy: ride.preJourneySafety?.driverAcknowledgedBy || null };
-  ride.updatedAt = now();
-  await ride.save();
-  return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment };
+  ensured.ride.preJourneySafety = { ...(current || {}), seatBeltReminderStatus: 'recorded', seatBeltReminderAt: now(), driverAcknowledgementRequired: ensured.policy.acknowledgementRequired, policyVersion: ensured.policy.policyVersion, transportType: ensured.policy.transportType, assignmentId: assignment._id, vehicleId: assignment.vehicleId || ensured.ride.vehicleId || null, driverId, occurrenceContext: ensured.occurrenceContext, occurrenceId: ensured.occurrence.occurrenceId, occurrenceVersion: ensured.occurrence.occurrenceVersion, occurrenceCreatedAt: ensured.occurrence.occurrenceCreatedAt };
+  ensured.ride.updatedAt = now();
+  await ensured.ride.save();
+  return { ride: ensured.ride.toObject ? ensured.ride.toObject() : ensured.ride, assignment: assignment.toObject ? assignment.toObject() : assignment };
 }
 
 async function acknowledgePreJourneySafety({ actor, driverId, assignmentId }) {
@@ -351,14 +413,15 @@ async function acknowledgePreJourneySafety({ actor, driverId, assignmentId }) {
   if (!assignment.pickupVerifiedAt) { const err = new Error('pickup_verification_required'); err.statusCode = 409; throw err; }
   const ride = await Ride.findOne({ assignmentId: assignment._id });
   if (!ride) { const err = new Error('ride_not_found'); err.statusCode = 404; throw err; }
-  const policy = getPreJourneySafetyPolicy(ride);
-  if (!ride.preJourneySafety?.seatBeltReminderStatus || ride.preJourneySafety.seatBeltReminderStatus !== 'recorded') { const err = new Error('pre_journey_reminder_required'); err.statusCode = 409; throw err; }
-  if (!policy.acknowledgementRequired) return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment, acknowledgementRequired: false, alreadyAcknowledged: !!ride.preJourneySafety?.driverAcknowledged };
-  if (ride.preJourneySafety?.driverAcknowledged && ride.preJourneySafety?.driverAcknowledgedAt) return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment, alreadyAcknowledged: true };
-  ride.preJourneySafety = { ...(ride.preJourneySafety || {}), policyVersion: policy.policyVersion, transportType: policy.transportType, seatBeltReminderRequired: true, seatBeltReminderStatus: 'recorded', seatBeltReminderAt: ride.preJourneySafety?.seatBeltReminderAt || now(), driverAcknowledgementRequired: true, driverAcknowledged: true, driverAcknowledgedAt: now(), driverAcknowledgedBy: driverId, assignmentId: assignment._id, vehicleId: assignment.vehicleId || ride.vehicleId || null };
-  ride.updatedAt = now();
-  await ride.save();
-  return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment };
+  const ensured = await ensurePreJourneySafetyOccurrence({ ride, assignment, driverId, vehicleId: assignment.vehicleId });
+  const current = ensured.occurrence;
+  if (!current.seatBeltReminderStatus || current.seatBeltReminderStatus !== 'recorded') { const err = new Error('pre_journey_reminder_required'); err.statusCode = 409; throw err; }
+  if (!ensured.policy.acknowledgementRequired) return { ride: ensured.ride.toObject ? ensured.ride.toObject() : ensured.ride, assignment: assignment.toObject ? assignment.toObject() : assignment, acknowledgementRequired: false, alreadyAcknowledged: !!current.driverAcknowledged };
+  if (current.driverAcknowledged && current.driverAcknowledgedAt) return { ride: ensured.ride.toObject ? ensured.ride.toObject() : ensured.ride, assignment: assignment.toObject ? assignment.toObject() : assignment, alreadyAcknowledged: true };
+  ensured.ride.preJourneySafety = { ...(current || {}), policyVersion: ensured.policy.policyVersion, transportType: ensured.policy.transportType, seatBeltReminderRequired: true, seatBeltReminderStatus: 'recorded', seatBeltReminderAt: current.seatBeltReminderAt || now(), driverAcknowledgementRequired: true, driverAcknowledged: true, driverAcknowledgedAt: now(), driverAcknowledgedBy: driverId, assignmentId: assignment._id, vehicleId: assignment.vehicleId || ensured.ride.vehicleId || null, driverId, occurrenceContext: ensured.occurrenceContext, occurrenceId: current.occurrenceId, occurrenceVersion: current.occurrenceVersion, occurrenceCreatedAt: current.occurrenceCreatedAt };
+  ensured.ride.updatedAt = now();
+  await ensured.ride.save();
+  return { ride: ensured.ride.toObject ? ensured.ride.toObject() : ensured.ride, assignment: assignment.toObject ? assignment.toObject() : assignment };
 }
 
 async function startJourney({ actor, driverId, assignmentId }) {
@@ -372,10 +435,11 @@ async function startJourney({ actor, driverId, assignmentId }) {
   const ride = await Ride.findOne({ assignmentId: assignment._id });
   if (!ride) { const err = new Error('ride_not_found'); err.statusCode = 404; throw err; }
   if (ride.journeyStartedAt && assignment.journeyStartedAt) return { assignment: assignment.toObject ? assignment.toObject() : assignment, ride: ride.toObject ? ride.toObject() : ride, alreadyStarted: true };
-  const policy = getPreJourneySafetyPolicy(ride);
-  const evidence = ride.preJourneySafety || {};
+  const ensured = await ensurePreJourneySafetyOccurrence({ ride, assignment, driverId, vehicleId: assignment.vehicleId });
+  const evidence = ensured.occurrence || {};
+  if (String(evidence.occurrenceId || '') !== String(ride.preJourneySafety?.occurrenceId || '')) { const err = new Error('stale_pre_journey_safety_occurrence'); err.statusCode = 409; throw err; }
   if (!evidence.seatBeltReminderStatus || evidence.seatBeltReminderStatus !== 'recorded') { const err = new Error('pre_journey_reminder_required'); err.statusCode = 409; throw err; }
-  if (policy.acknowledgementRequired && (!evidence.driverAcknowledged || !evidence.driverAcknowledgedAt)) { const err = new Error('driver_acknowledgement_required'); err.statusCode = 409; throw err; }
+  if (ensured.policy.acknowledgementRequired && (!evidence.driverAcknowledged || !evidence.driverAcknowledgedAt)) { const err = new Error('driver_acknowledgement_required'); err.statusCode = 409; throw err; }
   assignment.status = 'onboard';
   assignment.journeyStartedAt = now();
   assignment.updatedAt = now();
@@ -391,4 +455,37 @@ async function startJourney({ actor, driverId, assignmentId }) {
   return { assignment: assignment.toObject ? assignment.toObject() : assignment, ride: ride.toObject ? ride.toObject() : ride };
 }
 
-module.exports = { computeRequestKey, beginDispatchRound, createRideRequestAndBooking, evaluateMatching, listDriverOffers, acceptOffer, markArrival, verifyPickup, recordPreJourneySafetyReminder, acknowledgePreJourneySafety, startJourney, getPreJourneySafetyPolicy };
+async function beginPreJourneySafetyOccurrence({ actor, driverId, assignmentId, requestKey } = {}) {
+  assertDriver(actor);
+  if (!sameId(getActorId(actor), driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  const assignment = await Assignment.findById(assignmentId);
+  if (!assignment) { const err = new Error('assignment_not_found'); err.statusCode = 404; throw err; }
+  if (!sameId(assignment.driverId, driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  if (!assignment.arrivalAt) { const err = new Error('arrival_required'); err.statusCode = 409; throw err; }
+  if (!assignment.pickupVerifiedAt) { const err = new Error('pickup_verification_required'); err.statusCode = 409; throw err; }
+  const ride = await Ride.findOne({ assignmentId: assignment._id });
+  if (!ride) { const err = new Error('ride_not_found'); err.statusCode = 404; throw err; }
+  const current = ride.preJourneySafety || {};
+  const occurrenceContext = getPreJourneySafetyOccurrenceContext({ ride, assignment, driverId, vehicleId: assignment.vehicleId });
+  const sameRequest = requestKey && current.rotationRequestKey === requestKey;
+  if (sameRequest && isValidOccurrenceRecord(current, ride, assignment, driverId, assignment.vehicleId) && current.occurrenceVersion > 1) return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment, alreadyRotated: true };
+  const nextVersion = Number(current.occurrenceVersion || 1) + 1;
+  ride.preJourneySafety = { occurrenceId: `spo_${ride._id}_${assignment._id}_${nextVersion}`, occurrenceVersion: nextVersion, occurrenceContext, occurrenceCreatedAt: now(), policyVersion: getPreJourneySafetyPolicy(ride).policyVersion, transportType: getPreJourneySafetyPolicy(ride).transportType, seatBeltReminderRequired: getPreJourneySafetyPolicy(ride).reminderRequired, seatBeltReminderStatus: 'pending', seatBeltReminderAt: null, driverAcknowledgementRequired: getPreJourneySafetyPolicy(ride).acknowledgementRequired, driverAcknowledged: false, driverAcknowledgedAt: null, driverAcknowledgedBy: null, assignmentId: assignment._id, vehicleId: assignment.vehicleId || ride.vehicleId || null, driverId, rotationRequestKey: requestKey || null };
+  ride.updatedAt = now();
+  await ride.save();
+  return { ride: ride.toObject ? ride.toObject() : ride, assignment: assignment.toObject ? assignment.toObject() : assignment };
+}
+
+function getPreJourneySafetyState({ ride, assignment, driverId }) {
+  return ensurePreJourneySafetyOccurrence({ ride, assignment, driverId }).then(({ ride: ensuredRide, occurrence, occurrenceContext }) => ({ ride: ensuredRide.toObject ? ensuredRide.toObject() : ensuredRide, occurrenceId: occurrence.occurrenceId, occurrenceVersion: occurrence.occurrenceVersion, occurrenceContext }));
+}
+
+function getCurrentPreJourneySafetyOccurrence({ ride, assignment, driverId, vehicleId } = {}) {
+  const currentRide = ride;
+  const currentAssignment = assignment || (currentRide?.assignmentId ? { _id: currentRide.assignmentId, driverId: currentRide.driverId, vehicleId: vehicleId || currentRide?.preJourneySafety?.vehicleId } : null);
+  const current = getPreJourneySafety(currentRide);
+  const occurrenceContext = getPreJourneySafetyOccurrenceContext({ ride: currentRide, assignment: currentAssignment, driverId: driverId || currentRide?.driverId, vehicleId: vehicleId || currentAssignment?.vehicleId });
+  return isValidOccurrenceRecord(current, currentRide, currentAssignment, occurrenceContext.driverId, occurrenceContext.vehicleId) ? { occurrence: current, occurrenceContext } : null;
+}
+
+module.exports = { computeRequestKey, beginDispatchRound, createRideRequestAndBooking, evaluateMatching, listDriverOffers, acceptOffer, markArrival, verifyPickup, recordPreJourneySafetyReminder, acknowledgePreJourneySafety, startJourney, getPreJourneySafetyPolicy, ensurePreJourneySafetyOccurrence, beginPreJourneySafetyOccurrence, getPreJourneySafetyState, getCurrentPreJourneySafetyOccurrence };
