@@ -1,6 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE from '../config';
 
+function createStorageUnavailableError() {
+  const err = new Error('Safety state unavailable. Please retry when storage is available.');
+  err.code = 'STORAGE_UNAVAILABLE';
+  return err;
+}
+
 async function getAuthHeaders() {
   const token = await AsyncStorage.getItem('polesafe_token');
   if (!token) {
@@ -27,6 +33,24 @@ async function requestJson(path, options = {}) {
 export async function getPreJourneySafetyState(assignmentId) {
   const headers = await getAuthHeaders();
   return requestJson(`/api/phase1/assignments/${assignmentId}/pre-journey-safety`, { headers });
+}
+
+export async function getLastSpokenSafetyOccurrenceId(driverId) {
+  try {
+    return await AsyncStorage.getItem(`polesafe_last_spoken_safety_occurrence_${driverId}`);
+  } catch {
+    throw createStorageUnavailableError();
+  }
+}
+
+export async function setLastSpokenSafetyOccurrenceId(driverId, occurrenceId) {
+  try {
+    if (!driverId) return;
+    if (occurrenceId) await AsyncStorage.setItem(`polesafe_last_spoken_safety_occurrence_${driverId}`, String(occurrenceId));
+    else await AsyncStorage.removeItem(`polesafe_last_spoken_safety_occurrence_${driverId}`);
+  } catch {
+    throw createStorageUnavailableError();
+  }
 }
 
 export async function recordPreJourneySafetyReminder(assignmentId) {

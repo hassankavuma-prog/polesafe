@@ -2,7 +2,7 @@
 // Driver arrives at pickup location → tap to reveal safe word → kid says it → verify
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE from '../config';
 import { t } from '../constants/translations';
@@ -23,7 +23,7 @@ function PreJourneySafetyCard({ state, onAcknowledge, onStart, loadingAck, loadi
           <Text style={styles.ackBtnText}>{loadingAck ? t('submitting_acknowledgement') : t('acknowledgement_button')}</Text>
         </TouchableOpacity>
       ) : (
-        <Text style={styles.safetyHint}>{state?.reminderRecorded ? t('ready_to_start') : t('blocked_retry')}</Text>
+        <Text style={styles.safetyHint}>{state?.readyToStart ? t('ready_to_start') : t('blocked_retry')}</Text>
       )}
       <TouchableOpacity disabled={startDisabled} style={[styles.startBtn, startDisabled && styles.disabledBtn]} onPress={onStart}>
         <Text style={styles.startBtnText}>{t('journey_start')}</Text>
@@ -47,12 +47,37 @@ export default function DriverPickupVerify({ navigation, route }) {
   const [loadingSafety, setLoadingSafety] = useState(false);
   const [loadingAck, setLoadingAck] = useState(false);
   const [loadingStart, setLoadingStart] = useState(false);
-  const [safetyPhase, setSafetyPhase] = useState('pickup_verification');
-  const playedOnceRef = useRef(false);
+  const [currentOccurrenceId, setCurrentOccurrenceId] = useState(null);
+  const [currentOccurrenceVersion, setCurrentOccurrenceVersion] = useState(null);
+  const [driverStorageKey, setDriverStorageKey] = useState(null);
+  const playedOccurrenceRef = useRef(null);
   const ackInFlightRef = useRef(false);
   const startInFlightRef = useRef(false);
+  const mountedRef = useRef(true);
 
-  useEffect(() => { loadRide(); }, []);
+  useEffect(() => { loadRide(); return () => { mountedRef.current = false; }; }, []);
+
+  useEffect(() => {
+    const hydrate = async () => {
+      const driverId = String(route?.params?.driverId || ride?.driverId || '');
+      if (!driverId) return;
+      const key = `polesafe_last_spoken_safety_occurrence_${driverId}`;
+      setDriverStorageKey(key);
+      try { playedOccurrenceRef.current = await AsyncStorage.getItem(key); } catch {}
+    };
+    hydrate();
+  }, [route?.params?.driverId, ride?.driverId]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && assignmentId) loadSafety(assignmentId);
+    });
+    return () => sub?.remove?.();
+  }, [assignmentId]);
+
+  useEffect(() => {
+    if (assignmentId) loadSafety(assignmentId);
+  }, [assignmentId]);
 
   const loadRide = async () => {
     try {
@@ -63,30 +88,67 @@ export default function DriverPickupVerify({ navigation, route }) {
         setRide(data.ride || data);
         setAssignmentId(data.assignmentId || data.ride?.assignmentId || route?.params?.assignmentId || null);
       }
-    } catch (err) { setError(err.message); } finally { setLoading(false); }
+    } catch (err) { setError(err.message); } finally { if (mountedRef.current) setLoading(false); }
   };
 
+  const markOccurrenceSpoken = async (occurrenceId) => {
+    playedOccurrenceRef.current = occurrenceId;
+    if (!driverStorageKey || !occurrenceId) return;
+    try { await AsyncStorage.setItem(driverStorageKey, String(occurrenceId)); } catch {}
+  };
+
+  const resetLocalPresentationForNewOccurrence = (state) => {
+    setVerified(false);
+    setLoadingAck(false);
+    setLoadingStart(false);
+    setSafetyError('');
+    ackInFlightRef.current = false;
+    startInFlightRef.current = false;
+    if (state?.acknowledgementRequired !== true) return;
+  };
 
   const loadSafety = async (id = assignmentId) => {
-    if (!id) return;
+    if (!id || !mountedRef.current) return;
     setLoadingSafety(true);
     setSafetyError('');
-    setSafetyPhase('pre_journey_safety');
     try {
       const state = await getPreJourneySafetyState(id);
+      if (!mountedRef.current) return;
+      const occurrenceId = state?.occurrenceId || null;
+      const occurrenceVersion = state?.occurrenceVersion || null;
+      const occurrenceChanged = occurrenceId && occurrenceId !== currentOccurrenceId;
+      const sameOccurrence = occurrenceId && occurrenceId === currentOccurrenceId;
+      if (occurrenceChanged) resetLocalPresentationForNewOccurrence(state);
+      setCurrentOccurrenceId(occurrenceId);
+      setCurrentOccurrenceVersion(occurrenceVersion);
       setSafetyState(state);
-      if (!playedOnceRef.current) {
-        try { await announcePreJourneySafetyReminder(state?.acknowledgementRequired ? 'school' : 'ordinary'); } catch {}
-        playedOnceRef.current = true;
+      if (occurrenceId && playedOccurrenceRef.current !== occurrenceId) {
+        try {
+          await announcePreJourneySafetyReminder(state?.acknowledgementRequired ? 'school' : 'ordinary');
+          await markOccurrenceSpoken(occurrenceId);
+        } catch {}
+      } else if (sameOccurrence) {
+        setSafetyState(state);
       }
-      if (!state?.reminderRecorded) {
-        await recordPreJourneySafetyReminder(id);
-        setSafetyState(await getPreJourneySafetyState(id));
+      if (state && !state.reminderRecorded) {
+        try {
+          const reminderResult = await recordPreJourneySafetyReminder(id);
+          if (!mountedRef.current) return;
+          const refreshed = reminderResult?.ride?.preJourneySafety?.occurrenceId ? { ...state, ...reminderResult.ride.preJourneySafety } : await getPreJourneySafetyState(id);
+          if (!mountedRef.current) return;
+          setSafetyState(refreshed);
+          setCurrentOccurrenceId(refreshed?.occurrenceId || occurrenceId || null);
+          setCurrentOccurrenceVersion(refreshed?.occurrenceVersion || occurrenceVersion || null);
+        } catch (err) {
+          if (mountedRef.current) setSafetyError(err.message || t('blocked_retry'));
+        }
       }
     } catch (err) {
+      if (!mountedRef.current) return;
       setSafetyError(err.message || t('connection_required'));
-      setSafetyState(null);
-    } finally { setLoadingSafety(false); }
+    } finally {
+      if (mountedRef.current) setLoadingSafety(false);
+    }
   };
 
   const revealSafeWord = async () => {
@@ -129,13 +191,9 @@ export default function DriverPickupVerify({ navigation, route }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setVerified(true);
-      setSafetyPhase('pre_journey_safety');
       setAssignmentId(data.assignmentId || data.ride?.assignmentId || assignmentId || route?.params?.assignmentId || null);
-      if (ride?.childName) {
-        Alert.alert(`✅ ${ride.childName} Verified`, 'Safe word matched! Kid is safe to transport.');
-      } else {
-        Alert.alert('✅ Kid Verified', 'Safe word matched! Kid is safe to transport.');
-      }
+      if (ride?.childName) Alert.alert(`✅ ${ride.childName} Verified`, 'Safe word matched! Kid is safe to transport.');
+      else Alert.alert('✅ Kid Verified', 'Safe word matched! Kid is safe to transport.');
       await loadSafety(data.assignmentId || data.ride?.assignmentId || assignmentId || route?.params?.assignmentId || null);
     } catch (err) {
       Alert.alert('Error', err.message);
@@ -148,14 +206,7 @@ export default function DriverPickupVerify({ navigation, route }) {
       'The kid did not recognize the safe word. Do NOT take the kid. Contact the parent to verify.',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Report Mismatch',
-          accessibilityLabel: 'report mismatch',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('📞 Report Sent', 'PoleSafe has been notified. Parent will be contacted.');
-          },
-        },
+        { text: 'Report Mismatch', accessibilityLabel: 'report mismatch', style: 'destructive', onPress: () => Alert.alert('📞 Report Sent', 'PoleSafe has been notified. Parent will be contacted.') },
       ]
     );
   };
@@ -167,10 +218,24 @@ export default function DriverPickupVerify({ navigation, route }) {
     setSafetyError('');
     try {
       await acknowledgePreJourneySafety(assignmentId);
-      setSafetyState(await getPreJourneySafetyState(assignmentId));
+      const refreshed = await getPreJourneySafetyState(assignmentId);
+      if (!mountedRef.current) return;
+      setSafetyState(refreshed);
+      setCurrentOccurrenceId(refreshed?.occurrenceId || currentOccurrenceId);
+      setCurrentOccurrenceVersion(refreshed?.occurrenceVersion || currentOccurrenceVersion);
     } catch (err) {
-      setSafetyError(err.message || t('blocked_retry'));
-    } finally { ackInFlightRef.current = false; setLoadingAck(false); }
+      if (mountedRef.current) setSafetyError(err.message || t('blocked_retry'));
+      try {
+        const refreshed = await getPreJourneySafetyState(assignmentId);
+        if (!mountedRef.current) return;
+        setSafetyState(refreshed);
+        setCurrentOccurrenceId(refreshed?.occurrenceId || currentOccurrenceId);
+        setCurrentOccurrenceVersion(refreshed?.occurrenceVersion || currentOccurrenceVersion);
+      } catch {}
+    } finally {
+      ackInFlightRef.current = false;
+      if (mountedRef.current) setLoadingAck(false);
+    }
   };
 
   const handleStartJourney = async () => {
@@ -183,9 +248,18 @@ export default function DriverPickupVerify({ navigation, route }) {
       setSafetyPhase('onboard');
       navigation?.navigate?.('DriverDashboard');
     } catch (err) {
-      setSafetyError(err.message || t('blocked_retry'));
-      try { setSafetyState(await getPreJourneySafetyState(assignmentId)); } catch {}
-    } finally { startInFlightRef.current = false; setLoadingStart(false); }
+      if (mountedRef.current) setSafetyError(err.message || t('blocked_retry'));
+      try {
+        const refreshed = await getPreJourneySafetyState(assignmentId);
+        if (!mountedRef.current) return;
+        setSafetyState(refreshed);
+        setCurrentOccurrenceId(refreshed?.occurrenceId || currentOccurrenceId);
+        setCurrentOccurrenceVersion(refreshed?.occurrenceVersion || currentOccurrenceVersion);
+      } catch {}
+    } finally {
+      startInFlightRef.current = false;
+      if (mountedRef.current) setLoadingStart(false);
+    }
   };
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#2E7D32" /></View>;
