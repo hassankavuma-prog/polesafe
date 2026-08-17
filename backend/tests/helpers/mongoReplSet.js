@@ -7,7 +7,8 @@ async function startMongoReplSet() {
   });
 
   const uri = replSet.getUri();
-  await mongoose.connect(uri, { dbName: 'polesafe_phase1c_test' });
+  const dbName = process.env.POLSAFE_PHASE1C_DB_NAME || `polesafe_phase1c_test_${process.pid}`;
+  await mongoose.connect(uri, { dbName });
 
   require('../../database/schema');
 

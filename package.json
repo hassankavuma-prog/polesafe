@@ -8,7 +8,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit",
     "db:indexes": "node scripts/db-indexes.js",
-    "test:phase1c": "node --test backend/tests/phase1c*.test.js"
+    "test:phase1c": "node --test backend/tests/phase1c.transaction.test.js && node --test backend/tests/phase1c.acceptance.test.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
