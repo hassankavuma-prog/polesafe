@@ -1067,6 +1067,29 @@ const safetyIncidentSchema = new mongoose.Schema({
 safetyIncidentSchema.index({ status: 1, severity: 1, createdAt: -1 });
 safetyIncidentSchema.index({ assignedOperatorId: 1, status: 1 });
 
+
+// ============================================================
+// RECOVERY HANDOFF — Protected custody recovery between drivers
+// ============================================================
+const recoveryHandoffSchema = new mongoose.Schema({
+  recoveryId: { type: String, required: true, unique: true, index: true },
+  recoveryRequestId: { type: String },
+  journeyId: { type: String },
+  rideId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ride', required: true },
+  assignmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment', required: true },
+  requestDriverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  receiverDriverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  receiverAssignmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment' },
+  receiverVehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
+  status: { type: String, enum: ['pending', 'handoff_pending', 'completed', 'cancelled'], default: 'pending' },
+  handoffPending: { type: Boolean, default: true },
+  custodyContinuityRequired: { type: Boolean, default: true },
+  unauthorizedReceiverProtected: { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+recoveryHandoffSchema.index({ recoveryId: 1 }, { unique: true });
+
 // Export models
 module.exports = {
   User: mongoose.model('User', userSchema),
@@ -1091,5 +1114,6 @@ module.exports = {
 
   // Audit Trail — system-wide activity log
   AuditLog: mongoose.model('AuditLog', auditLogSchema),
+  RecoveryHandoff: mongoose.model('RecoveryHandoff', recoveryHandoffSchema),
   SafetyIncident: mongoose.model('SafetyIncident', safetyIncidentSchema),
 };

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { Booking, Child, Vehicle, RideRequest, DispatchOffer, Assignment, Ride, User, GuardianAuthority } = require('../database/schema');
+const { Booking, Child, Vehicle, RideRequest, DispatchOffer, Assignment, Ride, User, GuardianAuthority, RecoveryHandoff } = require('../database/schema');
 const sameId = (a, b) => String(a || '') === String(b || '');
 const now = () => new Date();
 const SAFETY_OCCURRENCE_REQUEST_PREFIX = 'pre-journey-safety-occurrence';
@@ -489,3 +489,60 @@ function getCurrentPreJourneySafetyOccurrence({ ride, assignment, driverId, vehi
 }
 
 module.exports = { computeRequestKey, beginDispatchRound, createRideRequestAndBooking, evaluateMatching, listDriverOffers, acceptOffer, markArrival, verifyPickup, recordPreJourneySafetyReminder, acknowledgePreJourneySafety, startJourney, getPreJourneySafetyPolicy, ensurePreJourneySafetyOccurrence, beginPreJourneySafetyOccurrence, getPreJourneySafetyState, getCurrentPreJourneySafetyOccurrence };
+
+
+async function requestProtectedJourneyRecovery({ actor, driverId, assignmentId, rideId, journeyId } = {}) {
+  assertDriver(actor);
+  if (!sameId(getActorId(actor), driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  const ride = await Ride.findById(rideId);
+  if (!ride) { const err = new Error('ride_not_found'); err.statusCode = 404; throw err; }
+  const assignment = await Assignment.findById(assignmentId);
+  if (!assignment) { const err = new Error('assignment_not_found'); err.statusCode = 404; throw err; }
+  const recoveryId = String(journeyId || rideId || assignmentId);
+  const existing = await RecoveryHandoff.findOne({ recoveryId: String(recoveryId) });
+  if (existing) return { alreadyRequested: true, recovery: existing.toObject ? existing.toObject() : existing };
+  const recovery = await RecoveryHandoff.create({ recoveryId: String(recoveryId), journeyId: String(journeyId || rideId || ''), rideId: ride._id, assignmentId: assignment._id, requestDriverId: driverId, status: 'pending', handoffPending: true, custodyContinuityRequired: true, unauthorizedReceiverProtected: true });
+  return { alreadyRequested: false, recovery: recovery.toObject ? recovery.toObject() : recovery };
+}
+
+async function planProtectedRecovery({ actor, driverId, assignmentId, recoveryId, replacementAssignmentId } = {}) {
+  assertDriver(actor);
+  if (!sameId(getActorId(actor), driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  const recovery = await RecoveryHandoff.findOne({ recoveryId: String(recoveryId) });
+  if (!recovery) { const err = new Error('recovery_not_found'); err.statusCode = 404; throw err; }
+  if (!sameId(recovery.assignmentId, assignmentId)) { const err = new Error('recovery_assignment_mismatch'); err.statusCode = 409; throw err; }
+  const replacement = await Assignment.findById(replacementAssignmentId);
+  if (!replacement) { const err = new Error('replacement_assignment_not_found'); err.statusCode = 404; throw err; }
+  recovery.receiverAssignmentId = replacement._id;
+  recovery.receiverDriverId = replacement.driverId;
+  recovery.receiverVehicleId = replacement.vehicleId;
+  recovery.status = 'handoff_pending';
+  recovery.handoffPending = true;
+  recovery.updatedAt = new Date();
+  await recovery.save();
+  return { alreadyPlanned: false, recovery: recovery.toObject ? recovery.toObject() : recovery };
+}
+
+async function completeRecoveryHandoff({ actor, driverId, assignmentId, recoveryId } = {}) {
+  assertDriver(actor);
+  if (!sameId(getActorId(actor), driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  const recovery = await RecoveryHandoff.findOne({ recoveryId: String(recoveryId) });
+  if (!recovery) { const err = new Error('recovery_not_found'); err.statusCode = 404; throw err; }
+  if (!sameId(recovery.assignmentId, assignmentId)) { const err = new Error('recovery_assignment_mismatch'); err.statusCode = 409; throw err; }
+  if (!sameId(recovery.requestDriverId, driverId)) { const err = new Error('forbidden'); err.statusCode = 403; throw err; }
+  const ride = await Ride.findById(recovery.rideId);
+  const receiverAssignment = await Assignment.findById(recovery.receiverAssignmentId);
+  if (!ride || !receiverAssignment) { const err = new Error('recovery_not_found'); err.statusCode = 404; throw err; }
+  if (recovery.status === 'completed') return { alreadyCompleted: true, recovery: recovery.toObject ? recovery.toObject() : recovery, ride: ride.toObject ? ride.toObject() : ride };
+  ride.assignmentId = receiverAssignment._id;
+  ride.driverId = receiverAssignment.driverId;
+  ride.updatedAt = new Date();
+  await ride.save();
+  recovery.status = 'completed';
+  recovery.handoffPending = false;
+  recovery.updatedAt = new Date();
+  await recovery.save();
+  return { alreadyCompleted: false, recovery: recovery.toObject ? recovery.toObject() : recovery, ride: ride.toObject ? ride.toObject() : ride };
+}
+
+module.exports = { computeRequestKey, beginDispatchRound, createRideRequestAndBooking, evaluateMatching, listDriverOffers, acceptOffer, markArrival, verifyPickup, recordPreJourneySafetyReminder, acknowledgePreJourneySafety, startJourney, getPreJourneySafetyPolicy, ensurePreJourneySafetyOccurrence, beginPreJourneySafetyOccurrence, getPreJourneySafetyState, getCurrentPreJourneySafetyOccurrence, requestProtectedJourneyRecovery, planProtectedRecovery, completeRecoveryHandoff };
