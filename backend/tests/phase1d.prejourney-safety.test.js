@@ -164,6 +164,70 @@ test('Phase 1D pre-journey safety foundation', async (t) => {
     assert.equal(started.ride?.preJourneySafety?.driverAcknowledged === undefined || started.ride?.preJourneySafety?.driverAcknowledged === false, true);
   });
 
+  await t.test('fresh school occurrence rejects stale reminder and acknowledgement after protected recovery', async () => {
+    await resetCollections();
+    const ctx = await ensureRideWithArrivalAndPickup('school_morning');
+    const oldReminder = await runtime.recordPreJourneySafetyReminder({ actor: ctx.driver, driverId: ctx.driver._id, assignmentId: ctx.assignment._id });
+    const oldAcknowledgement = await runtime.acknowledgePreJourneySafety({ actor: ctx.driver, driverId: ctx.driver._id, assignmentId: ctx.assignment._id });
+    const oldOccurrenceId = String(oldAcknowledgement.ride.preJourneySafety.occurrenceId);
+    const oldOccurrenceVersion = Number(oldAcknowledgement.ride.preJourneySafety.occurrenceVersion);
+    assert.equal(String(oldReminder.ride.preJourneySafety.occurrenceId), oldOccurrenceId);
+    const driverB = await User.create({ phone: '+256704000010', name: 'Receiver Driver', role: 'driver', isDriverIdVerified: true, verificationStatus: 'approved' });
+    const vehicleB = await Vehicle.create({ driverId: driverB._id, type: 'car', capacity: 4, isApproved: true, isAvailable: true });
+    const replacementAssignment = await Assignment.create({ bookingId: ctx.booking._id, rideRequestId: ctx.rideRequest._id, assignmentSlotKey: String(ctx.booking._id) + ':' + String(ctx.rideRequest._id), driverId: driverB._id, vehicleId: vehicleB._id, status: 'active' });
+    const recovery = await runtime.requestProtectedJourneyRecovery({ actor: ctx.driver, driverId: ctx.driver._id, assignmentId: ctx.assignment._id, rideId: ctx.ride._id, journeyId: String(ctx.ride._id), triggerType: 'custody_break' });
+    await runtime.planProtectedRecovery({ actor: ctx.driver, driverId: ctx.driver._id, assignmentId: ctx.assignment._id, recoveryId: recovery.recovery.recoveryId, replacementAssignmentId: replacementAssignment._id });
+    const completed = await runtime.completeRecoveryHandoff({ actor: ctx.driver, driverId: ctx.driver._id, assignmentId: ctx.assignment._id, recoveryId: recovery.recovery.recoveryId });
+    const freshOccurrenceId = String(completed.ride.preJourneySafety.occurrenceId);
+    assert.notEqual(freshOccurrenceId, oldOccurrenceId);
+    assert.equal(Number(completed.ride.preJourneySafety.occurrenceVersion) > oldOccurrenceVersion, true);
+    await runtime.markArrival({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id });
+    const arrivedReplacement = await Assignment.findById(replacementAssignment._id).lean();
+    assert.ok(arrivedReplacement.arrivalAt);
+    await runtime.verifyPickup({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id, method: 'driver_confirmed' });
+    const verifiedReplacement = await Assignment.findById(replacementAssignment._id).lean();
+    assert.ok(verifiedReplacement.pickupVerifiedAt);
+    await assert.rejects(() => runtime.startJourney({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id }), /pre_journey_reminder_required/);
+    await runtime.recordPreJourneySafetyReminder({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id });
+    await assert.rejects(() => runtime.startJourney({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id }), /driver_acknowledgement_required|pre_journey_acknowledgement_required/);
+    await runtime.acknowledgePreJourneySafety({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id });
+    const started = await runtime.startJourney({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id });
+    assert.equal(String(started.ride.preJourneySafety.occurrenceId), freshOccurrenceId);
+  });
+
+  await t.test('ordinary passenger recovery requires fresh reminder but not acknowledgement', async () => {
+    await resetCollections();
+    const ctx = await ensureRideWithArrivalAndPickup('ride_hailing', { isRideHailing: true });
+    const oldReminder = await runtime.recordPreJourneySafetyReminder({ actor: ctx.driver, driverId: ctx.driver._id, assignmentId: ctx.assignment._id });
+    const oldOccurrenceId = String(oldReminder.ride.preJourneySafety.occurrenceId);
+    const oldOccurrenceVersion = Number(oldReminder.ride.preJourneySafety.occurrenceVersion);
+    const driverB = await User.create({ phone: '+256705000010', name: 'Receiver Ordinary Driver', role: 'driver', isDriverIdVerified: true, verificationStatus: 'approved' });
+    const vehicleB = await Vehicle.create({ driverId: driverB._id, type: 'car', capacity: 4, isApproved: true, isAvailable: true });
+    const replacementAssignment = await Assignment.create({ bookingId: ctx.booking._id, rideRequestId: ctx.rideRequest._id, assignmentSlotKey: String(ctx.booking._id) + ':' + String(ctx.rideRequest._id), driverId: driverB._id, vehicleId: vehicleB._id, status: 'active' });
+    const recovery = await runtime.requestProtectedJourneyRecovery({ actor: ctx.driver, driverId: ctx.driver._id, assignmentId: ctx.assignment._id, rideId: ctx.ride._id, journeyId: String(ctx.ride._id), triggerType: 'custody_break' });
+    await runtime.planProtectedRecovery({ actor: ctx.driver, driverId: ctx.driver._id, assignmentId: ctx.assignment._id, recoveryId: recovery.recovery.recoveryId, replacementAssignmentId: replacementAssignment._id });
+    const completed = await runtime.completeRecoveryHandoff({ actor: ctx.driver, driverId: ctx.driver._id, assignmentId: ctx.assignment._id, recoveryId: recovery.recovery.recoveryId });
+    assert.notEqual(String(completed.ride.preJourneySafety.occurrenceId), oldOccurrenceId);
+    assert.equal(Number(completed.ride.preJourneySafety.occurrenceVersion) > oldOccurrenceVersion, true);
+    assert.equal(String(completed.ride._id), String(ctx.ride._id));
+    const completedRetry = await runtime.completeRecoveryHandoff({ actor: ctx.driver, driverId: ctx.driver._id, assignmentId: ctx.assignment._id, recoveryId: recovery.recovery.recoveryId });
+    assert.equal(completedRetry.alreadyCompleted, true);
+    assert.equal(String(completedRetry.ride.preJourneySafety.occurrenceId), String(completed.ride.preJourneySafety.occurrenceId));
+    await runtime.markArrival({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id });
+    await runtime.verifyPickup({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id, method: 'driver_confirmed' });
+    const arrivedReplacement = await Assignment.findById(replacementAssignment._id).lean();
+    assert.ok(arrivedReplacement.arrivalAt);
+    assert.ok(arrivedReplacement.pickupVerifiedAt);
+    await assert.rejects(() => runtime.startJourney({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id }), /pre_journey_reminder_required/);
+    const freshReminder = await runtime.recordPreJourneySafetyReminder({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id });
+    assert.equal(String(freshReminder.ride.preJourneySafety.occurrenceId), String(completed.ride.preJourneySafety.occurrenceId));
+    const started = await runtime.startJourney({ actor: driverB, driverId: driverB._id, assignmentId: replacementAssignment._id });
+    assert.equal(started.ride.journeyLifecycleStatus, 'onboard');
+    assert.equal(started.ride.runtimePhase, 'onboard');
+    assert.equal(started.ride._id.toString(), ctx.ride._id.toString());
+    assert.equal(started.ride?.preJourneySafety?.driverAcknowledged === undefined || started.ride?.preJourneySafety?.driverAcknowledged === false, true);
+  });
+
   await t.test('unknown ride type does not silently inherit child or ordinary policy', async () => {
     const policy = runtime.getPreJourneySafetyPolicy({ type: 'excursion' });
     assert.equal(policy.transportType, 'unknown');

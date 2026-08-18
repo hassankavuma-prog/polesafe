@@ -536,6 +536,25 @@ async function completeRecoveryHandoff({ actor, driverId, assignmentId, recovery
   if (recovery.status === 'completed') return { alreadyCompleted: true, recovery: recovery.toObject ? recovery.toObject() : recovery, ride: ride.toObject ? ride.toObject() : ride };
   ride.assignmentId = receiverAssignment._id;
   ride.driverId = receiverAssignment.driverId;
+  ride.preJourneySafety = {
+    ...(ride.preJourneySafety || {}),
+    occurrenceId: `spo_${ride._id}_${receiverAssignment._id}_${Number((ride.preJourneySafety && ride.preJourneySafety.occurrenceVersion) || 1) + 1}`,
+    occurrenceVersion: Number((ride.preJourneySafety && ride.preJourneySafety.occurrenceVersion) || 1) + 1,
+    occurrenceContext: getPreJourneySafetyOccurrenceContext({ ride, assignment: receiverAssignment, driverId: receiverAssignment.driverId, vehicleId: receiverAssignment.vehicleId }),
+    occurrenceCreatedAt: now(),
+    policyVersion: getPreJourneySafetyPolicy(ride).policyVersion,
+    transportType: getPreJourneySafetyPolicy(ride).transportType,
+    seatBeltReminderRequired: getPreJourneySafetyPolicy(ride).reminderRequired,
+    seatBeltReminderStatus: 'pending',
+    seatBeltReminderAt: null,
+    driverAcknowledgementRequired: getPreJourneySafetyPolicy(ride).acknowledgementRequired,
+    driverAcknowledged: false,
+    driverAcknowledgedAt: null,
+    driverAcknowledgedBy: null,
+    assignmentId: receiverAssignment._id,
+    vehicleId: receiverAssignment.vehicleId || ride.vehicleId || null,
+    driverId: receiverAssignment.driverId,
+  };
   ride.updatedAt = new Date();
   await ride.save();
   recovery.status = 'completed';

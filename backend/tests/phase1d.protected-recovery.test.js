@@ -123,11 +123,18 @@ test('Phase 1D protected recovery contract', async (t) => {
     const { assignment, ride, rideRequest, driverB, vehicleB } = await seedProtectedRecoveryWorld();
     await preparePickup({ driver: { _id: assignment.driverId, role: 'driver' }, assignment });
     const requested = await runtime.requestProtectedJourneyRecovery({ actor: { _id: assignment.driverId, role: 'driver' }, driverId: assignment.driverId, assignmentId: assignment._id, rideId: ride._id, journeyId: String(ride._id), triggerType: 'custody_break' });
+    const preHandoffOccurrenceId = String((await Ride.findById(ride._id)).preJourneySafety.occurrenceId);
     const replacement = await createReplacementAssignment({ rideRequest, driver: driverB, vehicle: vehicleB, booking: await Booking.findById(assignment.bookingId) });
     await runtime.planProtectedRecovery({ actor: { _id: assignment.driverId, role: 'driver' }, driverId: assignment.driverId, assignmentId: assignment._id, recoveryId: requested.recovery.recoveryId, replacementAssignmentId: replacement.assignment._id });
     const first = await runtime.completeRecoveryHandoff({ actor: { _id: assignment.driverId, role: 'driver' }, driverId: assignment.driverId, assignmentId: assignment._id, recoveryId: requested.recovery.recoveryId });
+    const firstOccurrenceId = String(first.ride.preJourneySafety.occurrenceId);
+    const firstOccurrenceVersion = Number(first.ride.preJourneySafety.occurrenceVersion);
     const second = await runtime.completeRecoveryHandoff({ actor: { _id: assignment.driverId, role: 'driver' }, driverId: assignment.driverId, assignmentId: assignment._id, recoveryId: requested.recovery.recoveryId });
+    assert.equal(firstOccurrenceId !== preHandoffOccurrenceId, true);
     assert.equal(second.alreadyCompleted, true);
     assert.equal(String(first.recovery.recoveryId), String(second.recovery.recoveryId));
+    assert.equal(String(second.ride.preJourneySafety.occurrenceId), firstOccurrenceId);
+    assert.equal(Number(second.ride.preJourneySafety.occurrenceVersion), firstOccurrenceVersion);
+    assert.equal(String(second.ride.assignmentId), String(first.ride.assignmentId));
   });
 });
