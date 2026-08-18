@@ -293,6 +293,7 @@ async function acceptOffer({ actor, driverId, offerId }) {
     const existing = await Assignment.findOne({ bookingId: booking._id, assignmentSlotKey, status: 'active' }).session(session);
     if (existing) {
       if (sameId(existing.driverId, driverId)) { await session.commitTransaction(); session.endSession(); return { assignment: existing.toObject ? existing.toObject() : existing, offer: offer.toObject ? offer.toObject() : offer, alreadyAccepted: true }; }
+      if (existing.pickupVerifiedAt) { const err = new Error('post_pickup_reassignment_requires_protected_recovery'); err.statusCode = 409; throw err; }
       const err = new Error('already_taken'); err.statusCode = 409; throw err;
     }
     let vehicle;
