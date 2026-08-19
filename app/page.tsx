@@ -61,7 +61,7 @@ function PublicHero() {
             <p className="mt-5 max-w-2xl text-base leading-8 text-slate-200 sm:text-lg">PoleSafe connects parents, students, schools, drivers and communities on one trusted platform with safer journeys, real-time visibility and accountable transport.</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="#booking" className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(14,165,233,0.25)] transition hover:bg-sky-400">Book a Ride</Link>
-              <Link href="#trust-safety" className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10">How PoleSafe Works</Link>
+              <Link href="#trust-safety" className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-[rgba(255,255,255,0.05)] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10">How PoleSafe Works</Link>
             </div>
           </div>
           <div className="relative">
@@ -71,7 +71,7 @@ function PublicHero() {
                 <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Trusted journeys</div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {[["Parents", "Clear booking and pickup visibility"], ["Schools", "Safer handoffs and coordinated transport"], ["Drivers", "Structured ride requests and routes"], ["Communities", "Shared mobility with accountability"]].map(([title, text]) => (
-                    <div key={title} className="rounded-2xl bg-white/5 p-4">
+                    <div key={title} className="rounded-2xl bg-[rgba(255,255,255,0.05)] p-4">
                       <div className="text-sm font-semibold text-white">{title}</div>
                       <div className="mt-1 text-sm leading-6 text-slate-300">{text}</div>
                     </div>
@@ -184,7 +184,7 @@ function SafetySection() {
             <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Built for every role</div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {['Parents & community riders', 'Schools', 'Drivers', 'Dispatchers'].map((item) => (
-                <div key={item} className="rounded-2xl bg-white/5 p-4 text-sm text-slate-200">{item}</div>
+                <div key={item} className="rounded-2xl bg-[rgba(255,255,255,0.05)] p-4 text-sm text-slate-200">{item}</div>
               ))}
             </div>
           </div>

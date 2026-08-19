@@ -115,11 +115,11 @@ export default function BookingWidget() {
       <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-5 shadow-[0_18px_60px_rgba(2,6,23,0.55)] backdrop-blur-2xl sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-emerald-300">Live booking</div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[rgba(255,255,255,0.05)] px-3 py-1 text-xs text-emerald-300">Live booking</div>
             <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">Book a ride from the website</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-300">Choose community ride or school ride, enter the journey details, and send the request directly into PoleSafe backend routing.</p>
           </div>
-          <div className="flex rounded-2xl border border-white/10 bg-white/5 p-1 text-xs text-slate-300">
+          <div className="flex rounded-2xl border border-white/10 bg-[rgba(255,255,255,0.05)] p-1 text-xs text-slate-300">
             {(['community', 'school'] as RideMode[]).map((item) => (
               <button key={item} onClick={() => setMode(item)} className={`rounded-xl px-4 py-2 capitalize ${mode === item ? 'bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.18)]' : 'hover:bg-white/10'}`}>
                 {item} rides
