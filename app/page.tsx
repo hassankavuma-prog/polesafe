@@ -30,7 +30,7 @@ function PublicHeader() {
         </Link>
         <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
           {nav.map(([label, href]) => (
-            <Link key={label} href={href} className="rounded-full px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950">{label}</Link>
+            <Link key={label} href={href} className="rounded-md px-2.5 py-2 text-sm font-medium text-slate-700 transition hover:text-slate-950 hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
@@ -41,9 +41,9 @@ function PublicHeader() {
       <div className="border-t border-slate-200 bg-white lg:hidden">
         <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-3 sm:px-6 lg:px-8">
           {nav.map(([label, href]) => (
-            <Link key={label} href={href} className="whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800">{label}</Link>
+            <Link key={label} href={href} className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:text-slate-950 hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
           ))}
-          <Link href="/ops" className="whitespace-nowrap rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500">Dispatcher Ops Console</Link>
+          <Link href="/ops" className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:text-slate-900 hover:underline hover:underline-offset-4">Dispatcher Ops Console</Link>
         </div>
       </div>
     </header>
@@ -66,18 +66,18 @@ function PublicHero() {
           </div>
           <div className="relative">
             <div className="absolute inset-0 -m-6 rounded-[2rem] bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.28),transparent_28%),radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.18),transparent_26%),radial-gradient(circle_at_50%_75%,rgba(14,165,233,0.16),transparent_30%)] blur-2xl" />
-            <div className="relative overflow-hidden rounded-[2rem] border border-slate-800/80 bg-[linear-gradient(180deg,#06111f_0%,#0b1730_52%,#08111f_100%)] p-5 shadow-[0_24px_60px_rgba(8,15,32,0.42)] ring-1 ring-sky-400/10 backdrop-blur-xl sm:p-6">
-              <div className="rounded-[1.75rem] border border-white/10 bg-slate-950/70 p-5">
+            <div className="relative overflow-hidden rounded-[2rem] border border-slate-800/80 bg-[linear-gradient(180deg,#06111f_0%,#0b1730_52%,#08111f_100%)] p-5 shadow-[0_24px_60px_rgba(8,15,32,0.42)] backdrop-blur-xl sm:p-6">
+              <div className="rounded-[1.75rem] bg-slate-950/70 p-5">
                 <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Trusted journeys</div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {[["Parents", "Clear booking and pickup visibility"], ["Schools", "Safer handoffs and coordinated transport"], ["Drivers", "Structured ride requests and routes"], ["Communities", "Shared mobility with accountability"]].map(([title, text]) => (
-                    <div key={title} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div key={title} className="rounded-2xl bg-white/5 p-4">
                       <div className="text-sm font-semibold text-white">{title}</div>
                       <div className="mt-1 text-sm leading-6 text-slate-300">{text}</div>
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 rounded-2xl border border-sky-400/20 bg-sky-500/10 px-4 py-3 text-sm leading-6 text-sky-100">Built for Uganda-first mobility, without fake metrics or misleading live data.</div>
+                <div className="mt-4 rounded-2xl bg-sky-500/10 px-4 py-3 text-sm leading-6 text-sky-100">Built for Uganda-first mobility, without fake metrics or misleading live data.</div>
               </div>
             </div>
           </div>
@@ -98,11 +98,11 @@ function CommunityRidesSection() {
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">PoleSafe community rides help people move around with clearer ride context, verified booking flow, and a safety-first experience for everyday transport.</p>
           </div>
           <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8">
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+            <div className="rounded-[1.75rem] bg-white p-5">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Community ride preview</div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {['Verified pickup', 'Route visibility', 'Trusted driver', 'Simple booking'].map((item) => (
-                  <div key={item} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{item}</div>
+                  <div key={item} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{item}</div>
                 ))}
               </div>
             </div>
@@ -123,11 +123,11 @@ function SchoolsSection() {
             <h2 className="mt-3 text-2xl font-semibold text-slate-900 sm:text-3xl">Built for schools that put safety first</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">PoleSafe gives schools, teachers, administrators, and parents a complete transport safety ecosystem — centered on visibility, verification, attendance, compliance, and communication.</p>
           </div>
-          <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+          <div className="rounded-[1.75rem] bg-slate-50 p-4 sm:p-5">
             <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">School journey flow</div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {['Parent', 'Verified Driver', 'Child Pickup', 'Live Journey', 'School / Teacher', 'Verified Handoff', 'Parent Confirmation'].map((item, index) => (
-                <div key={item} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div key={item} className="rounded-2xl bg-white p-4 shadow-sm">
                   <div className="font-semibold text-slate-900">{index + 1}. {item}</div>
                 </div>
               ))}
@@ -150,7 +150,7 @@ function DriversSection() {
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">PoleSafe positions drivers as trusted members of the network — serving community riders, families, and school journeys with clearer trip context and a stronger safety story.</p>
           </div>
           <div className="bg-white px-5 py-6 sm:px-6 sm:py-8">
-            <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+            <div className="rounded-[1.75rem] bg-slate-50 p-4 sm:p-5">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Trip preview</div>
               <div className="mt-4 space-y-3">
                 {['Rider / Parent', 'Pickup', 'Destination', 'Trip status', 'Estimated earnings', 'Vehicle / ride context'].map((item) => (
@@ -172,19 +172,19 @@ function SafetySection() {
     <section id="safety" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:p-6">
         <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-          <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+          <div className="rounded-[1.75rem] bg-slate-50 p-5">
             <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Safety highlights</div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {['Child safety verification', 'School admin OS', 'Dual account modes', 'Upfront bundles + fallback'].map((item) => (
-                <div key={item} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm text-sm font-semibold text-slate-700">{item}</div>
+                <div key={item} className="rounded-2xl bg-white p-4 shadow-sm text-sm font-semibold text-slate-700">{item}</div>
               ))}
             </div>
           </div>
-          <div className="rounded-[1.75rem] border border-slate-200 bg-slate-950 p-5 text-white">
+          <div className="rounded-[1.75rem] bg-slate-950 p-5 text-white">
             <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Built for every role</div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {['Parents & community riders', 'Schools', 'Drivers', 'Dispatchers'].map((item) => (
-                <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">{item}</div>
+                <div key={item} className="rounded-2xl bg-white/5 p-4 text-sm text-slate-200">{item}</div>
               ))}
             </div>
           </div>
@@ -216,11 +216,11 @@ function HamnaSection() {
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">Hamna is PoleSafe’s intelligent safety assistant that helps surface situations requiring human attention.</p>
           </div>
           <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8">
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+            <div className="rounded-[1.75rem] bg-white p-4 sm:p-5">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Capabilities</div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {['Journey Monitoring', 'Safety Attention', 'Compliance Review', 'Incident Support'].map((item) => (
-                  <article key={item} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                  <article key={item} className="rounded-2xl bg-slate-50 p-4 shadow-sm">
                     <h3 className="text-base font-semibold text-slate-900">{item}</h3>
                   </article>
                 ))}
