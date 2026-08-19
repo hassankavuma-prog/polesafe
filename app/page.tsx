@@ -25,12 +25,12 @@ function PublicHeader() {
           </div>
           <div>
             <div className="text-base font-semibold tracking-tight text-slate-950">PoleSafe</div>
-            <div className="text-xs text-slate-600">Uganda-first mobility safety</div>
+            <div className="text-xs text-slate-700">Uganda-first mobility safety</div>
           </div>
         </Link>
         <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
           {nav.map(([label, href]) => (
-            <Link key={label} href={href} className="rounded-md px-2.5 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900 hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
+            <Link key={label} href={href} className="rounded-md px-2.5 py-2 text-sm font-medium text-slate-800 transition hover:text-slate-950 hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
@@ -41,7 +41,7 @@ function PublicHeader() {
       <div className="border-t border-slate-200 bg-white lg:hidden">
         <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-3 sm:px-6 lg:px-8">
           {nav.map(([label, href]) => (
-            <Link key={label} href={href} className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:text-slate-900 hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
+            <Link key={label} href={href} className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-800 transition hover:text-slate-950 hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
           ))}
           <Link href="/ops" className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:text-slate-900 hover:underline hover:underline-offset-4">Dispatcher Ops Console</Link>
         </div>
@@ -58,7 +58,7 @@ function PublicHero() {
           <div>
             <div className="inline-flex items-center rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-700">Public transportation safety platform</div>
             <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">Safer school rides.<br />Stronger communities.</h1>
-            <p className="mt-5 max-w-2xl text-base leading-8 text-slate-200 sm:text-lg">PoleSafe connects parents, students, schools, drivers and communities on one trusted platform with safer journeys, real-time visibility and accountable transport.</p>
+            <p className="mt-5 max-w-2xl text-base leading-8 text-slate-100 sm:text-lg">PoleSafe connects parents, students, schools, drivers and communities on one trusted platform with safer journeys, real-time visibility and accountable transport.</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="#booking" className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(14,165,233,0.25)] transition hover:bg-sky-400">Book a Ride</Link>
               <Link href="#trust-safety" className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-[rgba(255,255,255,0.05)] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10">How PoleSafe Works</Link>
