@@ -112,7 +112,7 @@ export default function PoleSafeLive() {
         </div>
       );
     }
-    if (lookupState === 'not_found') return <div className="mt-5 rounded-[1.75rem] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">Ride not found or access denied. The server did not return a trackable ride for that ID.</div>;
+    if (lookupState === 'not_found') return <div className="mt-5 rounded-[1.75rem] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">We couldn’t find a ride you can track with that ID. Check the ride ID and try again.</div>;
     if (lookupState === 'error') return <div className="mt-5 rounded-[1.75rem] border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-900">{lookupError || 'Network error while loading ride status.'}</div>;
     return <div className="mt-5 rounded-[1.75rem] border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">Enter a ride ID to view the current server-confirmed status.</div>;
   }
@@ -140,9 +140,9 @@ export default function PoleSafeLive() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <div className="text-sm font-semibold text-slate-900">Live ride lookup</div>
-                <p className="text-sm text-slate-600">Enter a ride ID to view the current status from the live track endpoint.</p>
+                <p className="text-sm text-slate-600">Enter your ride ID to view the latest server-confirmed journey status.</p>
               </div>
-              <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">Real backend lookup</div>
+              <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">Server-confirmed tracking</div>
             </div>
             <p className="mt-3 text-sm text-slate-600">Hamna is here for guidance only.</p>
             <form className="mt-4 flex flex-col gap-3 sm:flex-row" onSubmit={submitRideLookup}>
