@@ -17,7 +17,7 @@ function PublicHeader() {
   ] as const;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-slate-50">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-600/10 ring-1 ring-sky-200">
@@ -25,12 +25,12 @@ function PublicHeader() {
           </div>
           <div>
             <div className="text-base font-semibold tracking-tight text-slate-950">PoleSafe</div>
-            <div className="text-xs text-slate-700">Uganda-first mobility safety</div>
+            <div className="text-xs text-slate-800">Uganda-first mobility safety</div>
           </div>
         </Link>
         <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
           {nav.map(([label, href]) => (
-            <Link key={label} href={href} className="rounded-md px-2.5 py-2 text-sm font-medium text-slate-900 transition hover:text-slate-950 hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
+            <Link key={label} href={href} className="rounded-md px-2.5 py-2 text-sm font-medium text-slate-950 transition hover:text-black hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
@@ -41,9 +41,9 @@ function PublicHeader() {
       <div className="border-t border-slate-200 bg-white lg:hidden">
         <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-3 sm:px-6 lg:px-8">
           {nav.map(([label, href]) => (
-            <Link key={label} href={href} className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-900 transition hover:text-slate-950 hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
+            <Link key={label} href={href} className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-950 transition hover:text-black hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
           ))}
-          <Link href="/ops" className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-950 transition hover:text-slate-950 hover:underline hover:underline-offset-4">Dispatcher Ops Console</Link>
+          <Link href="/ops" className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-950 transition hover:text-black hover:underline hover:underline-offset-4">Dispatcher Ops Console</Link>
         </div>
       </div>
     </header>
