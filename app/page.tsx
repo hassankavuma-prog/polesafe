@@ -37,7 +37,7 @@ function PublicHeader() {
               ))}
             </nav>
 
-            <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-2xl bg-white px-1 py-1 shadow-[0_1px_0_rgba(15,23,42,0.08),0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-slate-200/80 sm:gap-3 lg:justify-end">
+            <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-2xl bg-white px-1 py-1 text-black shadow-[0_1px_0_rgba(15,23,42,0.08),0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-slate-200/80 sm:gap-3 lg:justify-end">
               <Link href="/ops" className="whitespace-nowrap rounded-full border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-black transition hover:border-slate-300 hover:text-black">Dispatcher Ops Console</Link>
               <Link href="#booking" className="inline-flex whitespace-nowrap items-center justify-center rounded-full bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(2,132,199,0.22)] transition hover:bg-sky-500">Book a Ride</Link>
             </div>
