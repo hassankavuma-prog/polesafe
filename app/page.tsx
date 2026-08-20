@@ -25,12 +25,12 @@ function PublicHeader() {
           </div>
           <div>
             <div className="text-base font-semibold tracking-tight text-slate-950">PoleSafe</div>
-            <div className="text-xs text-slate-800">Uganda-first mobility safety</div>
+            <div className="text-xs text-slate-900">Uganda-first mobility safety</div>
           </div>
         </Link>
         <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
           {nav.map(([label, href]) => (
-            <Link key={label} href={href} className="rounded-md px-2.5 py-2 text-sm font-medium text-slate-950 transition hover:text-black hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
+            <Link key={label} href={href} className="rounded-md px-2.5 py-2 text-sm font-medium text-black transition hover:text-black hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
@@ -43,7 +43,7 @@ function PublicHeader() {
           {nav.map(([label, href]) => (
             <Link key={label} href={href} className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-950 transition hover:text-black hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
           ))}
-          <Link href="/ops" className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-950 transition hover:text-black hover:underline hover:underline-offset-4">Dispatcher Ops Console</Link>
+          <Link href="/ops" className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-black transition hover:text-black hover:underline hover:underline-offset-4">Dispatcher Ops Console</Link>
         </div>
       </div>
     </header>
