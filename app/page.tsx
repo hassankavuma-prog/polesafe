@@ -35,7 +35,7 @@ function PublicHeader() {
         </nav>
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <Link href="#booking" className="inline-flex items-center justify-center rounded-full bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(2,132,199,0.22)] transition hover:bg-sky-500">Book a Ride</Link>
-          <Link href="/ops" className="hidden rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 transition hover:border-slate-300 hover:text-slate-950 sm:inline-flex">Dispatcher Ops Console</Link>
+          <Link href="/ops" className="hidden rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-950 transition hover:border-slate-300 hover:text-slate-950 sm:inline-flex">Dispatcher Ops Console</Link>
         </div>
       </div>
       <div className="border-t border-slate-200 bg-white lg:hidden">
@@ -43,7 +43,7 @@ function PublicHeader() {
           {nav.map(([label, href]) => (
             <Link key={label} href={href} className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-900 transition hover:text-slate-950 hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
           ))}
-          <Link href="/ops" className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-900 transition hover:text-slate-950 hover:underline hover:underline-offset-4">Dispatcher Ops Console</Link>
+          <Link href="/ops" className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-slate-950 transition hover:text-slate-950 hover:underline hover:underline-offset-4">Dispatcher Ops Console</Link>
         </div>
       </div>
     </header>
