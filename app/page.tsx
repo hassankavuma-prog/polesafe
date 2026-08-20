@@ -52,7 +52,7 @@ function PublicHeader() {
 
 function PublicHero() {
   return (
-    <section className="border-b border-slate-200 bg-[linear-gradient(180deg,#08111f_0%,#0d1728_56%,#f8fafc_56%,#f8fafc_100%)]">
+    <section className="border-b border-slate-200 bg-[linear-gradient(180deg,#08111f_0%,#0d1728_70%,#f8fafc_70%,#f8fafc_100%)]">
       <div className="mx-auto max-w-7xl px-4 pb-8 pt-10 sm:px-6 sm:pb-10 sm:pt-14 lg:px-8 lg:pb-12 lg:pt-16">
         <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
