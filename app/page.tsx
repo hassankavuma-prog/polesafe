@@ -142,23 +142,65 @@ function CommunityRidesSection() {
 }
 
 function SchoolsSection() {
+  const valueCards = [
+    {
+      title: 'Transport visibility',
+      body: 'Help authorized school staff understand scheduled transport activity and important journey updates.',
+    },
+    {
+      title: 'Arrivals & dismissals',
+      body: 'Support clearer coordination around expected arrivals, dismissal changes and transport exceptions.',
+    },
+    {
+      title: 'Family communication',
+      body: 'Give schools and families a structured place for transport notices, announcements and important updates.',
+    },
+    {
+      title: 'Accountability',
+      body: 'Keep transport activity tied to authorized users, drivers, vehicles and auditable PoleSafe events.',
+    },
+  ];
+
   return (
-    <section id="schools" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:p-6">
-        <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">Schools</div>
-            <h2 className="mt-3 text-2xl font-semibold text-slate-900 sm:text-3xl">Built for schools that put safety first</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">PoleSafe gives schools, teachers, administrators, and parents a complete transport safety ecosystem — centered on visibility, verification, attendance, compliance, and communication.</p>
+    <section id="schools" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+        <div className="grid gap-0 lg:grid-cols-[0.96fr_1.04fr]">
+          <div className="bg-[linear-gradient(180deg,#08111f_0%,#0b1730_100%)] px-5 py-6 text-white sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="inline-flex items-center rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">For Schools</div>
+            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">A clearer way to coordinate school transport.</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">Give authorized school staff better visibility into transport activity, schedule changes and family communication — while PoleSafe keeps safety, permissions and accountability at the center.</p>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-400 sm:text-[15px]">School portal access is being prepared as part of the PoleSafe role-based platform experience.</p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link href="#booking" className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(14,165,233,0.25)] transition hover:bg-sky-400">Learn about School Transport</Link>
+            </div>
+            <div className="mt-7 rounded-[1.75rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">School & Family Updates</div>
+              <p className="mt-2 text-sm leading-6 text-slate-200">A structured communication space can help schools, teachers and authorized families share transport announcements, schedule changes and important pickup or dismissal information.</p>
+            </div>
           </div>
-          <div className="rounded-[1.75rem] bg-slate-50 p-4 sm:p-5">
-            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">School journey flow</div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {['Parent', 'Verified Driver', 'Child Pickup', 'Live Journey', 'School / Teacher', 'Verified Handoff', 'Parent Confirmation'].map((item, index) => (
-                <div key={item} className="rounded-2xl bg-white p-4 shadow-sm">
-                  <div className="font-semibold text-slate-900">{index + 1}. {item}</div>
-                </div>
+          <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {valueCards.map((item) => (
+                <article key={item.title} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{item.title}</div>
+                  <p className="mt-3 text-sm leading-6 text-slate-700">{item.body}</p>
+                </article>
               ))}
+            </div>
+            <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Uganda-first school context</div>
+                  <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Flexible schedules, day-by-day exceptions, school vans and buses, and weak-connectivity-aware coordination all matter in the realities PoleSafe is built around.</p>
+                </div>
+                <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Role-based access</div>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {['Authorized users only', 'Verified transport events', 'Driver and vehicle accountability', 'Family coordination without custody changes'].map((item) => (
+                  <div key={item} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{item}</div>
+                ))}
+              </div>
+              <p className="mt-4 text-sm leading-6 text-slate-600">Hamna can help explain transport updates, guide staff through next steps and support communication — without approving transport or overriding safety permissions.</p>
             </div>
           </div>
         </div>
