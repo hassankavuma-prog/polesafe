@@ -86,20 +86,50 @@ function PublicHero() {
 }
 
 function CommunityRidesSection() {
+  const useCases = [
+    { title: 'Everyday trips', body: 'Work, shopping, appointments and visits.' },
+    { title: 'Scheduled rides', body: 'Plan transport ahead for important journeys.' },
+    { title: 'Family rides', body: 'Book trusted transport for relatives or dependents where appropriate.' },
+    { title: 'Airport transfers — coming later', body: 'Scheduled airport transfers are planned for a future PoleSafe release.' },
+  ];
+
   return (
-    <section id="community-rides" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-        <div className="grid gap-0 lg:grid-cols-[1fr_1fr]">
-          <div className="bg-slate-950 px-5 py-6 text-white sm:px-6 sm:py-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">Community Rides</div>
-            <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">Community trips with accountability</h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">PoleSafe community rides help people move around with clearer ride context, verified booking flow, and a safety-first experience for everyday transport.</p>
+    <section id="community-rides" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+        <div className="grid gap-0 lg:grid-cols-[0.98fr_1.02fr] lg:items-stretch">
+          <div className="bg-[linear-gradient(180deg,#08111f_0%,#0b1730_100%)] px-5 py-6 text-white sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="inline-flex items-center rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">Community Rides</div>
+            <h2 className="mt-4 max-w-xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">Everyday rides, built around your community.</h2>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">Book trusted local transport for work, appointments, shopping, family visits and scheduled journeys — with PoleSafe accountability built in.</p>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-400 sm:text-[15px]">Uganda-first mobility for everyday riders and families, with the current PoleSafe payment flow where already supported.</p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link href="#booking" className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(14,165,233,0.25)] transition hover:bg-sky-400">Book a Community Ride</Link>
+              <Link href="#booking" className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10">Go to booking</Link>
+            </div>
+            <div className="mt-7 rounded-[1.75rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Hamna</div>
+              <p className="mt-2 text-sm leading-6 text-slate-200">Hamna can guide riders through booking, explain ride updates and help with next steps.</p>
+            </div>
           </div>
-          <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8">
-            <div className="rounded-[1.75rem] bg-white p-5">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Community ride preview</div>
+          <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {useCases.map((item) => (
+                <article key={item.title} className={item.title === 'Airport transfers — coming later' ? 'rounded-[1.5rem] border border-amber-200 bg-amber-50/70 p-4 shadow-sm sm:p-5' : 'rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5'}>
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{item.title}</div>
+                  <p className="mt-3 text-sm leading-6 text-slate-700">{item.body}</p>
+                </article>
+              ))}
+            </div>
+            <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Community ride preview</div>
+                  <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Trusted local transport with a clean, premium booking experience for everyday mobility.</p>
+                </div>
+                <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Accountable by design</div>
+              </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {['Verified pickup', 'Route visibility', 'Trusted driver', 'Simple booking'].map((item) => (
+                {['Trusted driver context', 'Planned journeys', 'Family-friendly booking', 'Current payment flow'].map((item) => (
                   <div key={item} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{item}</div>
                 ))}
               </div>
