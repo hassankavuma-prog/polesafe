@@ -360,25 +360,97 @@ function CoverageNetworkWidget() {
 }
 
 function HamnaSection() {
+  const valueCards = [
+    {
+      title: "Explain what's happening",
+      body: 'Hamna can help parents, riders, drivers and schools understand current ride information and next steps.',
+    },
+    {
+      title: 'Remind & prepare',
+      body: 'Hamna can provide reminders around scheduled journeys, transport steps and important actions.',
+    },
+    {
+      title: 'Support communication',
+      body: 'Hamna can help make PoleSafe information easier to understand across different roles and, over time, different languages.',
+    },
+    {
+      title: 'Help with recovery',
+      body: 'When something changes, Hamna can explain the authorized recovery process and help users understand what happens next.',
+    },
+  ];
+
+  const roles = [
+    { title: 'For parents', body: 'Explain ride updates, scheduled transport and next steps.' },
+    { title: 'For drivers', body: 'Explain ride procedures, reminders and operational guidance.' },
+    { title: 'For schools', body: 'Help authorized staff understand transport updates and communication workflows.' },
+    { title: 'For community riders', body: 'Guide booking, scheduled rides and journey information. Keep this presentation-only.' },
+  ];
+
+  const futureSupport = ['Scheduled airport ride reminders', 'Explaining arrival/pickup changes', 'Future delivery guidance', 'Helping users understand status updates'];
+
   return (
-    <section id="hamna" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="overflow-hidden rounded-[2rem] border border-sky-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-        <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="bg-slate-950 px-5 py-6 text-white sm:px-6 sm:py-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">Hamna</div>
-            <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">Meet Hamna</h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">Hamna is PoleSafe’s intelligent safety assistant that helps surface situations requiring human attention.</p>
+    <section id="hamna" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="overflow-hidden rounded-[2.5rem] border border-sky-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_56%,#f2f7ff_100%)] shadow-[0_22px_60px_rgba(15,23,42,0.08)]">
+        <div className="grid gap-0 lg:grid-cols-[0.92fr_1.08fr]">
+          <div className="bg-[linear-gradient(180deg,#07101d_0%,#0b1730_52%,#09111e_100%)] px-5 py-7 text-white sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="inline-flex items-center rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">HAMNA</div>
+            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">Guidance when you need it. Authority where it belongs.</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">Hamna helps people understand PoleSafe, follow ride updates, prepare for next steps and get support — while safety, dispatch, payments and permissions remain controlled by PoleSafe’s authoritative rules.</p>
+            <div className="mt-7 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Hamna guides. PoleSafe decides.</div>
+              <p className="mt-3 text-sm leading-6 text-slate-200">Hamna can explain, remind and support. She cannot bypass safety checks, assign drivers, approve payments, change permissions, transfer custody or start a journey.</p>
+            </div>
+            <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Uganda-first support</div>
+              <p className="mt-3 text-sm leading-6 text-slate-200">Hamna is designed for an Uganda-first experience, beginning with English and Luganda support and expanding over time.</p>
+            </div>
+            <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Future services</div>
+              <p className="mt-3 text-sm leading-6 text-slate-200">Hamna may also help explain future PoleSafe services such as airport transfer reminders and delivery guidance, once those services are officially available.</p>
+            </div>
           </div>
-          <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8">
-            <div className="rounded-[1.75rem] bg-white p-4 sm:p-5">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Capabilities</div>
+          <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {valueCards.map((card) => (
+                <article key={card.title} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{card.title}</div>
+                  <p className="mt-3 text-sm leading-6 text-slate-700">{card.body}</p>
+                </article>
+              ))}
+            </div>
+
+            <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Role-aware support</div>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Hamna stays grounded in PoleSafe role boundaries while helping each audience understand the transport information that matters to them.</p>
+                </div>
+                <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Presentation only</div>
+              </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {['Journey Monitoring', 'Safety Attention', 'Compliance Review', 'Incident Support'].map((item) => (
-                  <article key={item} className="rounded-2xl bg-slate-50 p-4 shadow-sm">
-                    <h3 className="text-base font-semibold text-slate-900">{item}</h3>
+                {roles.map((role) => (
+                  <article key={role.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{role.title}</div>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">{role.body}</p>
                   </article>
                 ))}
               </div>
+            </div>
+
+            <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Where Hamna may help next</div>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Future support can include journey reminders, arrival or pickup changes, and upcoming service guidance as PoleSafe expands.</p>
+                </div>
+                <div className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-800">Planned</div>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {futureSupport.map((item) => (
+                  <div key={item} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold leading-6 text-slate-700">{item}</div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">Learn about Hamna is a safe informational anchor to this section. No chat, voice or fake interaction is exposed here.</div>
             </div>
           </div>
         </div>
