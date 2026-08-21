@@ -279,24 +279,67 @@ function DriversSection() {
 }
 
 function SafetySection() {
+  const safetyCards = [
+    {
+      title: 'AUTHORIZED ACCESS',
+      body: 'Important transport actions are tied to verified roles and permissions.',
+    },
+    {
+      title: 'DRIVER & VEHICLE ELIGIBILITY',
+      body: 'PoleSafe can apply service-specific eligibility before a driver or vehicle is considered for transport.',
+    },
+    {
+      title: 'VERIFIED JOURNEY EVENTS',
+      body: 'Pickup, journey and recovery states should rely on authoritative PoleSafe events rather than assumptions.',
+    },
+    {
+      title: 'PROTECTED RECOVERY',
+      body: 'When a ride needs recovery, PoleSafe preserves accountability and controlled handoff instead of allowing arbitrary reassignment.',
+    },
+  ];
+
   return (
-    <section id="safety" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:p-6">
-        <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-          <div className="rounded-[1.75rem] bg-slate-50 p-5">
-            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Safety highlights</div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {['Child safety verification', 'School admin OS', 'Dual account modes', 'Upfront bundles + fallback'].map((item) => (
-                <div key={item} className="rounded-2xl bg-white p-4 shadow-sm text-sm font-semibold text-slate-700">{item}</div>
-              ))}
+    <section id="safety" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+        <div className="grid gap-0 lg:grid-cols-[0.96fr_1.04fr]">
+          <div className="bg-[linear-gradient(180deg,#08111f_0%,#0b1730_100%)] px-5 py-6 text-white sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="inline-flex items-center rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">Safety</div>
+            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">Safety built into the journey, not added afterward.</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">PoleSafe is designed around verified events, role-based permissions, driver eligibility and clear recovery rules — so important transport decisions stay accountable.</p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link href="#hamna" className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10">Learn how PoleSafe protects journeys</Link>
+            </div>
+            <div className="mt-7 rounded-[1.75rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Child and school transport</div>
+              <p className="mt-2 text-sm leading-6 text-slate-200">Child and school transport receives additional safeguards around pickup, journey start, authorization and recovery. Before child or school transport begins, PoleSafe is designed to require a deliberate safety check before journey start.</p>
+              <p className="mt-3 text-sm leading-6 text-slate-300">Ordinary passenger rides may receive a reminder, while the stronger acknowledgment flow stays reserved for protected transport where implemented.</p>
             </div>
           </div>
-          <div className="rounded-[1.75rem] bg-slate-950 p-5 text-white">
-            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Built for every role</div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {['Parents & community riders', 'Schools', 'Drivers', 'Dispatchers'].map((item) => (
-                <div key={item} className="rounded-2xl bg-[rgba(255,255,255,0.05)] p-4 text-sm text-slate-200">{item}</div>
+          <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {safetyCards.map((card) => (
+                <article key={card.title} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{card.title}</div>
+                  <p className="mt-3 text-sm leading-6 text-slate-700">{card.body}</p>
+                </article>
               ))}
+            </div>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_0.95fr]">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Uganda connectivity</div>
+                <p className="mt-3 text-sm leading-6 text-slate-600">PoleSafe distinguishes between locally pending information and server-confirmed transport state, so weak connectivity does not silently turn an unconfirmed action into a completed safety event.</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {['Server-authoritative state', 'Locally pending stays pending', 'Auditable journey events', 'Confirmed before completion'].map((item) => (
+                    <div key={item} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{item}</div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Hamna support</div>
+                <p className="mt-3 text-sm leading-6 text-slate-600">Hamna can explain safety steps, reminders and next actions, while PoleSafe’s deterministic safety rules remain authoritative.</p>
+                <p className="mt-3 text-sm leading-6 text-slate-600">Safety concerns and incidents can be escalated separately from ordinary ride updates.</p>
+                <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">Hamna cannot approve pickup, waive safety requirements, acknowledge seat belts, choose replacement drivers, transfer custody, start journeys, override permissions or close incidents.</div>
+              </div>
             </div>
           </div>
         </div>
