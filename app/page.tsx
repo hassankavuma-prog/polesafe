@@ -210,24 +210,65 @@ function SchoolsSection() {
 }
 
 function DriversSection() {
+  const cards = [
+    {
+      title: 'Clear work opportunities',
+      body: 'See eligible ride opportunities based on your service role, availability and vehicle.',
+    },
+    {
+      title: 'Earnings visibility',
+      body: 'Understand ride earnings, payment status, commissions and settlement activity as PoleSafe expands its driver finance tools.',
+    },
+    {
+      title: 'Safety & accountability',
+      body: 'Keep driver, vehicle and journey activity tied to clear PoleSafe safety and compliance rules.',
+    },
+    {
+      title: 'Flexible services',
+      body: 'Eligible drivers may support school transport, Community Rides and future services such as airport transfers or deliveries.',
+    },
+  ];
+
   return (
-    <section id="drivers" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-        <div className="grid gap-0 lg:grid-cols-[1.02fr_0.98fr]">
-          <div className="bg-slate-950 px-5 py-6 text-white sm:px-6 sm:py-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">Drivers</div>
-            <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">Drive with PoleSafe</h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">PoleSafe positions drivers as trusted members of the network — serving community riders, families, and school journeys with clearer trip context and a stronger safety story.</p>
+    <section id="drivers" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+        <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="bg-[linear-gradient(180deg,#08111f_0%,#0b1730_100%)] px-5 py-6 text-white sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="inline-flex items-center rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">For drivers</div>
+            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">Drive with clearer expectations and stronger support.</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">PoleSafe is built to help eligible drivers understand their work, stay accountable, manage opportunities and build trust with families, schools and community riders.</p>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-400 sm:text-[15px]">Driver access is being prepared as part of PoleSafe’s role-based platform experience.</p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link href="#booking" className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(14,165,233,0.25)] transition hover:bg-sky-400">Learn about driving with PoleSafe</Link>
+            </div>
+            <div className="mt-7 rounded-[1.75rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Uganda-first driver economics</div>
+              <p className="mt-2 text-sm leading-6 text-slate-200">PoleSafe is designed around cash-heavy transport realities, plus MTN MoMo, Airtel Money and card payments where supported, with fair driver economics, clear commissions, transparent payment status and different vehicle types in mind.</p>
+            </div>
           </div>
-          <div className="bg-white px-5 py-6 sm:px-6 sm:py-8">
-            <div className="rounded-[1.75rem] bg-slate-50 p-4 sm:p-5">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Trip preview</div>
-              <div className="mt-4 space-y-3">
-                {['Rider / Parent', 'Pickup', 'Destination', 'Trip status', 'Estimated earnings', 'Vehicle / ride context'].map((item) => (
-                  <div key={item} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{item}</div>
-                  </div>
-                ))}
+          <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {cards.map((card) => (
+                <article key={card.title} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{card.title}</div>
+                  <p className="mt-3 text-sm leading-6 text-slate-700">{card.body}</p>
+                </article>
+              ))}
+            </div>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Eligibility and roles</div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {['Eligible drivers only', 'Service-specific eligibility', 'Vehicle suitability', 'Compliance and reliability'].map((item) => (
+                    <div key={item} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{item}</div>
+                  ))}
+                </div>
+                <p className="mt-4 text-sm leading-6 text-slate-600">School transport eligibility does not automatically extend to Community Rides, and future services remain separate until they are officially launched.</p>
+              </div>
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Hamna support</div>
+                <p className="mt-3 text-sm leading-6 text-slate-600">Hamna can help drivers understand ride updates, reminders, next steps and PoleSafe procedures.</p>
+                <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">Hamna does not assign rides, choose drivers, override eligibility, change earnings or payment status, waive safety checks, or start journeys.</div>
               </div>
             </div>
           </div>
