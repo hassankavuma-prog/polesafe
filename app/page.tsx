@@ -392,7 +392,7 @@ function HamnaSection() {
   return (
     <section id="hamna" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <div className="overflow-hidden rounded-[2.5rem] border border-sky-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_56%,#f2f7ff_100%)] shadow-[0_22px_60px_rgba(15,23,42,0.08)]">
-        <div className="grid gap-0 lg:grid-cols-[0.92fr_1.08fr]">
+        <div className="grid gap-0 lg:grid-cols-[0.96fr_1.04fr]">
           <div className="bg-[linear-gradient(180deg,#07101d_0%,#0b1730_52%,#09111e_100%)] px-5 py-7 text-white sm:px-6 sm:py-8 lg:px-8 lg:py-10">
             <div className="inline-flex items-center rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">HAMNA</div>
             <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">Guidance when you need it. Authority where it belongs.</h2>
@@ -411,23 +411,23 @@ function HamnaSection() {
             </div>
           </div>
           <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-            <div className="grid gap-4 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
-              <div className="relative overflow-hidden rounded-[2rem] border border-sky-200 bg-white p-3 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+            <div className="grid gap-4 lg:grid-cols-[1fr_1.02fr] lg:items-start">
+              <div className="relative overflow-hidden rounded-[2rem] border border-sky-200 bg-white p-3 shadow-[0_18px_40px_rgba(15,23,42,0.08)] lg:min-h-[34rem] lg:p-4">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.18),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(59,130,246,0.12),transparent_24%),radial-gradient(circle_at_50%_80%,rgba(14,165,233,0.12),transparent_28%)] animate-[hamna-glow_12s_ease-in-out_infinite] motion-reduce:animate-none" />
-                <div className="relative overflow-hidden rounded-[1.5rem] bg-slate-950/5">
-                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.5rem]">
+                <div className="relative overflow-hidden rounded-[1.5rem] bg-slate-950/5 lg:h-full">
+                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.5rem] lg:aspect-[3/4] lg:min-h-[31rem]">
                     <Image
                       src="/images/hamna/hamna-polesafe-guidance.jpg"
                       alt="Hamna, PoleSafe guidance assistant"
                       fill
                       priority
-                      sizes="(max-width: 1024px) 100vw, 420px"
-                      className="object-cover object-center animate-[hamna-float_10s_ease-in-out_infinite] motion-reduce:animate-none"
+                      sizes="(max-width: 1024px) 100vw, 460px"
+                      className="object-cover object-center lg:object-[50%_36%] animate-[hamna-float_10s_ease-in-out_infinite] motion-reduce:animate-none"
                     />
                   </div>
                 </div>
                 <div className="absolute left-4 top-4 rounded-full border border-white/60 bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-700 shadow-sm backdrop-blur-sm motion-safe:animate-[hamna-breathe_8s_ease-in-out_infinite] motion-reduce:animate-none">Hamna</div>
-                <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 text-sm leading-6 text-slate-700 shadow-lg backdrop-blur-sm">
+                <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 text-sm leading-6 text-slate-700 shadow-lg backdrop-blur-sm lg:bottom-5 lg:left-5 lg:right-5 lg:max-w-[26rem]">
                   <div className="font-semibold text-slate-950">Hamna guides. PoleSafe decides.</div>
                   <div className="mt-1 text-slate-600">Hamna can explain, remind and support. She cannot bypass safety checks or authority.</div>
                 </div>
