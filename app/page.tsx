@@ -410,71 +410,77 @@ function HamnaSection() {
               <p className="mt-3 text-sm leading-6 text-slate-200">Hamna may also help explain future PoleSafe services such as airport transfer reminders and delivery guidance, once those services are officially available.</p>
             </div>
           </div>
-          <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-            <div className="grid gap-4 lg:grid-cols-[1fr_1.02fr] lg:items-start">
-              <div className="relative overflow-hidden rounded-[2rem] border border-sky-200 bg-white p-3 shadow-[0_18px_40px_rgba(15,23,42,0.08)] lg:min-h-[34rem] lg:p-4">
+
+          <div className="bg-[linear-gradient(180deg,#07101d_0%,#0b1730_52%,#09111e_100%)] px-5 py-6 text-white sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="grid gap-4">
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Role-aware support</div>
+                <p className="mt-3 text-sm leading-6 text-slate-200">Hamna stays grounded in PoleSafe role boundaries while helping each audience understand the transport information that matters to them.</p>
+              </div>
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Hamna guides. PoleSafe decides.</div>
+                <p className="mt-3 text-sm leading-6 text-slate-200">Hamna can explain, remind and support. She cannot bypass safety checks, assign drivers, approve payments, change permissions, transfer custody or start a journey.</p>
+              </div>
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Uganda-first support</div>
+                <p className="mt-3 text-sm leading-6 text-slate-200">Hamna is designed for an Uganda-first experience, beginning with English and Luganda support and expanding over time.</p>
+              </div>
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Future services</div>
+                <p className="mt-3 text-sm leading-6 text-slate-200">Hamna may also help explain future PoleSafe services such as airport transfer reminders and delivery guidance, once those services are officially available.</p>
+              </div>
+              <div className="relative overflow-hidden rounded-[2rem] border border-sky-200 bg-[linear-gradient(180deg,#06111f_0%,#0b1730_52%,#09111e_100%)] p-3 shadow-[0_18px_40px_rgba(15,23,42,0.16)] lg:min-h-[34rem] lg:p-4">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.18),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(59,130,246,0.12),transparent_24%),radial-gradient(circle_at_50%_80%,rgba(14,165,233,0.12),transparent_28%)] animate-[hamna-glow_12s_ease-in-out_infinite] motion-reduce:animate-none" />
-                <div className="relative overflow-hidden rounded-[1.5rem] bg-slate-950/5 lg:h-full">
-                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.5rem] lg:aspect-[3/4] lg:min-h-[31rem]">
+                <div className="relative flex h-full flex-col overflow-hidden rounded-[1.5rem] bg-slate-950/10">
+                  <div className="flex items-start justify-between gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
+                    <div className="rounded-full border border-white/60 bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-700 shadow-sm backdrop-blur-sm motion-safe:animate-[hamna-breathe_8s_ease-in-out_infinite] motion-reduce:animate-none">Hamna</div>
+                    <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-100">English • Luganda</div>
+                  </div>
+                  <div className="relative mt-4 min-h-[24rem] flex-1 overflow-hidden rounded-[1.25rem] sm:min-h-[28rem] lg:min-h-[29rem]">
                     <Image
                       src="/images/hamna/hamna-polesafe-guidance.jpg"
                       alt="Hamna, PoleSafe guidance assistant"
                       fill
                       priority
-                      sizes="(max-width: 1024px) 100vw, 460px"
-                      className="object-cover object-center lg:object-[50%_36%] animate-[hamna-float_10s_ease-in-out_infinite] motion-reduce:animate-none"
+                      sizes="(max-width: 1024px) 100vw, 520px"
+                      className="object-cover object-[50%_28%] lg:object-[50%_24%] animate-[hamna-float_10s_ease-in-out_infinite] motion-reduce:animate-none"
                     />
                   </div>
-                </div>
-                <div className="absolute left-4 top-4 rounded-full border border-white/60 bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-700 shadow-sm backdrop-blur-sm motion-safe:animate-[hamna-breathe_8s_ease-in-out_infinite] motion-reduce:animate-none">Hamna</div>
-                <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 text-sm leading-6 text-slate-700 shadow-lg backdrop-blur-sm lg:bottom-5 lg:left-5 lg:right-5 lg:max-w-[26rem]">
-                  <div className="font-semibold text-slate-950">Hamna guides. PoleSafe decides.</div>
-                  <div className="mt-1 text-slate-600">Hamna can explain, remind and support. She cannot bypass safety checks or authority.</div>
+                  <div className="px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
+                    <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm leading-6 text-slate-100 shadow-lg backdrop-blur-sm">
+                      <div className="font-semibold text-white">Hamna guides. PoleSafe decides.</div>
+                      <div className="mt-1 text-slate-200">Hamna can explain, remind and support. She cannot bypass safety checks or authority.</div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {valueCards.map((card) => (
-                    <article key={card.title} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                      <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{card.title}</div>
-                      <p className="mt-3 text-sm leading-6 text-slate-700">{card.body}</p>
-                    </article>
-                  ))}
-                </div>
+            </div>
+          </div>
 
-                <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Role-aware support</div>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Hamna stays grounded in PoleSafe role boundaries while helping each audience understand the transport information that matters to them.</p>
-                    </div>
-                    <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Presentation only</div>
-                  </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {roles.map((role) => (
-                      <article key={role.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{role.title}</div>
-                        <p className="mt-2 text-sm leading-6 text-slate-700">{role.body}</p>
-                      </article>
-                    ))}
-                  </div>
+          <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {valueCards.map((card) => (
+                <article key={card.title} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{card.title}</div>
+                  <p className="mt-3 text-sm leading-6 text-slate-700">{card.body}</p>
+                </article>
+              ))}
+            </div>
+            <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Role-aware support</div>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Hamna stays grounded in PoleSafe role boundaries while helping each audience understand the transport information that matters to them.</p>
                 </div>
-
-                <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Where Hamna may help next</div>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Future support can include journey reminders, arrival or pickup changes, and upcoming service guidance as PoleSafe expands.</p>
-                    </div>
-                    <div className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-800">Planned</div>
-                  </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {futureSupport.map((item) => (
-                      <div key={item} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold leading-6 text-slate-700">{item}</div>
-                    ))}
-                  </div>
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">Learn about Hamna is a safe informational anchor to this section. No chat, voice or fake interaction is exposed here.</div>
-                </div>
+                <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Presentation only</div>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {roles.map((role) => (
+                  <article key={role.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{role.title}</div>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">{role.body}</p>
+                  </article>
+                ))}
               </div>
             </div>
           </div>
