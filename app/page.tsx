@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState } from 'react';
 import { ArrowRight, Bike, CarFront, ShieldAlert, School, Smartphone, Users } from 'lucide-react';
 import BookingWidget from '@/components/home/BookingWidget';
 import PoleSafeLive from '@/components/home/PoleSafeLive';
@@ -415,6 +416,19 @@ function HamnaSection() {
     { title: 'For community riders', body: 'Guide booking, scheduled rides and journey information. Keep this presentation-only.' },
   ];
 
+  const capabilities = [
+    { id: 'explain', title: 'Explain', copy: 'Understand ride updates.', icon: ArrowRight, detail: 'Hamna can explain current ride status, delays and what happens next.' },
+    { id: 'remind', title: 'Remind', copy: 'Prepare for what’s next.', icon: Smartphone, detail: 'Hamna can remind users about upcoming actions, schedules and safety steps.' },
+    { id: 'communicate', title: 'Communicate', copy: 'Clear guidance across roles.', icon: Users, detail: 'Hamna can help make guidance clearer across parents, drivers, schools and support.' },
+    { id: 'recovery', title: 'Recovery', copy: 'Help when plans change.', icon: ShieldAlert, detail: 'Hamna can explain the authorized recovery process when plans change. PoleSafe policy still controls the actual safety decision.' },
+    { id: 'uganda-first', title: 'Uganda-first', copy: 'English, Luganda, local context.', icon: Bike, detail: 'Hamna supports English, Luganda, local landmarks and Uganda-specific transport context.' },
+    { id: 'role-aware', title: 'Role-aware', copy: 'Guidance for each user.', icon: School, detail: 'Hamna adapts guidance for parents, drivers, schools, fleet operators and support/admin users.' },
+  ] as const;
+
+  const [selectedCapability, setSelectedCapability] = useState<string | null>(null);
+
+  const activeCapability = capabilities.find((capability) => capability.id === selectedCapability) ?? null;
+
   return (
     <section id="hamna" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <div className="overflow-hidden rounded-[2.5rem] border border-sky-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_56%,#f2f7ff_100%)] shadow-[0_22px_60px_rgba(15,23,42,0.08)]">
@@ -425,30 +439,50 @@ function HamnaSection() {
             <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">Hamna helps people understand PoleSafe, follow ride updates, prepare for next steps and get support — while safety, dispatch, payments and permissions remain controlled by PoleSafe’s authoritative rules.</p>
             <div className="mt-7 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Hamna guides. PoleSafe decides.</div>
-              <p className="mt-3 text-sm leading-6 text-slate-200">Hamna can explain, remind and support. She cannot bypass safety checks, assign drivers, approve payments, change permissions, transfer custody or start a journey.</p>
-            </div>
-            <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Uganda-first support</div>
-              <p className="mt-3 text-sm leading-6 text-slate-200">Hamna is designed for an Uganda-first experience, beginning with English and Luganda support and expanding over time.</p>
-            </div>
-            <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Future services</div>
-              <p className="mt-3 text-sm leading-6 text-slate-200">Hamna may also help explain future PoleSafe services such as airport transfer reminders and delivery guidance, once those services are officially available.</p>
+              <p className="mt-3 text-sm leading-6 text-slate-200">Hamna can explain, remind and support. She cannot bypass safety checks or authority.</p>
             </div>
           </div>
 
           <div className="bg-[linear-gradient(180deg,#07101d_0%,#0b1730_52%,#09111e_100%)] px-5 py-6 text-white sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-            <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-              <div className="grid gap-4">
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Role-aware support</div>
-                  <p className="mt-3 text-sm leading-6 text-slate-200">Hamna stays grounded in PoleSafe role boundaries while helping each audience understand the transport information that matters to them.</p>
-                </div>
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Hamna guides. PoleSafe decides.</div>
-                  <p className="mt-3 text-sm leading-6 text-slate-200">Hamna can explain, remind and support. She cannot bypass safety checks, assign drivers, approve payments, change permissions, transfer custody or start a journey.</p>
-                </div>
+            <div className="grid gap-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {capabilities.map((capability) => {
+                  const Icon = capability.icon;
+                  const isActive = selectedCapability === capability.id;
+                  const detailId = `hamna-detail-${capability.id}`;
+
+                  return (
+                    <div key={capability.id} className={`rounded-[1.35rem] border bg-white/5 p-3 shadow-[0_10px_24px_rgba(15,23,42,0.12)] transition sm:p-4 ${isActive ? 'border-sky-300 ring-2 ring-sky-300/50' : 'border-white/10 hover:border-sky-300/50'}`}>
+                      <button
+                        type="button"
+                        aria-expanded={isActive}
+                        aria-controls={detailId}
+                        onClick={() => setSelectedCapability((current: string | null) => (current === capability.id ? null : capability.id))}
+                        className="flex w-full items-start gap-3 rounded-[1rem] text-left outline-none transition focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                      >
+                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1 ${isActive ? 'bg-sky-500/20 ring-sky-300/40' : 'bg-slate-900/50 ring-white/10'}`}>
+                          <Icon className="h-5 w-5 text-sky-200" />
+                        </div>
+                        <div className="min-w-0 flex-1 py-0.5">
+                          <div className="text-sm font-semibold text-white">{capability.title}</div>
+                          <div className="mt-1 text-sm leading-6 text-slate-300">{capability.copy}</div>
+                        </div>
+                      </button>
+                      {isActive ? (
+                        <div id={detailId} className="mt-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-slate-200">
+                          {capability.detail}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
+              {activeCapability ? (
+                <div id={`hamna-detail-${activeCapability.id}-panel`} className="rounded-[1.5rem] border border-sky-200/40 bg-white/6 p-4 text-sm leading-6 text-slate-200 shadow-[0_14px_30px_rgba(15,23,42,0.12)]">
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">{activeCapability.title}</div>
+                  <p className="mt-2">{activeCapability.detail}</p>
+                </div>
+              ) : null}
               <div className="relative overflow-hidden rounded-[2rem] border border-sky-200 bg-[linear-gradient(180deg,#06111f_0%,#0b1730_52%,#09111e_100%)] p-3 shadow-[0_18px_40px_rgba(15,23,42,0.16)] lg:min-h-[31rem] lg:p-4">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.2),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(59,130,246,0.14),transparent_24%),radial-gradient(circle_at_50%_80%,rgba(14,165,233,0.12),transparent_28%)] animate-[hamna-glow_14s_ease-in-out_infinite] motion-reduce:animate-none" />
                 <div className="relative flex h-full flex-col overflow-hidden rounded-[1.5rem] bg-slate-950/10">
