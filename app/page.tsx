@@ -387,8 +387,6 @@ function HamnaSection() {
     { title: 'For community riders', body: 'Guide booking, scheduled rides and journey information. Keep this presentation-only.' },
   ];
 
-  const futureSupport = ['Scheduled airport ride reminders', 'Explaining arrival/pickup changes', 'Future delivery guidance', 'Helping users understand status updates'];
-
   return (
     <section id="hamna" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <div className="overflow-hidden rounded-[2.5rem] border border-sky-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_56%,#f2f7ff_100%)] shadow-[0_22px_60px_rgba(15,23,42,0.08)]">
@@ -422,14 +420,6 @@ function HamnaSection() {
                   <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Hamna guides. PoleSafe decides.</div>
                   <p className="mt-3 text-sm leading-6 text-slate-200">Hamna can explain, remind and support. She cannot bypass safety checks, assign drivers, approve payments, change permissions, transfer custody or start a journey.</p>
                 </div>
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Uganda-first support</div>
-                  <p className="mt-3 text-sm leading-6 text-slate-200">Hamna is designed for an Uganda-first experience, beginning with English and Luganda support and expanding over time.</p>
-                </div>
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 sm:p-5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Future services</div>
-                  <p className="mt-3 text-sm leading-6 text-slate-200">Hamna may also help explain future PoleSafe services such as airport transfer reminders and delivery guidance, once those services are officially available.</p>
-                </div>
               </div>
               <div className="relative overflow-hidden rounded-[2rem] border border-sky-200 bg-[linear-gradient(180deg,#06111f_0%,#0b1730_52%,#09111e_100%)] p-3 shadow-[0_18px_40px_rgba(15,23,42,0.16)] lg:min-h-[31rem] lg:p-4">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.2),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(59,130,246,0.14),transparent_24%),radial-gradient(circle_at_50%_80%,rgba(14,165,233,0.12),transparent_28%)] animate-[hamna-glow_14s_ease-in-out_infinite] motion-reduce:animate-none" />
@@ -440,7 +430,7 @@ function HamnaSection() {
                   </div>
                   <div className="relative mt-3 min-h-[18rem] flex-1 overflow-hidden rounded-[1.25rem] sm:min-h-[20rem] lg:min-h-[22rem]">
                     <Image
-                      src="/images/hamna/hamna-polesafe-guidance.jpg"
+                      src="/images/hamna/hamna-hero-portrait.png"
                       alt="Hamna, PoleSafe guidance assistant"
                       fill
                       priority
@@ -457,6 +447,7 @@ function HamnaSection() {
                 </div>
               </div>
             </div>
+
           </div>
 
           <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
@@ -491,7 +482,6 @@ function HamnaSection() {
     </section>
   );
 }
-
 function GlobalFooter() {
   return (
     <footer className="border-t border-white/10 bg-slate-950 text-white">
