@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowRight, Bike, CarFront, ShieldAlert, School, Smartphone, Users } from 'lucide-react';
+import { ArrowRight, Bike, CarFront, ShieldAlert, School, Smartphone, Users, UserRound, Truck, GraduationCap, UsersRound } from 'lucide-react';
 import BookingWidget from '@/components/home/BookingWidget';
 import PoleSafeLive from '@/components/home/PoleSafeLive';
 
@@ -21,9 +21,9 @@ function PublicHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-3 py-3">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
-            <Link href="/" className="flex shrink-0 items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-slate-50">
+        <div className="flex flex-col gap-2 py-2.5 sm:gap-2.5 sm:py-2.5">
+          <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:gap-2">
+            <Link href="/" className="flex shrink-0 items-center gap-2 rounded-2xl px-2 py-0.5 transition hover:bg-slate-50">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-600/10 ring-1 ring-sky-200">
                 <ShieldAlert className="h-5 w-5 text-sky-700" />
               </div>
@@ -33,15 +33,17 @@ function PublicHeader() {
               </div>
             </Link>
 
-            <nav className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-2xl bg-white px-1 pb-1 text-slate-950 shadow-[0_1px_0_rgba(15,23,42,0.08),0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-slate-200/80 backdrop-blur-md lg:flex-1 lg:justify-center lg:pb-0" aria-label="Primary">
-              {nav.map(([label, href]) => (
-                <Link key={label} href={href} className="whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-black transition hover:text-black hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
-              ))}
+            <nav className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-2xl bg-white px-1 pb-0.5 text-slate-950 shadow-[0_1px_0_rgba(15,23,42,0.08),0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-slate-200/80 backdrop-blur-md lg:flex-1 lg:justify-center lg:pb-0" aria-label="Primary">
+              <div className="flex min-w-max items-center gap-1">
+                {nav.map(([label, href]) => (
+                  <Link key={label} href={href} className="whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm font-medium text-black transition hover:text-black hover:underline hover:decoration-sky-300 hover:underline-offset-4">{label}</Link>
+                ))}
+              </div>
             </nav>
 
-            <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-2xl bg-white px-1 py-1 text-black shadow-[0_1px_0_rgba(15,23,42,0.08),0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-slate-200/80 sm:gap-3 lg:justify-end">
-              <Link href="/ops" className="whitespace-nowrap rounded-full border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-black transition hover:border-slate-300 hover:text-black">Dispatcher Ops Console</Link>
-              <Link href="#booking" className="inline-flex whitespace-nowrap items-center justify-center rounded-full bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(2,132,199,0.22)] transition hover:bg-sky-500">Book a Ride</Link>
+            <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-2xl bg-white px-1 py-0.5 text-black shadow-[0_1px_0_rgba(15,23,42,0.08),0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-slate-200/80 sm:gap-3 lg:justify-end">
+              <Link href="/ops" className="whitespace-nowrap rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm font-medium text-black transition hover:border-slate-300 hover:text-black">Dispatcher Ops Console</Link>
+              <Link href="#booking" className="inline-flex whitespace-nowrap items-center justify-center rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(2,132,199,0.22)] transition hover:bg-sky-500">Book a Ride</Link>
             </div>
           </div>
         </div>
@@ -92,7 +94,6 @@ function CommunityRidesSection() {
     { title: 'Everyday trips', body: 'Work, shopping, appointments and visits.' },
     { title: 'Scheduled rides', body: 'Plan transport ahead for important journeys.' },
     { title: 'Family rides', body: 'Book trusted transport for relatives or dependents where appropriate.' },
-    { title: 'Airport transfers — future', body: 'Planned for a later PoleSafe release and shown here as secondary.' },
   ];
 
   return (
@@ -103,7 +104,6 @@ function CommunityRidesSection() {
             <div className="inline-flex items-center rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">Community Rides</div>
             <h2 className="mt-4 max-w-xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">Everyday rides, built around your community.</h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">Book trusted local transport for work, appointments, shopping, family visits and scheduled journeys — with PoleSafe accountability built in.</p>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-400 sm:text-[15px]">Uganda-first mobility for everyday riders and families, with the current PoleSafe payment flow where already supported.</p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link href="#booking" className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(14,165,233,0.25)] transition hover:bg-sky-400">Explore ride options</Link>
             </div>
@@ -111,7 +111,7 @@ function CommunityRidesSection() {
           <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
             <div className="grid gap-3 sm:grid-cols-2">
               {useCases.map((item) => (
-                <article key={item.title} className={item.title === 'Airport transfers — future' ? 'rounded-[1.5rem] border border-amber-200 bg-amber-50/70 p-4 shadow-sm sm:p-5' : 'rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5'}>
+                <article key={item.title} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                   <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{item.title}</div>
                   <p className="mt-3 text-sm leading-6 text-slate-700">{item.body}</p>
                 </article>
@@ -132,54 +132,21 @@ function CommunityRidesSection() {
                   ))}
                 </div>
               </div>
-              <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#08111f_0%,#0b1730_100%)] p-4 text-white shadow-sm sm:p-5">
-                <div className="flex items-center justify-between">
+              <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-4 text-slate-950 shadow-sm sm:p-5">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Uganda mobility visual</div>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">A PoleSafe car, boda and van shown as one mobility system for Uganda.</p>
+                    <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Mobility visual</div>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">A single Uganda mobility system shown as a real image.</p>
                   </div>
                 </div>
-                <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                  <div className="grid gap-3 md:grid-cols-[1.05fr_0.95fr] md:items-center">
-                    <div className="relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02))] p-4">
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.2),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.16),transparent_28%),radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.12),transparent_34%)]" />
-                      <div className="relative grid gap-3 sm:grid-cols-3">
-                        <div className="flex flex-col gap-3 rounded-[1.15rem] border border-white/10 bg-slate-950/30 p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/15 ring-1 ring-sky-400/25"><CarFront className="h-6 w-6 text-sky-200" /></div>
-                            <div>
-                              <div className="text-sm font-semibold text-white">PoleSafe car</div>
-                              <div className="text-sm text-slate-300">Community / private rides</div>
-                            </div>
-                          </div>
-                          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">Private mobility for everyday trips and trusted ride use cases.</div>
-                        </div>
-                        <div className="flex flex-col gap-3 rounded-[1.15rem] border border-white/10 bg-slate-950/30 p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/15 ring-1 ring-sky-400/25"><Bike className="h-6 w-6 text-sky-200" /></div>
-                            <div>
-                              <div className="text-sm font-semibold text-white">PoleSafe boda</div>
-                              <div className="text-sm text-slate-300">Everyday Uganda mobility</div>
-                            </div>
-                          </div>
-                          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">Shown for urban mobility context only, not school-child transport.</div>
-                        </div>
-                        <div className="flex flex-col gap-3 rounded-[1.15rem] border border-white/10 bg-slate-950/30 p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/15 ring-1 ring-sky-400/25"><svg viewBox="0 0 24 24" className="h-6 w-6 text-sky-200" aria-hidden="true"><path fill="currentColor" d="M3 10.5 12 4l9 6.5v8.5a1 1 0 0 1-1 1h-4v-6H8v6H4a1 1 0 0 1-1-1z"/></svg></div>
-                            <div>
-                              <div className="text-sm font-semibold text-white">PoleSafe van</div>
-                              <div className="text-sm text-slate-300">School / fleet transport</div>
-                            </div>
-                          </div>
-                          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">School vans and fleet transport for coordinated group journeys.</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="rounded-[1.35rem] border border-sky-200/20 bg-slate-950/20 p-4 text-sm leading-6 text-slate-200">
-                      <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Mobility system</div>
-                      <p className="mt-2 text-slate-300">One coordinated visual for the three vehicle types, keeping the car, boda and van in the same visual language.</p>
-                    </div>
+                <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                  <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[1.25rem] bg-white">
+                    <Image src="/images/mobility/polesafe-mobility-car-boda-van.png" alt="PoleSafe mobility scene showing car, boda and van" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain object-center" />
+                  </div>
+                  <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-3">
+                    <div className="rounded-2xl bg-white px-3 py-2.5 text-center font-medium shadow-sm">Car — Community</div>
+                    <div className="rounded-2xl bg-white px-3 py-2.5 text-center font-medium shadow-sm">Boda — Uganda mobility</div>
+                    <div className="rounded-2xl bg-white px-3 py-2.5 text-center font-medium shadow-sm">Van — School & fleet</div>
                   </div>
                 </div>
               </div>
@@ -470,20 +437,38 @@ function HamnaSection() {
                         </div>
                       </button>
                       {isActive ? (
-                        <div id={detailId} className="mt-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-slate-200">
-                          {capability.detail}
+                        <div id={detailId} className="mt-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-slate-200 hamna-stagger-group">
+                          {capability.id === 'role-aware' ? (
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {[
+                                { icon: UserRound, title: 'Parents', text: 'Ride updates, pickup guidance, next steps.' },
+                                { icon: Truck, title: 'Drivers', text: 'Procedures, reminders, support boundaries.' },
+                                { icon: GraduationCap, title: 'Schools', text: 'Transport updates, coordination, local context.' },
+                                { icon: UsersRound, title: 'Community Riders', text: 'Booking help, journey info, Uganda-first support.' },
+                              ].map((item, index) => {
+                                const ItemIcon = item.icon;
+                                return (
+                                  <div key={item.title} className="hamna-stagger-item flex items-start gap-3 rounded-2xl border border-white/10 bg-slate-950/25 px-3 py-3 transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-safe:animate-[hamna-tile-in_460ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none hover:-translate-y-0.5 active:translate-y-0" style={{ animationDelay: index * 80 + 'ms' }}>
+                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-sky-500/15 ring-1 ring-sky-300/30">
+                                      <ItemIcon className="h-4.5 w-4.5 text-sky-100" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-sm font-semibold text-white">{item.title}</div>
+                                      <div className="text-xs leading-5 text-slate-300">{item.text}</div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            capability.detail
+                          )}
                         </div>
                       ) : null}
                     </div>
                   );
                 })}
               </div>
-              {activeCapability ? (
-                <div id={`hamna-detail-${activeCapability.id}-panel`} className="rounded-[1.5rem] border border-sky-200/40 bg-white/6 p-4 text-sm leading-6 text-slate-200 shadow-[0_14px_30px_rgba(15,23,42,0.12)]">
-                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">{activeCapability.title}</div>
-                  <p className="mt-2">{activeCapability.detail}</p>
-                </div>
-              ) : null}
               <div className="relative overflow-hidden rounded-[2rem] border border-sky-200 bg-[linear-gradient(180deg,#06111f_0%,#0b1730_52%,#09111e_100%)] p-3 shadow-[0_18px_40px_rgba(15,23,42,0.16)] lg:min-h-[31rem] lg:p-4">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.2),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(59,130,246,0.14),transparent_24%),radial-gradient(circle_at_50%_80%,rgba(14,165,233,0.12),transparent_28%)] animate-[hamna-glow_14s_ease-in-out_infinite] motion-reduce:animate-none" />
                 <div className="relative flex h-full flex-col overflow-hidden rounded-[1.5rem] bg-slate-950/10 motion-safe:animate-[hamna-breathe_14s_ease-in-out_infinite] motion-reduce:animate-none">
@@ -523,7 +508,6 @@ function HamnaSection() {
                   <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Role-aware support</div>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Hamna stays grounded in PoleSafe role boundaries while helping each audience understand the transport information that matters to them.</p>
                 </div>
-                <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Presentation only</div>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {roles.map((role) => (
