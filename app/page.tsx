@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, ShieldAlert, School, Smartphone, Users } from 'lucide-react';
+import { ArrowRight, Bike, CarFront, ShieldAlert, School, Smartphone, Users } from 'lucide-react';
 import BookingWidget from '@/components/home/BookingWidget';
 import PoleSafeLive from '@/components/home/PoleSafeLive';
 
@@ -107,10 +107,6 @@ function CommunityRidesSection() {
               <Link href="#booking" className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(14,165,233,0.25)] transition hover:bg-sky-400">Book a Community Ride</Link>
               <Link href="#booking" className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10">Go to booking</Link>
             </div>
-            <div className="mt-7 rounded-[1.75rem] border border-white/10 bg-white/5 p-4 sm:p-5">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Hamna</div>
-              <p className="mt-2 text-sm leading-6 text-slate-200">Hamna can guide riders through booking, explain ride updates and help with next steps.</p>
-            </div>
           </div>
           <div className="bg-slate-50 px-5 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -121,18 +117,50 @@ function CommunityRidesSection() {
                 </article>
               ))}
             </div>
-            <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Community ride preview</div>
-                  <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Trusted local transport with a clean, premium booking experience for everyday mobility.</p>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr]">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4 sm:p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Community ride preview</div>
+                    <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Trusted local transport with a clean, premium booking experience for everyday mobility.</p>
+                  </div>
+                  <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Accountable by design</div>
                 </div>
-                <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Accountable by design</div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {['Trusted driver context', 'Planned journeys', 'Family-friendly booking', 'Current payment flow'].map((item) => (
+                    <div key={item} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{item}</div>
+                  ))}
+                </div>
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {['Trusted driver context', 'Planned journeys', 'Family-friendly booking', 'Current payment flow'].map((item) => (
-                  <div key={item} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{item}</div>
-                ))}
+              <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#08111f_0%,#0b1730_100%)] p-4 text-white shadow-sm sm:p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Uganda mobility visual</div>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">A PoleSafe car and boda, shown as part of the real mobility mix in Uganda.</p>
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className="relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/15 ring-1 ring-sky-400/25"><CarFront className="h-6 w-6 text-sky-200" /></div>
+                      <div>
+                        <div className="text-sm font-semibold text-white">PoleSafe car</div>
+                        <div className="text-sm text-slate-300">Private car mobility</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] px-4 py-3 text-sm text-slate-200">Premium, branded transport for supported ride use cases.</div>
+                  </div>
+                  <div className="relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/15 ring-1 ring-sky-400/25"><Bike className="h-6 w-6 text-sky-200" /></div>
+                      <div>
+                        <div className="text-sm font-semibold text-white">PoleSafe boda</div>
+                        <div className="text-sm text-slate-300">Urban mobility context</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] px-4 py-3 text-sm text-slate-200">Included to reflect Uganda-first mobility, not school-child transport.</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
