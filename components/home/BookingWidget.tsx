@@ -132,6 +132,9 @@ export default function BookingWidget() {
                 </button>
               ))}
             </div>
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-slate-200">
+              One booking gateway for community and school rides. Select your ride type, enter details, and continue in one flow.
+            </div>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
